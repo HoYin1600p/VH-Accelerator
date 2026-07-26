@@ -144,3 +144,33 @@ tasks.named('jar', Jar).configure {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+tasks.register('verifyMixinPackageLayout') {
+    group = 'verification'
+    description = 'Rejects nested helper classes compiled inside the reserved Mixin package.'
+    dependsOn tasks.named('classes')
+
+    doLast {
+        def nestedMixinClasses = fileTree(
+                layout.buildDirectory.dir(
+                        'classes/java/main/dev/hoyin1600p/launchfastertoo/mixin'
+                )
+        ) {
+            include '**/*$*.class'
+        }
+
+        if (!nestedMixinClasses.isEmpty()) {
+            def relativeNames = nestedMixinClasses.files.collect {
+                layout.buildDirectory.get().asFile.toPath().relativize(it.toPath())
+            }.sort()
+            throw new GradleException(
+                    'Nested classes cannot live in the reserved Mixin package: ' +
+                    relativeNames.join(', ')
+            )
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('verifyMixinPackageLayout')
+}
