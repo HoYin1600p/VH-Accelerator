@@ -9,6 +9,7 @@ Git-ignored copies of:
 | --- | --- | --- | --- |
 | The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |
 | The Vault custom MVP | `3.21.62` | Adjacent testing-pack repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
+| The Vault official | `3.21.5.6882` | CurseForge project `458203`, file `8508674` | `D0B330CA60D8193574B9C419F96C4BA7C444EFB606DF20973B5B0823D9586A10` |
 | The Vault official | `3.21.6.6884` | CurseForge project `458203`, file `8508967` | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
 | JEI 10 | `10.2.1.1009` | Remastered compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
 | JEI 9 | `9.7.2.1001` | Custom MVP compatibility instance | `B647023956683079A80DD31D3C42BDB4348A927B0441D507E24931501B8CCA9E` |
@@ -54,7 +55,7 @@ Relevant active mods observed in that instance include:
 
 Compatibility conclusions:
 
-- The same output jar supports all three Vault profiles. Vault-facing classes
+- The same output jar supports all four Vault profiles. Vault-facing classes
   and descriptors used by the mod are present in every target.
 - JEI 9 and JEI 10 internals live in separate packages inside VH Accelerator.
   Startup detection selects exactly one generation by checking JEI's class

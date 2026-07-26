@@ -82,9 +82,10 @@ implementation reference and is not part of this repository's tracked source.
 .\gradlew.bat build
 ```
 
-The build compiles the same sources against all three supported profiles:
-Remastered with JEI 10, the custom MVP with JEI 9, and official 3.21.6 with
-JEI 9. It then verifies that the reobfuscated output contains both isolated
-JEI compatibility generations without bundling JEI or Vault classes.
+The build compiles the same sources against all four supported profiles:
+Remastered with JEI 10; the custom MVP with JEI 9; and official 3.21.5 and
+3.21.6 with JEI 9. It then verifies that the reobfuscated output contains
+both isolated JEI compatibility generations without bundling JEI or Vault
+classes.
 
 The single reobfuscated mod jar is written to `build/libs/`.
