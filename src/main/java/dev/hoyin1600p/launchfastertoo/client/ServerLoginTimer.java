@@ -90,6 +90,10 @@ public final class ServerLoginTimer {
         return lastSample;
     }
 
+    public static synchronized boolean isActive() {
+        return startNanos >= 0L;
+    }
+
     private static long nanosToMillis(long nanos) {
         return nanos / 1_000_000L;
     }

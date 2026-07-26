@@ -31,7 +31,12 @@ public final class LaunchFasterTooClient {
 
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
+            ServerTransferTimer.cancelActiveAttempt();
             ServerLoginTimer.markStart();
+        } else if (event.getScreen() instanceof ReceivingLevelScreen
+                && !ServerLoginTimer.isActive()
+                && !ServerTransferTimer.isActive()) {
+            ServerTransferTimer.markStart("receiving-level screen");
         }
     }
 
@@ -49,23 +54,30 @@ public final class LaunchFasterTooClient {
                 (line, text) -> brandingLines[0] = line + 1
         );
         ServerLoginTimer.Sample lastLogin = ServerLoginTimer.lastSample();
-        String launchText = lastLogin == null
-                ? String.format(
-                        "LaunchFasterToo: Launch %.2fs",
-                        LaunchTimer.elapsedMillis() / 1000.0
-                )
-                : String.format(
-                        "LaunchFasterToo: Launch %.2fs | Last server login %.2fs",
-                        LaunchTimer.elapsedMillis() / 1000.0,
-                        lastLogin.totalMillis() / 1000.0
-                );
+        ServerTransferTimer.Sample lastTransfer = ServerTransferTimer.lastSample();
+        StringBuilder launchText = new StringBuilder(String.format(
+                "LaunchFasterToo: Launch %.2fs",
+                LaunchTimer.elapsedMillis() / 1000.0
+        ));
+        if (lastLogin != null) {
+            launchText.append(String.format(
+                    " | Last server login %.2fs",
+                    lastLogin.totalMillis() / 1000.0
+            ));
+        }
+        if (lastTransfer != null) {
+            launchText.append(String.format(
+                    " | Last transfer %.2fs",
+                    lastTransfer.totalMillis() / 1000.0
+            ));
+        }
         int y = event.getScreen().height - (10 + brandingLines[0] * 10);
 
         event.getPoseStack().pushPose();
         GuiComponent.drawString(
                 event.getPoseStack(),
                 Minecraft.getInstance().font,
-                launchText,
+                launchText.toString(),
                 2,
                 y,
                 0x55FF55
@@ -87,6 +99,7 @@ public final class LaunchFasterTooClient {
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
         ServerLoginTimer.cancelActiveAttempt();
+        ServerTransferTimer.cancelActiveAttempt();
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {
@@ -98,21 +111,33 @@ public final class LaunchFasterTooClient {
             return;
         }
 
-        ServerLoginTimer.Sample sample = ServerLoginTimer.markFirstPlayableFrame();
-        if (sample == null
-                || !LaunchFasterTooClientConfig.VALUES.showLaunchTimer.get()) {
+        ServerLoginTimer.Sample loginSample = ServerLoginTimer.markFirstPlayableFrame();
+        ServerTransferTimer.Sample transferSample =
+                ServerTransferTimer.markFirstPlayableFrame();
+        if (!LaunchFasterTooClientConfig.VALUES.showLaunchTimer.get()) {
             return;
         }
 
-        String text = String.format(
-                "[LaunchFasterToo] Launch: %.2fs | Server login: %.2fs",
-                LaunchTimer.elapsedMillis() / 1000.0,
-                sample.totalMillis() / 1000.0
-        );
-        minecraft.player.displayClientMessage(
-                new TextComponent(text).withStyle(ChatFormatting.GREEN),
-                false
-        );
+        if (loginSample != null) {
+            String text = String.format(
+                    "[LaunchFasterToo] Launch: %.2fs | Server login: %.2fs",
+                    LaunchTimer.elapsedMillis() / 1000.0,
+                    loginSample.totalMillis() / 1000.0
+            );
+            minecraft.player.displayClientMessage(
+                    new TextComponent(text).withStyle(ChatFormatting.GREEN),
+                    false
+            );
+        } else if (transferSample != null) {
+            String text = String.format(
+                    "[LaunchFasterToo] Server/world transfer: %.2fs",
+                    transferSample.totalMillis() / 1000.0
+            );
+            minecraft.player.displayClientMessage(
+                    new TextComponent(text).withStyle(ChatFormatting.GREEN),
+                    false
+            );
+        }
     }
 
     private static void showLaunchOnlyMessage() {
