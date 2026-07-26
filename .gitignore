@@ -1,0 +1,21 @@
+# Gradle / IDE
+.gradle/
+build/
+out/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Minecraft run directories
+run/
+run-*/
+logs/
+
+# Local reverse-engineering material. This directory contains the original jar
+# and generated decompiler output and must never be committed.
+/reference/
+
+# Local compile-only mod jars. See libs/README.md for pinned artifact details.
+/libs/*.jar

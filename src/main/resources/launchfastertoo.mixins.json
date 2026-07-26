@@ -1,0 +1,38 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.hoyin1600p.launchfastertoo.mixin",
+  "plugin": "dev.hoyin1600p.launchfastertoo.mixin.LaunchFasterTooMixinPlugin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "launchfastertoo.refmap.json",
+  "mixins": [
+    "ServerMainMixin",
+    "SimpleReloadInstanceMixin",
+    "ForgeRegistryMixin",
+    "BlockStateMixin",
+    "ReloadableResourceManagerMixin"
+  ],
+  "client": [
+    "client.ClientMainMixin",
+    "client.LoadingOverlayMixin",
+    "client.TitleScreenMixin",
+    "client.MinecraftUserApiMixin",
+    "client.BlockModelMixin",
+    "client.ModelBakeryMixin",
+    "compat.jei.IngredientFilterMixin",
+    "compat.jei.ClientLifecycleHandlerMixin",
+    "compat.jei.InternalMixin",
+    "compat.jei.JeiStarterMixin",
+    "compat.jei.PluginLoaderMixin",
+    "compat.jeitweaker.JeiTweakerPluginMixin",
+    "compat.powah.WikiMixin",
+    "compat.vaulthunters.GroupUtilsMixin",
+    "compat.vaulthunters.TooltipConfigMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
