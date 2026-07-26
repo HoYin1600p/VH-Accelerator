@@ -110,7 +110,9 @@ public final class LaunchFasterTooClientConfig {
 
             builder.push("display");
             showLaunchTimer = builder
-                    .comment("Shows measured launch time on the title screen and after joining a world.")
+                    .comment(
+                            "Shows measured launch time on the title screen and after joining a world.",
+                            "Multiplayer joins also show connect-to-first-playable-frame server login time.")
                     .define("showLaunchTimer", true);
             builder.pop();
         }

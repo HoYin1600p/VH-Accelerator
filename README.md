@@ -13,7 +13,8 @@ in the local LaunchFaster 1.0 jar. It has:
 - client and dedicated-server run configurations
 - separate common and physical-client initialization paths
 - side-aware common and client mixins
-- client and dedicated-server launch timing
+- client and dedicated-server launch timing plus repeatable multiplayer
+  connect-to-first-playable-frame timing
 - model loading, atlas preparation, model baking, resource-list, reload, and
   BlockState optimization paths
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault

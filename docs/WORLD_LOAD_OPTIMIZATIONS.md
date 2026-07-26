@@ -39,3 +39,19 @@ winning.
 If a particular JEI plugin blocks indefinitely during registration, disable
 `asyncJeiStartup`. LaunchFasterToo intentionally does not start a second JEI
 build concurrently with a stuck worker.
+
+## Server-login timing
+
+Each multiplayer connection measures the interval from opening Minecraft's
+connect screen through client-player initialization to the first rendered
+world frame after the Downloading Terrain screen closes. The chat display
+shows:
+
+`[LaunchFasterToo] Launch: 00.00s | Server login: 00.00s`
+
+The log records the total in milliseconds and splits it into time before
+client-player initialization and time from initialization to the first
+playable frame. It also records the important world-load settings at the
+start of each attempt. Use the total server-login value for comparisons and
+run several joins per configuration because network and server tick load add
+normal variance.
