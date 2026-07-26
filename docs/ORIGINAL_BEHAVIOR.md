@@ -9,7 +9,7 @@ It is an implementation guide, not tracked decompiler output.
 |---|---|---|---|---|
 | Client launch timer | Client | Starts at `client.main.Main.main`; ends when the initial `LoadingOverlay` reload reports done | Implemented with monotonic time | Measurement only |
 | Launch time in logs | Client | Logs elapsed launch time when the loading overlay finishes | Implemented | Measurement only |
-| Launch time on title screen | Client | Draws a green line above Forge branding | Implemented | UI injection can conflict with title-screen replacements |
+| Launch time on title screen | Client | Draws a green line above Forge branding | Implemented through Forge's post-screen render event | Remains visible when menu mods replace or cancel vanilla `TitleScreen.render` |
 | Launch time in chat | Client | Shows once after the first world/server join | Implemented | Measurement only |
 | Parallel model JSON reads | Client | Lists every `models/*.json` resource and reads them on the background executor before model parsing | Implemented in bounded batches | More memory is used temporarily; resource-pack implementations must tolerate concurrent reads |
 | Parallel atlas preparation | Client | Prepares independent texture atlases on the background executor and bypasses the vanilla serial loop | Implemented in bounded batches with an automatic custom-model safety gate | Falls back to the original serial loop when any dynamic/custom model graph is present |

@@ -15,7 +15,6 @@
   "client": [
     "client.ClientMainMixin",
     "client.LoadingOverlayMixin",
-    "client.TitleScreenMixin",
     "client.MinecraftUserApiMixin",
     "client.BlockModelMixin",
     "client.ModelBakeryMixin",
