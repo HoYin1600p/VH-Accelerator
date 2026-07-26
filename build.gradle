@@ -96,8 +96,8 @@ dependencies {
 
     // Optional at runtime. These jars expose only the APIs targeted by guarded
     // compatibility mixins and are deliberately not bundled in our output jar.
-    compileOnly files(localCompileDependency('the_vault-1.18.2-3.21.62.jar'))
-    compileOnly files(localCompileDependency('jei-1.18.2-9.7.2.1001.jar'))
+    compileOnly files(localCompileDependency('the_vault-1.18.2-20.0.3-remastered.6872.jar'))
+    compileOnly files(localCompileDependency('jei-1.18.2-forge-10.2.1.1009.jar'))
     compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
     compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
     compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))

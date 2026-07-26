@@ -29,7 +29,7 @@ additional launch-time work worth profiling.
 
 The older VHClientOptimize reference has a separate
 [behavior and risk analysis](docs/VH_CLIENT_OPTIMIZE_ANALYSIS.md).
-The pinned Vault/JEI versions and read-only VaultersParadise comparison are in
+The pinned Vault/JEI versions and read-only VaultCrafters comparison are in
 [the compatibility baseline](docs/COMPATIBILITY_BASELINE.md).
 Configuration and cluster-test coverage for the new world-load paths are in
 [the world-load optimization guide](docs/WORLD_LOAD_OPTIMIZATIONS.md).
@@ -45,8 +45,8 @@ The local `reference/` directory is intentionally ignored by Git. It contains:
 - `modernfix-compat/`, a comparison of the local compatibility build
 - `vh-client-optimize/`, the 1.0.4-u19 jar, decompiled sources, and extracted
   metadata/resources
-- `vault-remastered/`, `vault-mvp/`, `jei/`, `powah/`, and `jeitweaker/`,
-  local decompiled compatibility references
+- `vault-remastered/`, `jei/`, `powah/`, and `jeitweaker/`, local decompiled
+  compatibility references
 
 Reference jar SHA-256:
 `E7594E83836E7F1AEFD2533CEBAD7F22DEB7682A35796E810042F34164F59BFC`

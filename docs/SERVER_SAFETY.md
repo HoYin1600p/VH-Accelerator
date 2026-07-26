@@ -22,7 +22,7 @@ failure.
 
 ## Server paths in LaunchFasterToo
 
-| Path | Default without ModernFix | VaultersParadise with ModernFix |
+| Path | Default without ModernFix | With ModernFix |
 | --- | --- | --- |
 | Dedicated-server launch timer | Active | Active |
 | Resource-list result cache | Active | Disabled in favor of ModernFix |
@@ -42,14 +42,14 @@ experiments but are not safe defaults:
 - the replacement reload coordinator currently adds timing visibility but
   does not reduce the work already overlapped by Minecraft 1.18.2.
 
-## VaultersParadise optimization ownership
+## Optimization ownership with ModernFix
 
-The pack already contains ModernFix, LazyDFU, Lightspeed, Fastload Reforged,
-FerriteCore, Smooth Boot, and Starlight. LaunchFasterToo yields overlapping
-transformations to ModernFix. This means its first MVP server build is
-deliberately conservative: it measures total dedicated-server startup and
-does not stack another implementation over the pack's existing registry,
-resource, reload, or BlockState optimizations.
+The inspected compatibility instance already contains ModernFix, LazyDFU,
+Lightspeed, Fastload Reforged, FerriteCore, Smooth Boot, and Starlight.
+LaunchFasterToo yields overlapping transformations to ModernFix. This keeps
+the primary build deliberately conservative: it measures total
+dedicated-server startup and does not stack another implementation over the
+pack's existing registry, resource, reload, or BlockState optimizations.
 
 The next useful server work should be driven by timings from the real cluster.
 Likely investigation points are Vault configuration loading and individual

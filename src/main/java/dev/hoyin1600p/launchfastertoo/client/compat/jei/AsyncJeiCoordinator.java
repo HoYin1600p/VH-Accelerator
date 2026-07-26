@@ -1,32 +1,31 @@
 package dev.hoyin1600p.launchfastertoo.client.compat.jei;
 
 import dev.hoyin1600p.launchfastertoo.LaunchFasterToo;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import mezz.jei.Internal;
 import mezz.jei.api.IModPlugin;
+import mezz.jei.common.Internal;
+import mezz.jei.common.ingredients.RegisteredIngredients;
+import mezz.jei.common.load.PluginCaller;
+import mezz.jei.common.runtime.JeiHelpers;
+import mezz.jei.common.runtime.JeiRuntime;
+import mezz.jei.common.startup.JeiEventHandlers;
+import mezz.jei.common.startup.JeiStarter;
+import mezz.jei.common.util.RecipeErrorUtil;
 import mezz.jei.forge.events.RuntimeEventSubscriptions;
-import mezz.jei.ingredients.IngredientVisibility;
-import mezz.jei.ingredients.RegisteredIngredients;
-import mezz.jei.load.PluginCaller;
-import mezz.jei.runtime.JeiHelpers;
-import mezz.jei.runtime.JeiRuntime;
-import mezz.jei.startup.JeiStarter;
-import mezz.jei.util.RecipeErrorUtil;
+import mezz.jei.forge.startup.EventRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Owns one JEI preparation at a time. Worker-built globals, event listeners,
- * and runtime callbacks stay isolated until the matching connection
+ * Owns one JEI preparation at a time. Worker-built globals and runtime
+ * callbacks stay in a thread-local publication until the matching connection
  * generation finalizes on Minecraft's main thread.
  */
 public final class AsyncJeiCoordinator {
@@ -46,10 +45,6 @@ public final class AsyncJeiCoordinator {
 
     public static boolean isManagingStartup() {
         return active != null;
-    }
-
-    public static boolean isPreparingOnCurrentThread() {
-        return PUBLICATION.get() != null && !SYNCHRONOUS_FALLBACK.get();
     }
 
     public static void start(JeiStarter starter, RuntimeEventSubscriptions subscriptions) {
@@ -107,15 +102,6 @@ public final class AsyncJeiCoordinator {
         }
     }
 
-    public static void setIngredientVisibility(IngredientVisibility visibility) {
-        Publication publication = PUBLICATION.get();
-        if (publication == null || SYNCHRONOUS_FALLBACK.get()) {
-            Internal.setIngredientVisibility(visibility);
-        } else {
-            publication.ingredientVisibility = visibility;
-        }
-    }
-
     public static void setHelpers(JeiHelpers helpers) {
         Publication publication = PUBLICATION.get();
         if (publication == null || SYNCHRONOUS_FALLBACK.get()) {
@@ -148,35 +134,27 @@ public final class AsyncJeiCoordinator {
         }
     }
 
-    public static RegisteredIngredients getThreadRegisteredIngredients() {
-        Publication publication = PUBLICATION.get();
-        return publication == null ? null : publication.registeredIngredients;
-    }
-
-    public static IngredientVisibility getThreadIngredientVisibility() {
-        Publication publication = PUBLICATION.get();
-        return publication == null ? null : publication.ingredientVisibility;
-    }
-
     public static JeiHelpers getThreadHelpers() {
         Publication publication = PUBLICATION.get();
         return publication == null ? null : publication.helpers;
     }
 
-    public static JeiRuntime getThreadRuntime() {
+    public static RegisteredIngredients getThreadRegisteredIngredients() {
         Publication publication = PUBLICATION.get();
-        return publication == null ? null : publication.runtime;
+        return publication == null ? null : publication.registeredIngredients;
+    }
+
+    public static Optional<JeiRuntime> getThreadRuntime() {
+        Publication publication = PUBLICATION.get();
+        return publication == null ? null : Optional.ofNullable(publication.runtime);
     }
 
     private static void prepare(Build build) {
         Publication publication = new Publication();
-        StagedSubscriptions stagedSubscriptions = new StagedSubscriptions();
         PUBLICATION.set(publication);
         try {
-            build.starter.start(stagedSubscriptions);
-            Minecraft.getInstance().execute(
-                    () -> finalizeOnMain(build, publication, stagedSubscriptions)
-            );
+            JeiEventHandlers handlers = build.starter.start();
+            Minecraft.getInstance().execute(() -> finalizeOnMain(build, publication, handlers));
         } catch (Throwable throwable) {
             Minecraft.getInstance().execute(() -> fallbackOnMain(build, throwable));
         } finally {
@@ -187,7 +165,7 @@ public final class AsyncJeiCoordinator {
     private static void finalizeOnMain(
             Build build,
             Publication publication,
-            StagedSubscriptions stagedSubscriptions
+            JeiEventHandlers handlers
     ) {
         if (!isCurrent(build)) {
             LaunchFasterToo.LOGGER.info("Discarded stale JEI generation {}", build.generation);
@@ -195,7 +173,6 @@ public final class AsyncJeiCoordinator {
         }
         if (publication.registeredIngredients == null
                 || publication.recipeErrorIngredients == null
-                || publication.ingredientVisibility == null
                 || publication.helpers == null
                 || publication.runtime == null
                 || publication.pluginPublication == null) {
@@ -209,11 +186,10 @@ public final class AsyncJeiCoordinator {
         try {
             Internal.setRegisteredIngredients(publication.registeredIngredients);
             RecipeErrorUtil.setRegisteredIngredients(publication.recipeErrorIngredients);
-            Internal.setIngredientVisibility(publication.ingredientVisibility);
             Internal.setHelpers(publication.helpers);
             Internal.setRuntime(publication.runtime);
             publication.pluginPublication.run();
-            stagedSubscriptions.publishTo(build.subscriptions);
+            EventRegistration.registerEvents(build.subscriptions, handlers);
             clearIfCurrent(build);
             LaunchFasterToo.LOGGER.info("Published JEI generation {} on the main thread", build.generation);
         } catch (Throwable throwable) {
@@ -237,12 +213,12 @@ public final class AsyncJeiCoordinator {
         Internal.setRuntime(null);
         SYNCHRONOUS_FALLBACK.set(true);
         try {
-            build.starter.start(build.subscriptions);
+            JeiEventHandlers handlers = build.starter.start();
             if (!isCurrent(build)) {
-                build.subscriptions.clear();
                 Internal.setRuntime(null);
                 return;
             }
+            EventRegistration.registerEvents(build.subscriptions, handlers);
             clearIfCurrent(build);
             LaunchFasterToo.LOGGER.info(
                     "JEI generation {} recovered with synchronous startup",
@@ -279,7 +255,6 @@ public final class AsyncJeiCoordinator {
     private static final class Publication {
         private RegisteredIngredients registeredIngredients;
         private RegisteredIngredients recipeErrorIngredients;
-        private IngredientVisibility ingredientVisibility;
         private JeiHelpers helpers;
         private JeiRuntime runtime;
         private Runnable pluginPublication;
@@ -302,49 +277,6 @@ public final class AsyncJeiCoordinator {
             this.level = level;
             this.starter = starter;
             this.subscriptions = subscriptions;
-        }
-    }
-
-    private static final class StagedSubscriptions extends RuntimeEventSubscriptions {
-        private final List<Registration<?>> registrations = new ArrayList<>();
-
-        private StagedSubscriptions() {
-            super(MinecraftForge.EVENT_BUS);
-        }
-
-        @Override
-        public <T extends Event> void register(Class<T> eventType, Consumer<T> listener) {
-            registrations.add(new Registration<>(eventType, listener));
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return registrations.isEmpty();
-        }
-
-        @Override
-        public void clear() {
-            registrations.clear();
-        }
-
-        private void publishTo(RuntimeEventSubscriptions target) {
-            for (Registration<?> registration : registrations) {
-                registration.publishTo(target);
-            }
-        }
-    }
-
-    private static final class Registration<T extends Event> {
-        private final Class<T> eventType;
-        private final Consumer<T> listener;
-
-        private Registration(Class<T> eventType, Consumer<T> listener) {
-            this.eventType = eventType;
-            this.listener = listener;
-        }
-
-        private void publishTo(RuntimeEventSubscriptions target) {
-            target.register(eventType, listener);
         }
     }
 

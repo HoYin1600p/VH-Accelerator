@@ -1,11 +1,11 @@
 package dev.hoyin1600p.launchfastertoo.mixin.compat.jei;
 
 import dev.hoyin1600p.launchfastertoo.client.compat.jei.AsyncJeiCoordinator;
-import mezz.jei.Internal;
-import mezz.jei.ingredients.IngredientVisibility;
-import mezz.jei.ingredients.RegisteredIngredients;
-import mezz.jei.runtime.JeiHelpers;
-import mezz.jei.runtime.JeiRuntime;
+import java.util.Optional;
+import mezz.jei.common.Internal;
+import mezz.jei.common.ingredients.RegisteredIngredients;
+import mezz.jei.common.runtime.JeiHelpers;
+import mezz.jei.common.runtime.JeiRuntime;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,8 +17,9 @@ public abstract class InternalMixin {
     private static void launchfastertoo$getThreadHelpers(
             CallbackInfoReturnable<JeiHelpers> cir
     ) {
-        if (AsyncJeiCoordinator.isPreparingOnCurrentThread()) {
-            cir.setReturnValue(AsyncJeiCoordinator.getThreadHelpers());
+        JeiHelpers helpers = AsyncJeiCoordinator.getThreadHelpers();
+        if (helpers != null) {
+            cir.setReturnValue(helpers);
         }
     }
 
@@ -26,26 +27,20 @@ public abstract class InternalMixin {
     private static void launchfastertoo$getThreadIngredients(
             CallbackInfoReturnable<RegisteredIngredients> cir
     ) {
-        if (AsyncJeiCoordinator.isPreparingOnCurrentThread()) {
-            cir.setReturnValue(AsyncJeiCoordinator.getThreadRegisteredIngredients());
+        RegisteredIngredients ingredients =
+                AsyncJeiCoordinator.getThreadRegisteredIngredients();
+        if (ingredients != null) {
+            cir.setReturnValue(ingredients);
         }
     }
 
     @Inject(method = "getRuntime", at = @At("HEAD"), cancellable = true)
     private static void launchfastertoo$getThreadRuntime(
-            CallbackInfoReturnable<JeiRuntime> cir
+            CallbackInfoReturnable<Optional<JeiRuntime>> cir
     ) {
-        if (AsyncJeiCoordinator.isPreparingOnCurrentThread()) {
-            cir.setReturnValue(AsyncJeiCoordinator.getThreadRuntime());
-        }
-    }
-
-    @Inject(method = "getIngredientVisibility", at = @At("HEAD"), cancellable = true)
-    private static void launchfastertoo$getThreadVisibility(
-            CallbackInfoReturnable<IngredientVisibility> cir
-    ) {
-        if (AsyncJeiCoordinator.isPreparingOnCurrentThread()) {
-            cir.setReturnValue(AsyncJeiCoordinator.getThreadIngredientVisibility());
+        Optional<JeiRuntime> runtime = AsyncJeiCoordinator.getThreadRuntime();
+        if (runtime != null) {
+            cir.setReturnValue(runtime);
         }
     }
 }

@@ -39,7 +39,3 @@ winning.
 If a particular JEI plugin blocks indefinitely during registration, disable
 `asyncJeiStartup`. LaunchFasterToo intentionally does not start a second JEI
 build concurrently with a stuck worker.
-
-This MVP branch is compiled against the VaultersParadise pack's JEI
-`9.7.2.1001`. Its guarded worker stages JEI 9 runtime event subscriptions
-instead of registering them from the worker.

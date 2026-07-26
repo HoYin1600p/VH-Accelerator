@@ -4,10 +4,10 @@ import dev.hoyin1600p.launchfastertoo.client.compat.jei.AsyncJeiCoordinator;
 import java.util.List;
 import java.util.function.Consumer;
 import mezz.jei.api.IModPlugin;
-import mezz.jei.Internal;
-import mezz.jei.load.PluginCaller;
-import mezz.jei.runtime.JeiRuntime;
-import mezz.jei.startup.JeiStarter;
+import mezz.jei.common.Internal;
+import mezz.jei.common.load.PluginCaller;
+import mezz.jei.common.runtime.JeiRuntime;
+import mezz.jei.common.startup.JeiStarter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -18,7 +18,7 @@ public abstract class JeiStarterMixin {
             method = "start",
             at = @At(
                     value = "INVOKE",
-                    target = "Lmezz/jei/Internal;setRuntime(Lmezz/jei/runtime/JeiRuntime;)V"
+                    target = "Lmezz/jei/common/Internal;setRuntime(Lmezz/jei/common/runtime/JeiRuntime;)V"
             )
     )
     private void launchfastertoo$deferRuntime(JeiRuntime runtime) {
@@ -29,7 +29,7 @@ public abstract class JeiStarterMixin {
             method = "start",
             at = @At(
                     value = "INVOKE",
-                    target = "Lmezz/jei/load/PluginCaller;callOnPlugins(Ljava/lang/String;Ljava/util/List;Ljava/util/function/Consumer;)V"
+                    target = "Lmezz/jei/common/load/PluginCaller;callOnPlugins(Ljava/lang/String;Ljava/util/List;Ljava/util/function/Consumer;)V"
             )
     )
     private void launchfastertoo$deferRuntimePlugins(

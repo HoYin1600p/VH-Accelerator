@@ -2,10 +2,9 @@ package dev.hoyin1600p.launchfastertoo.mixin.compat.jei;
 
 import dev.hoyin1600p.launchfastertoo.client.LaunchFasterTooClientConfig;
 import dev.hoyin1600p.launchfastertoo.client.compat.jei.AsyncJeiCoordinator;
-import mezz.jei.forge.config.ModIdFormattingConfig;
+import mezz.jei.common.startup.JeiStarter;
 import mezz.jei.forge.events.RuntimeEventSubscriptions;
 import mezz.jei.forge.startup.ClientLifecycleHandler;
-import mezz.jei.startup.JeiStarter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,10 +22,6 @@ public abstract class ClientLifecycleHandlerMixin {
     @Final
     private RuntimeEventSubscriptions runtimeSubscriptions;
 
-    @Shadow
-    @Final
-    private ModIdFormattingConfig modIdFormattingConfig;
-
     @Inject(method = "startJei", at = @At("HEAD"), cancellable = true)
     private void launchfastertoo$startGuardedJei(CallbackInfo ci) {
         if (!LaunchFasterTooClientConfig.VALUES.enableClientOptimizations.get()
@@ -34,7 +29,6 @@ public abstract class ClientLifecycleHandlerMixin {
             return;
         }
         ci.cancel();
-        modIdFormattingConfig.checkForModNameFormatOverride();
         AsyncJeiCoordinator.start(jeiStarter, runtimeSubscriptions);
     }
 

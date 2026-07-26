@@ -7,28 +7,29 @@ Git-ignored copies of:
 
 | Component | Version | Source | SHA-256 |
 | --- | --- | --- | --- |
-| The Vault | `3.21.62` | Read-only VaultersParadise repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
-| JEI | `9.7.2.1001` | Read-only VaultersParadise repository | `B647023956683079A80DD31D3C42BDB4348A927B0441D507E24931501B8CCA9E` |
-| Powah | `3.0.8` | Read-only VaultersParadise repository | `C1F87F2258DD623BADF70390D737BCA4B7151FDF76D44538B89BFB768ACF0366` |
-| JEITweaker | `3.0.0.9` | Read-only VaultersParadise repository | `00BEBCDF16C086504CE70422B066AE307083960313BBDB1D845D936281CEBB7D` |
-| CraftTweaker | `9.1.213` | Read-only VaultersParadise repository | `D27B4739F7B4DA0FE92141000E4CFC5BEF617202DE6EB9BB4BB2147E9E1E9C6E` |
+| The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |
+| JEI | `10.2.1.1009` | Read-only compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
+| Powah | `3.0.8` | Read-only compatibility instance | `C1F87F2258DD623BADF70390D737BCA4B7151FDF76D44538B89BFB768ACF0366` |
+| JEITweaker | `3.0.0.9` | Read-only compatibility instance | `00BEBCDF16C086504CE70422B066AE307083960313BBDB1D845D936281CEBB7D` |
+| CraftTweaker | `9.1.213` | Read-only compatibility instance | `D27B4739F7B4DA0FE92141000E4CFC5BEF617202DE6EB9BB4BB2147E9E1E9C6E` |
 
 The binary files are not redistributed. See `libs/README.md` for the expected
 local filenames.
 
-## Read-only VaultersParadise baseline
+## Read-only VaultCrafters comparison
 
-The neighboring mod-pack repository was inspected without modifying it. This
-MVP branch targets its jars directly. The pack identifies itself as version
-`4.0.0` and pins Minecraft `1.18.2` with Forge `40.3.11`.
+The compatibility instance was inspected without modifying it. Its active
+baseline differs from the compile target in one important place:
 
-Relevant active mods observed in the repository include:
+- Instance: `the_vault-1.18.2-20.0.0-remastered.6864.jar`
+- Compile target: `the_vault-1.18.2-20.0.3-remastered.6872.jar`
 
-- The Vault `3.21.62`
-- JEI `9.7.2.1001`
+Relevant active mods observed in that instance include:
+
+- JEI `10.2.1.1009`
 - JEITweaker `3.0.0.9`
 - Just Enough Resources `0.14.2.206`
-- JustEnoughVH `2.0`
+- JustEnoughVH `1.9`
 - ModernFix `5.18.0`
 - LaunchFaster `1.0`
 - LazyDFU `0.1.2`
@@ -40,16 +41,18 @@ Relevant active mods observed in the repository include:
 - Starlight `1.0.2`
 - Memory Leak Fix `1.1.2`
 - Embeddium `0.3.18`
-- Copycats `2.1.4`
+- Copycats `2.2.2`
 - Every Compat `1.5.18`
 - Powah `3.0.8`
 - Selene `1.17.17`
 - Spark `1.10.38`
+- QOL Hunters `0.42.12`
+- Vault Render Optimization `0.2`
 
 Compatibility conclusions:
 
 - ModernFix is already allowed to own the generic mixins that overlap it.
-- On the VaultersParadise server, that disables LaunchFasterToo's reload,
+- On a server with ModernFix, that disables LaunchFasterToo's reload,
   registry, BlockState, and resource-list mixins instead of stacking two
   implementations on the same startup paths.
 - JEI, JEITweaker, Powah, and Vault mixins are selected only when their target
@@ -62,10 +65,10 @@ Compatibility conclusions:
   ordering especially important. The asynchronous JEI mode is therefore
   experimental and disabled by default.
 
-## Earlier Remastered audit of VHClientOptimize ideas
+## Remastered audit of VHClientOptimize ideas
 
-The earlier Remastered comparison found several optimizations that the older
-VHClientOptimize release supplied:
+The current Remastered jar already includes several optimizations that the
+older VHClientOptimize release supplied:
 
 - cached room-to-map-icon lookups;
 - a static Void Crucible voxel shape;
@@ -73,8 +76,7 @@ VHClientOptimize release supplied:
 - cached Vault loot-tooltip lines;
 - cached loot-table-to-item and item-to-loot-table indexes.
 
-Those findings remain implementation history, but this MVP build is compiled
-and checked against Vault `3.21.62`, not the Remastered jar.
+LaunchFasterToo intentionally does not patch these paths again.
 
 The first compatibility implementation contains:
 
@@ -99,11 +101,9 @@ The first compatibility implementation contains:
    complete maps are published together.
 6. **Guarded asynchronous JEI:** optionally prepares one JEI generation on a
    daemon worker. JEI globals are captured in thread-local storage, runtime
-   plugin callbacks happen on the main thread, and JEI 9 event subscriptions
-   are collected in a private staging object before being registered on the
-   main thread. A connection generation plus level identity prevents stale
-   publication. Preparation failures retry synchronously on the same
-   connection.
+   plugin callbacks and event subscription happen on the main thread, and a
+   connection generation plus level identity prevents stale publication.
+   Preparation failures retry synchronously on the same connection.
 
 All compatibility behaviors are client-only, individually configurable, and
 guarded by loaded-mod checks.
@@ -116,8 +116,8 @@ on the recovered optimizer in these ways:
 - a single worker prevents overlapping JEI builds;
 - disconnect and restart events invalidate the current generation;
 - stale work cannot publish a runtime or event listeners;
-- `Internal` helpers, registered ingredients, ingredient visibility, and
-  runtime remain isolated until main-thread finalization;
+- `Internal` helpers, registered ingredients, and runtime remain isolated
+  until main-thread finalization;
 - JEI `onRuntimeAvailable` callbacks retain JEI's normal error handling and
   execute on the main thread;
 - partial event registration is cleared before synchronous recovery.

@@ -1,12 +1,11 @@
 package dev.hoyin1600p.launchfastertoo.mixin.compat.jei;
 
 import dev.hoyin1600p.launchfastertoo.client.compat.jei.AsyncJeiCoordinator;
-import mezz.jei.Internal;
-import mezz.jei.ingredients.IngredientVisibility;
-import mezz.jei.ingredients.RegisteredIngredients;
-import mezz.jei.load.PluginLoader;
-import mezz.jei.runtime.JeiHelpers;
-import mezz.jei.util.RecipeErrorUtil;
+import mezz.jei.common.Internal;
+import mezz.jei.common.ingredients.RegisteredIngredients;
+import mezz.jei.common.load.PluginLoader;
+import mezz.jei.common.runtime.JeiHelpers;
+import mezz.jei.common.util.RecipeErrorUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -17,7 +16,7 @@ public abstract class PluginLoaderMixin {
             method = "<init>",
             at = @At(
                     value = "INVOKE",
-                    target = "Lmezz/jei/Internal;setRegisteredIngredients(Lmezz/jei/ingredients/RegisteredIngredients;)V"
+                    target = "Lmezz/jei/common/Internal;setRegisteredIngredients(Lmezz/jei/common/ingredients/RegisteredIngredients;)V"
             )
     )
     private void launchfastertoo$deferRegisteredIngredients(RegisteredIngredients ingredients) {
@@ -28,7 +27,7 @@ public abstract class PluginLoaderMixin {
             method = "<init>",
             at = @At(
                     value = "INVOKE",
-                    target = "Lmezz/jei/util/RecipeErrorUtil;setRegisteredIngredients(Lmezz/jei/ingredients/RegisteredIngredients;)V"
+                    target = "Lmezz/jei/common/util/RecipeErrorUtil;setRegisteredIngredients(Lmezz/jei/common/ingredients/RegisteredIngredients;)V"
             )
     )
     private void launchfastertoo$deferRecipeErrorIngredients(RegisteredIngredients ingredients) {
@@ -39,18 +38,7 @@ public abstract class PluginLoaderMixin {
             method = "<init>",
             at = @At(
                     value = "INVOKE",
-                    target = "Lmezz/jei/Internal;setIngredientVisibility(Lmezz/jei/ingredients/IngredientVisibility;)V"
-            )
-    )
-    private void launchfastertoo$deferIngredientVisibility(IngredientVisibility visibility) {
-        AsyncJeiCoordinator.setIngredientVisibility(visibility);
-    }
-
-    @Redirect(
-            method = "<init>",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lmezz/jei/Internal;setHelpers(Lmezz/jei/runtime/JeiHelpers;)V"
+                    target = "Lmezz/jei/common/Internal;setHelpers(Lmezz/jei/common/runtime/JeiHelpers;)V"
             )
     )
     private void launchfastertoo$deferHelpers(JeiHelpers helpers) {
