@@ -23,6 +23,7 @@
     "compat.jei.ClientLifecycleHandlerMixin",
     "compat.jei.InternalMixin",
     "compat.jei.JeiStarterMixin",
+    "compat.jei.PluginCallerMixin",
     "compat.jei.PluginLoaderMixin",
     "compat.jeitweaker.JeiTweakerPluginMixin",
     "compat.powah.WikiMixin",

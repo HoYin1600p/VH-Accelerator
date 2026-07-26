@@ -3,6 +3,9 @@ package dev.hoyin1600p.launchfastertoo.client.compat.jei;
 import dev.hoyin1600p.launchfastertoo.LaunchFasterToo;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -39,6 +42,7 @@ public final class AsyncJeiCoordinator {
     );
 
     private static volatile Build active;
+    private static Recovery pendingRecovery;
 
     private AsyncJeiCoordinator() {
     }
@@ -62,10 +66,9 @@ public final class AsyncJeiCoordinator {
         Build build = new Build(GENERATION.incrementAndGet(), level, starter, subscriptions);
         synchronized (LOCK) {
             Build previous = active;
+            pendingRecovery = null;
             active = build;
-            if (previous != null && previous.future != null) {
-                previous.future.cancel(true);
-            }
+            cancel(previous);
             build.future = WORKER.submit(() -> prepare(build));
         }
         LaunchFasterToo.LOGGER.info("Preparing JEI generation {} on a guarded worker", build.generation);
@@ -76,12 +79,68 @@ public final class AsyncJeiCoordinator {
         synchronized (LOCK) {
             Build previous = active;
             active = null;
-            if (previous != null && previous.future != null) {
-                previous.future.cancel(true);
-            }
+            pendingRecovery = null;
+            cancel(previous);
         }
         subscriptions.clear();
         Internal.setRuntime(null);
+    }
+
+    /**
+     * Preserve enough lifecycle state to rebuild JEI when a proxy transfer
+     * interrupts its first, unpublished generation. An already-published
+     * runtime is deliberately left alone for transfer mods that retain JEI
+     * across backend switches.
+     */
+    public static void onClientDisconnected() {
+        Build interrupted;
+        synchronized (LOCK) {
+            interrupted = active;
+            if (interrupted == null) {
+                return;
+            }
+
+            GENERATION.incrementAndGet();
+            active = null;
+            pendingRecovery = new Recovery(
+                    interrupted.starter,
+                    interrupted.subscriptions,
+                    interrupted.generation
+            );
+            cancel(interrupted);
+        }
+        LaunchFasterToo.LOGGER.info(
+                "Paused unpublished JEI generation {} for a possible server transfer",
+                interrupted.generation
+        );
+    }
+
+    /**
+     * Called only after the destination has rendered a playable frame, when
+     * client level and connection state are safe for mod plugin callbacks.
+     */
+    public static void recoverAfterTransfer() {
+        Recovery recovery;
+        synchronized (LOCK) {
+            recovery = pendingRecovery;
+            if (recovery == null || active != null) {
+                return;
+            }
+            pendingRecovery = null;
+        }
+
+        if (Internal.getRuntime().isPresent()) {
+            LaunchFasterToo.LOGGER.info(
+                    "JEI was already published; retained it across the server transfer"
+            );
+            return;
+        }
+
+        LaunchFasterToo.LOGGER.info(
+                "Restarting JEI after server transfer interrupted generation {}",
+                recovery.interruptedGeneration
+        );
+        start(recovery.starter, recovery.subscriptions);
     }
 
     public static void setRegisteredIngredients(RegisteredIngredients ingredients) {
@@ -134,6 +193,68 @@ public final class AsyncJeiCoordinator {
         }
     }
 
+    /**
+     * JEI invokes every mod's registration callbacks through PluginCaller.
+     * Those callbacks may use live Minecraft, network, and mod state and must
+     * therefore execute on the client thread. The worker waits while the
+     * isolated publication context is temporarily installed on that thread.
+     *
+     * @return true when the caller must cancel the original worker invocation
+     */
+    public static boolean routePluginCallToMain(
+            String title,
+            List<IModPlugin> plugins,
+            Consumer<IModPlugin> callback
+    ) {
+        Publication publication = PUBLICATION.get();
+        Minecraft minecraft = Minecraft.getInstance();
+        if (publication == null
+                || SYNCHRONOUS_FALLBACK.get()
+                || minecraft.isSameThread()) {
+            return false;
+        }
+
+        Build build = publication.build;
+        requireCurrent(build);
+        CompletableFuture<Void> mainCall = new CompletableFuture<>();
+        minecraft.execute(() -> {
+            if (!isCurrent(build)) {
+                mainCall.completeExceptionally(new CancellationException(
+                        "JEI generation changed before plugin phase " + title
+                ));
+                return;
+            }
+
+            Publication previous = PUBLICATION.get();
+            PUBLICATION.set(publication);
+            try {
+                PluginCaller.callOnPlugins(title, plugins, callback);
+                mainCall.complete(null);
+            } catch (Throwable throwable) {
+                mainCall.completeExceptionally(throwable);
+            } finally {
+                if (previous == null) {
+                    PUBLICATION.remove();
+                } else {
+                    PUBLICATION.set(previous);
+                }
+            }
+        });
+
+        try {
+            mainCall.get();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException(
+                    "JEI generation interrupted during plugin phase " + title
+            );
+        } catch (ExecutionException exception) {
+            throwUnchecked(exception.getCause());
+        }
+        requireCurrent(build);
+        return true;
+    }
+
     public static JeiHelpers getThreadHelpers() {
         Publication publication = PUBLICATION.get();
         return publication == null ? null : publication.helpers;
@@ -150,13 +271,21 @@ public final class AsyncJeiCoordinator {
     }
 
     private static void prepare(Build build) {
-        Publication publication = new Publication();
+        Publication publication = new Publication(build);
         PUBLICATION.set(publication);
         try {
             JeiEventHandlers handlers = build.starter.start();
+            requireCurrent(build);
             Minecraft.getInstance().execute(() -> finalizeOnMain(build, publication, handlers));
         } catch (Throwable throwable) {
-            Minecraft.getInstance().execute(() -> fallbackOnMain(build, throwable));
+            if (isCancellation(build, throwable)) {
+                clearIfCurrent(build);
+                LaunchFasterToo.LOGGER.info(
+                        "Cancelled stale JEI generation {}", build.generation
+                );
+            } else {
+                Minecraft.getInstance().execute(() -> fallbackOnMain(build, throwable));
+            }
         } finally {
             PUBLICATION.remove();
         }
@@ -168,6 +297,7 @@ public final class AsyncJeiCoordinator {
             JeiEventHandlers handlers
     ) {
         if (!isCurrent(build)) {
+            clearIfCurrent(build);
             LaunchFasterToo.LOGGER.info("Discarded stale JEI generation {}", build.generation);
             return;
         }
@@ -239,9 +369,48 @@ public final class AsyncJeiCoordinator {
     }
 
     private static boolean isCurrent(Build build) {
-        return active == build
+        return !build.cancelled
+                && active == build
                 && GENERATION.get() == build.generation
                 && Minecraft.getInstance().level == build.level;
+    }
+
+    private static void requireCurrent(Build build) {
+        if (!isCurrent(build)) {
+            throw new CancellationException("JEI generation is no longer current");
+        }
+    }
+
+    private static boolean isCancellation(Build build, Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof CancellationException
+                    || current instanceof InterruptedException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return build.cancelled || !isCurrent(build);
+    }
+
+    private static void throwUnchecked(Throwable throwable) {
+        if (throwable instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        if (throwable instanceof Error error) {
+            throw error;
+        }
+        throw new RuntimeException(throwable);
+    }
+
+    private static void cancel(Build build) {
+        if (build == null) {
+            return;
+        }
+        build.cancelled = true;
+        if (build.future != null) {
+            build.future.cancel(true);
+        }
     }
 
     private static void clearIfCurrent(Build build) {
@@ -253,11 +422,16 @@ public final class AsyncJeiCoordinator {
     }
 
     private static final class Publication {
+        private final Build build;
         private RegisteredIngredients registeredIngredients;
         private RegisteredIngredients recipeErrorIngredients;
         private JeiHelpers helpers;
         private JeiRuntime runtime;
         private Runnable pluginPublication;
+
+        private Publication(Build build) {
+            this.build = build;
+        }
     }
 
     private static final class Build {
@@ -265,6 +439,7 @@ public final class AsyncJeiCoordinator {
         private final ClientLevel level;
         private final JeiStarter starter;
         private final RuntimeEventSubscriptions subscriptions;
+        private volatile boolean cancelled;
         private volatile Future<?> future;
 
         private Build(
@@ -277,6 +452,22 @@ public final class AsyncJeiCoordinator {
             this.level = level;
             this.starter = starter;
             this.subscriptions = subscriptions;
+        }
+    }
+
+    private static final class Recovery {
+        private final JeiStarter starter;
+        private final RuntimeEventSubscriptions subscriptions;
+        private final long interruptedGeneration;
+
+        private Recovery(
+                JeiStarter starter,
+                RuntimeEventSubscriptions subscriptions,
+                long interruptedGeneration
+        ) {
+            this.starter = starter;
+            this.subscriptions = subscriptions;
+            this.interruptedGeneration = interruptedGeneration;
         }
     }
 

@@ -1,5 +1,6 @@
 package dev.hoyin1600p.launchfastertoo.client;
 
+import dev.hoyin1600p.launchfastertoo.client.compat.jei.AsyncJeiCoordinator;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -13,6 +14,7 @@ import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.client.event.ScreenOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.internal.BrandingControl;
 
@@ -98,6 +100,9 @@ public final class LaunchFasterTooClient {
     }
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
+        if (ModList.get().isLoaded("jei")) {
+            AsyncJeiCoordinator.onClientDisconnected();
+        }
         ServerLoginTimer.cancelActiveAttempt();
         ServerTransferTimer.cancelActiveAttempt();
     }
@@ -114,6 +119,9 @@ public final class LaunchFasterTooClient {
         ServerLoginTimer.Sample loginSample = ServerLoginTimer.markFirstPlayableFrame();
         ServerTransferTimer.Sample transferSample =
                 ServerTransferTimer.markFirstPlayableFrame();
+        if (transferSample != null && ModList.get().isLoaded("jei")) {
+            AsyncJeiCoordinator.recoverAfterTransfer();
+        }
         if (!LaunchFasterTooClientConfig.VALUES.showLaunchTimer.get()) {
             return;
         }
