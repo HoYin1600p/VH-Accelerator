@@ -98,9 +98,97 @@ dependencies {
     // compatibility mixins and are deliberately not bundled in our output jar.
     compileOnly files(localCompileDependency('the_vault-1.18.2-20.0.3-remastered.6872.jar'))
     compileOnly files(localCompileDependency('jei-1.18.2-forge-10.2.1.1009.jar'))
+    compileOnly files(localCompileDependency('jei-1.18.2-9.7.2.1001.jar'))
     compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
     compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
     compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
+}
+
+def compatibilityProfiles = [
+        remastered: [
+                vault  : 'the_vault-1.18.2-20.0.3-remastered.6872.jar',
+                jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
+                exclude: '**/compat/jei/v9/**'
+        ],
+        mvp       : [
+                vault  : 'the_vault-1.18.2-3.21.62.jar',
+                jei    : 'jei-1.18.2-9.7.2.1001.jar',
+                exclude: '**/compat/jei/v10/**'
+        ],
+        official  : [
+                vault  : 'the_vault-1.18.2-3.21.6.6884.jar',
+                jei    : 'jei-1.18.2-9.7.2.1001.jar',
+                exclude: '**/compat/jei/v10/**'
+        ]
+]
+
+def compatibilityDependencyNames = compatibilityProfiles.values().collectMany {
+    [it.vault, it.jei]
+}.toSet()
+def compatibilityCompileTasks = []
+
+compatibilityProfiles.each { profileName, profile ->
+    def taskName = "compile${profileName.capitalize()}Compatibility"
+    compatibilityCompileTasks << tasks.register(taskName, JavaCompile) {
+        group = 'verification'
+        description = "Compiles the universal sources against the ${profileName} dependency profile."
+
+        source = fileTree('src/main/java') {
+            exclude profile.exclude
+        }
+        classpath = sourceSets.main.compileClasspath.filter {
+            !compatibilityDependencyNames.contains(it.name)
+        } + files(
+                localCompileDependency(profile.vault),
+                localCompileDependency(profile.jei)
+        )
+        destinationDirectory = layout.buildDirectory.dir(
+                "compatibility/${profileName}/classes"
+        )
+        options.compilerArgs.add('-proc:none')
+    }
+}
+
+tasks.register('verifyUnifiedCompatibilityJar') {
+    group = 'verification'
+    description = 'Checks that one output jar contains both JEI compatibility generations.'
+    dependsOn tasks.named('jar')
+
+    doLast {
+        def outputJar = tasks.named('jar', Jar).get().archiveFile.get().asFile
+        def archive = new java.util.zip.ZipFile(outputJar)
+        try {
+            def requiredEntries = [
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/JeiLifecycleBridge.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/v9/AsyncJeiCoordinator.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/v10/AsyncJeiCoordinator.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/ClientLifecycleHandlerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/ClientLifecycleHandlerMixin.class',
+                    'vhaccelerator.mixins.json'
+            ]
+            def missingEntries = requiredEntries.findAll {
+                archive.getEntry(it) == null
+            }
+            if (!missingEntries.isEmpty()) {
+                throw new GradleException(
+                        'Universal compatibility classes are missing from the jar: ' +
+                                missingEntries.join(', ')
+                )
+            }
+
+            def bundledDependencies = archive.entries().toList().findAll {
+                it.name.startsWith('mezz/jei/') ||
+                        it.name.startsWith('iskallia/vault/')
+            }
+            if (!bundledDependencies.isEmpty()) {
+                throw new GradleException(
+                        'The output jar must not bundle Vault or JEI classes.'
+                )
+            }
+        } finally {
+            archive.close()
+        }
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -173,4 +261,6 @@ tasks.register('verifyMixinPackageLayout') {
 
 tasks.named('check').configure {
     dependsOn tasks.named('verifyMixinPackageLayout')
+    dependsOn compatibilityCompileTasks
+    dependsOn tasks.named('verifyUnifiedCompatibilityJar')
 }

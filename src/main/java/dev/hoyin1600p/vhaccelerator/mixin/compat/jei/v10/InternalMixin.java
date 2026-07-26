@@ -1,16 +1,18 @@
-package dev.hoyin1600p.vhaccelerator.mixin.compat.jei;
+package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.AsyncJeiCoordinator;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.v10.AsyncJeiCoordinator;
 import java.util.Optional;
 import mezz.jei.common.Internal;
 import mezz.jei.common.ingredients.RegisteredIngredients;
 import mezz.jei.common.runtime.JeiHelpers;
 import mezz.jei.common.runtime.JeiRuntime;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+@Pseudo
 @Mixin(value = Internal.class, remap = false)
 public abstract class InternalMixin {
     @Inject(method = "getHelpers", at = @At("HEAD"), cancellable = true)

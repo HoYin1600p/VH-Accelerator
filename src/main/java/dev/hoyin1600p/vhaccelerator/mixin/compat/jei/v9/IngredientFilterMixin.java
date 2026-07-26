@@ -1,11 +1,12 @@
-package dev.hoyin1600p.vhaccelerator.mixin.compat.jei;
+package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.Collection;
 import java.util.stream.Stream;
-import mezz.jei.common.ingredients.IListElementInfo;
-import mezz.jei.common.ingredients.IngredientFilter;
+import mezz.jei.ingredients.IListElementInfo;
+import mezz.jei.ingredients.IngredientFilter;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * Parallelizes only JEI's pre-sort traversal. The caller still waits for the
  * complete sorted list and assigns every stable index before JEI is published.
  */
+@Pseudo
 @Mixin(value = IngredientFilter.class, remap = false)
 public abstract class IngredientFilterMixin {
     @Redirect(

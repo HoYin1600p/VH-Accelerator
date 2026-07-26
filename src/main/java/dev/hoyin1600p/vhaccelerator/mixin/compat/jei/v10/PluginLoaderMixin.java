@@ -1,15 +1,17 @@
-package dev.hoyin1600p.vhaccelerator.mixin.compat.jei;
+package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.AsyncJeiCoordinator;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.v10.AsyncJeiCoordinator;
 import mezz.jei.common.Internal;
 import mezz.jei.common.ingredients.RegisteredIngredients;
 import mezz.jei.common.load.PluginLoader;
 import mezz.jei.common.runtime.JeiHelpers;
 import mezz.jei.common.util.RecipeErrorUtil;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+@Pseudo
 @Mixin(value = PluginLoader.class, remap = false)
 public abstract class PluginLoaderMixin {
     @Redirect(

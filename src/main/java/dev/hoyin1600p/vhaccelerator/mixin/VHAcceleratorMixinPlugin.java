@@ -24,6 +24,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     private boolean modernFixLoaded;
     private boolean jeiLoaded;
+    private int jeiGeneration;
     private boolean vaultHuntersLoaded;
     private boolean powahLoaded;
     private boolean jeiTweakerLoaded;
@@ -37,6 +38,17 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
+                if (jeiLoaded
+                        && modList.findResource(
+                                "mezz/jei/common/startup/JeiStarter.class"
+                        ) != null) {
+                    jeiGeneration = 10;
+                } else if (jeiLoaded
+                        && modList.findResource(
+                                "mezz/jei/startup/JeiStarter.class"
+                        ) != null) {
+                    jeiGeneration = 9;
+                }
                 vaultHuntersLoaded =
                         modList != null && modList.getModFileById("the_vault") != null;
                 powahLoaded = modList != null && modList.getModFileById("powah") != null;
@@ -46,6 +58,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
             jeiLoaded = false;
+            jeiGeneration = 0;
             vaultHuntersLoaded = false;
             powahLoaded = false;
             jeiTweakerLoaded = false;
@@ -54,6 +67,14 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
         if (modernFixLoaded) {
             LOGGER.info("ModernFix detected; disabling overlapping VH Accelerator mixins");
+        }
+        if (jeiLoaded && jeiGeneration == 0) {
+            LOGGER.warn(
+                    "JEI was detected, but its internal generation is unsupported; "
+                            + "JEI compatibility mixins will stay disabled"
+            );
+        } else if (jeiGeneration != 0) {
+            LOGGER.info("Detected JEI {} compatibility generation", jeiGeneration);
         }
     }
 
@@ -72,8 +93,14 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 return false;
             }
         }
+        if (mixinClassName.contains(".compat.jei.v10.")) {
+            return jeiLoaded && jeiGeneration == 10;
+        }
+        if (mixinClassName.contains(".compat.jei.v9.")) {
+            return jeiLoaded && jeiGeneration == 9;
+        }
         if (mixinClassName.contains(".compat.jei.")) {
-            return jeiLoaded;
+            return false;
         }
         if (mixinClassName.contains(".compat.vaulthunters.")) {
             return vaultHuntersLoaded;

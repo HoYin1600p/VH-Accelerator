@@ -1,17 +1,21 @@
-package dev.hoyin1600p.vhaccelerator.mixin.compat.jei;
+package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.AsyncJeiCoordinator;
-import mezz.jei.common.startup.JeiStarter;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.v9.AsyncJeiCoordinator;
+import mezz.jei.forge.config.ModIdFormattingConfig;
 import mezz.jei.forge.events.RuntimeEventSubscriptions;
 import mezz.jei.forge.startup.ClientLifecycleHandler;
+import mezz.jei.startup.JeiStarter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+@SuppressWarnings("target")
+@Pseudo
 @Mixin(value = ClientLifecycleHandler.class, remap = false)
 public abstract class ClientLifecycleHandlerMixin {
     @Shadow
@@ -22,6 +26,10 @@ public abstract class ClientLifecycleHandlerMixin {
     @Final
     private RuntimeEventSubscriptions runtimeSubscriptions;
 
+    @Shadow
+    @Final
+    private ModIdFormattingConfig modIdFormattingConfig;
+
     @Inject(method = "startJei", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$startGuardedJei(CallbackInfo ci) {
         if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
@@ -29,6 +37,7 @@ public abstract class ClientLifecycleHandlerMixin {
             return;
         }
         ci.cancel();
+        modIdFormattingConfig.checkForModNameFormatOverride();
         AsyncJeiCoordinator.start(jeiStarter, runtimeSubscriptions);
     }
 

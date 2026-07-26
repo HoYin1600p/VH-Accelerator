@@ -1,6 +1,7 @@
-package dev.hoyin1600p.vhaccelerator.client.compat.jei;
+package dev.hoyin1600p.vhaccelerator.client.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLifecycleBridge;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -52,6 +53,11 @@ public final class AsyncJeiCoordinator {
     }
 
     public static void start(JeiStarter starter, RuntimeEventSubscriptions subscriptions) {
+        JeiLifecycleBridge.install(
+                "JEI 10",
+                AsyncJeiCoordinator::onClientDisconnected,
+                AsyncJeiCoordinator::recoverAfterTransfer
+        );
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         if (level == null) {

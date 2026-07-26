@@ -32,6 +32,8 @@ in the local LaunchFaster 1.0 jar. It has:
   BlockState optimization paths
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
   group construction for faster world entry
+- one universal jar with isolated JEI 9 and JEI 10 compatibility modules,
+  selected from the installed JEI class layout before mixins are applied
 - an opt-in guarded JEI startup worker with stale-connection rejection and
   main-thread publication
 - automatic disabling of overlapping mixins when ModernFix is present
@@ -63,8 +65,8 @@ The local `reference/` directory is intentionally ignored by Git. It contains:
 - `modernfix-compat/`, a comparison of the local compatibility build
 - `vh-client-optimize/`, the 1.0.4-u19 jar, decompiled sources, and extracted
   metadata/resources
-- `vault-remastered/`, `jei/`, `powah/`, and `jeitweaker/`, local decompiled
-  compatibility references
+- `vault-remastered/`, `vault-mvp/`, `vault-official-latest/`, `jei/`,
+  `powah/`, and `jeitweaker/`, local compatibility references
 - `sophisticatedstorage/`, the exact testing-pack version decompiled for model
   loader analysis
 
@@ -80,4 +82,9 @@ implementation reference and is not part of this repository's tracked source.
 .\gradlew.bat build
 ```
 
-The reobfuscated mod jar is written to `build/libs/`.
+The build compiles the same sources against all three supported profiles:
+Remastered with JEI 10, the custom MVP with JEI 9, and official 3.21.6 with
+JEI 9. It then verifies that the reobfuscated output contains both isolated
+JEI compatibility generations without bundling JEI or Vault classes.
+
+The single reobfuscated mod jar is written to `build/libs/`.

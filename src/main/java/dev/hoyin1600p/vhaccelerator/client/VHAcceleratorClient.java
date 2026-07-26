@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.AsyncJeiCoordinator;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLifecycleBridge;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -107,7 +107,7 @@ public final class VHAcceleratorClient {
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
         if (ModList.get().isLoaded("jei")) {
-            AsyncJeiCoordinator.onClientDisconnected();
+            JeiLifecycleBridge.onClientDisconnected();
         }
         ServerLoginTimer.cancelActiveAttempt();
         ServerTransferTimer.cancelActiveAttempt();
@@ -126,7 +126,7 @@ public final class VHAcceleratorClient {
         ServerTransferTimer.Sample transferSample =
                 ServerTransferTimer.markFirstPlayableFrame();
         if (transferSample != null && ModList.get().isLoaded("jei")) {
-            AsyncJeiCoordinator.recoverAfterTransfer();
+            JeiLifecycleBridge.recoverAfterTransfer();
         }
         if (!VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()) {
             return;

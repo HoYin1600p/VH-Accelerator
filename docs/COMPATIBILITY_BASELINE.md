@@ -8,7 +8,10 @@ Git-ignored copies of:
 | Component | Version | Source | SHA-256 |
 | --- | --- | --- | --- |
 | The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |
-| JEI | `10.2.1.1009` | Read-only compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
+| The Vault custom MVP | `3.21.62` | Adjacent testing-pack repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
+| The Vault official | `3.21.6.6884` | CurseForge project `458203`, file `8508967` | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
+| JEI 10 | `10.2.1.1009` | Remastered compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
+| JEI 9 | `9.7.2.1001` | Custom MVP compatibility instance | `B647023956683079A80DD31D3C42BDB4348A927B0441D507E24931501B8CCA9E` |
 | Powah | `3.0.8` | Read-only compatibility instance | `C1F87F2258DD623BADF70390D737BCA4B7151FDF76D44538B89BFB768ACF0366` |
 | JEITweaker | `3.0.0.9` | Read-only compatibility instance | `00BEBCDF16C086504CE70422B066AE307083960313BBDB1D845D936281CEBB7D` |
 | CraftTweaker | `9.1.213` | Read-only compatibility instance | `D27B4739F7B4DA0FE92141000E4CFC5BEF617202DE6EB9BB4BB2147E9E1E9C6E` |
@@ -51,6 +54,14 @@ Relevant active mods observed in that instance include:
 
 Compatibility conclusions:
 
+- The same output jar supports all three Vault profiles. Vault-facing classes
+  and descriptors used by the mod are present in every target.
+- JEI 9 and JEI 10 internals live in separate packages inside VH Accelerator.
+  Startup detection selects exactly one generation by checking JEI's class
+  layout, and unsupported layouts leave the optional JEI mixins disabled.
+- Both JEI generations are marked as pseudo mixins so the inactive
+  generation's absent targets cannot make the required mixin configuration
+  fail.
 - ModernFix is already allowed to own the generic mixins that overlap it.
 - On a server with ModernFix, that disables VH Accelerator's reload,
   registry, BlockState, and resource-list mixins instead of stacking two
@@ -59,6 +70,9 @@ Compatibility conclusions:
   mods are loaded.
 - No Vault or JEI dependency is mandatory, so the mod remains usable on
   dedicated servers and in non-Vault packs.
+- `check` compiles each profile independently and verifies that the universal
+  jar contains both compatibility modules without redistributing dependency
+  classes.
 - The original LaunchFaster jar must be removed when testing
   VH Accelerator, because both patch the same generic startup targets.
 - JEITweaker, JustEnoughVH, and companion recipe mods make JEI lifecycle
