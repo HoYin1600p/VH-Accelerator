@@ -21,6 +21,8 @@ in the local LaunchFaster 1.0 jar. It has:
 - an opt-in guarded JEI startup worker with stale-connection rejection and
   main-thread publication
 - automatic disabling of overlapping mixins when ModernFix is present
+- automatic single-threaded handling and failure recovery for dynamic/custom
+  Forge models
 - conservative defaults for behavior known to be unsafe in the original
 
 See [the original behavior map](docs/ORIGINAL_BEHAVIOR.md) for the complete
@@ -35,6 +37,8 @@ Configuration and cluster-test coverage for the new world-load paths are in
 [the world-load optimization guide](docs/WORLD_LOAD_OPTIMIZATIONS.md).
 Dedicated-server class-loading boundaries, defaults, and optimization
 ownership are documented in [the server safety audit](docs/SERVER_SAFETY.md).
+Dynamic model exclusions and Sophisticated Storage compatibility are
+documented in [the dynamic model safety guide](docs/DYNAMIC_MODEL_SAFETY.md).
 
 ## Reference material
 
@@ -47,6 +51,8 @@ The local `reference/` directory is intentionally ignored by Git. It contains:
   metadata/resources
 - `vault-remastered/`, `jei/`, `powah/`, and `jeitweaker/`, local decompiled
   compatibility references
+- `sophisticatedstorage/`, the exact testing-pack version decompiled for model
+  loader analysis
 
 Reference jar SHA-256:
 `E7594E83836E7F1AEFD2533CEBAD7F22DEB7682A35796E810042F34164F59BFC`

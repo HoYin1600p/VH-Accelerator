@@ -12,9 +12,9 @@ It is an implementation guide, not tracked decompiler output.
 | Launch time on title screen | Client | Draws a green line above Forge branding | Implemented | UI injection can conflict with title-screen replacements |
 | Launch time in chat | Client | Shows once after the first world/server join | Implemented | Measurement only |
 | Parallel model JSON reads | Client | Lists every `models/*.json` resource and reads them on the background executor before model parsing | Implemented in bounded batches | More memory is used temporarily; resource-pack implementations must tolerate concurrent reads |
-| Parallel atlas preparation | Client | Prepares independent texture atlases on the background executor and bypasses the vanilla serial loop | Implemented in bounded batches | CPU-heavy; overlaps ModernFix and some renderer/model-loader mods |
-| Parallel top-level model baking | Client | Replaces the baked-model cache with a concurrent map, bakes top-level models in worker batches, then merges results | Implemented in bounded batches | Highest compatibility risk because model loaders may assume one baking thread |
-| BlockModel material memoization | Client | Caches each model's first `getMaterials` result | Implemented | A later caller with a different missing-texture diagnostic set will not replay earlier diagnostics |
+| Parallel atlas preparation | Client | Prepares independent texture atlases on the background executor and bypasses the vanilla serial loop | Implemented in bounded batches with an automatic custom-model safety gate | Falls back to the original serial loop when any dynamic/custom model graph is present |
+| Parallel top-level model baking | Client | Replaces the baked-model cache with a concurrent map, bakes top-level models in worker batches, then merges results | Implemented in bounded batches with graph-level exclusions and whole-cache sequential retry | Dynamic/custom graphs stay on the client thread; any worker failure retries every model sequentially |
+| BlockModel material memoization | Client | Caches each model's first `getMaterials` result | Implemented for plain model graphs | Dynamic/custom graphs always perform their live material lookup |
 | Asynchronous user API creation | Client | Starts `UserApiService` creation on the IO pool but returns `OFFLINE` and discards the future | Implemented with a retained non-blocking proxy | The original permanently lost the online service; LaunchFasterToo fixes that defect |
 | Reload preparation barrier | Both | Replaces `SimpleReloadInstance` with nearly the same preparation/apply chain and adds timing logs | Implemented but disabled by default | Vanilla 1.18.2 already starts listener preparations concurrently; the original replacement is mostly instrumentation |
 | Resource listing cache | Both | Caches `listResources(prefix, predicate)` by prefix and predicate identity until a reload begins | Implemented with immutable cached results | Predicate identity limits hit rate; mutable-return assumptions could affect unusual callers |
@@ -38,7 +38,10 @@ available.
 
 The largest plausible client wins are model JSON reads, atlas preparation, and
 model baking. They are also the features most likely to expose thread-safety
-bugs in model loaders and resource packs.
+bugs in model loaders and resource packs. LaunchFasterToo therefore keeps
+custom geometry and mod-provided model implementations on Forge's original
+single-threaded paths; see
+[dynamic model safety](DYNAMIC_MODEL_SAFETY.md).
 
 The original reload barrier is functionally very close to vanilla 1.18.2 and
 should not be credited as a major optimization until measurements show a

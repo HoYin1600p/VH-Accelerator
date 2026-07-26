@@ -2,7 +2,9 @@ package dev.hoyin1600p.launchfastertoo.mixin.client;
 
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.launchfastertoo.client.LaunchFasterTooClientConfig;
+import dev.hoyin1600p.launchfastertoo.client.model.DynamicModelGuard;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -26,7 +28,8 @@ public abstract class BlockModelMixin {
             Set<Pair<String, String>> missingTextureErrors,
             CallbackInfoReturnable<Collection<Material>> callback
     ) {
-        if (!launchfastertoo$memoizationEnabled()) {
+        if (!launchfastertoo$memoizationEnabled()
+                || launchfastertoo$requiresLiveMaterialLookup(modelGetter)) {
             return;
         }
 
@@ -43,10 +46,23 @@ public abstract class BlockModelMixin {
             CallbackInfoReturnable<Collection<Material>> callback
     ) {
         if (launchfastertoo$memoizationEnabled()
+                && !launchfastertoo$requiresLiveMaterialLookup(modelGetter)
                 && launchfastertoo$cachedMaterials == null
                 && callback.getReturnValue() != null) {
-            launchfastertoo$cachedMaterials = callback.getReturnValue();
+            launchfastertoo$cachedMaterials =
+                    List.copyOf(callback.getReturnValue());
         }
+    }
+
+    @Unique
+    private boolean launchfastertoo$requiresLiveMaterialLookup(
+            Function<ResourceLocation, UnbakedModel> modelGetter
+    ) {
+        return LaunchFasterTooClientConfig.VALUES.protectDynamicModels.get()
+                && DynamicModelGuard.requiresSequentialBaking(
+                        (UnbakedModel) (Object) this,
+                        modelGetter
+                );
     }
 
     @Unique
@@ -55,4 +71,3 @@ public abstract class BlockModelMixin {
                 && LaunchFasterTooClientConfig.VALUES.memoizeModelMaterials.get();
     }
 }
-

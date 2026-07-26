@@ -3,11 +3,13 @@ package dev.hoyin1600p.launchfastertoo.mixin.client;
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.launchfastertoo.LaunchFasterToo;
 import dev.hoyin1600p.launchfastertoo.client.LaunchFasterTooClientConfig;
+import dev.hoyin1600p.launchfastertoo.client.model.DynamicModelGuard;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +24,7 @@ import net.minecraft.client.resources.model.BlockModelRotation;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -57,6 +60,13 @@ public abstract class ModelBakeryMixin {
     private Map<ResourceLocation, BakedModel> bakedTopLevelModels;
 
     @Shadow
+    @Final
+    private Map<ResourceLocation, UnbakedModel> topLevelModels;
+
+    @Shadow
+    public abstract UnbakedModel getModel(ResourceLocation location);
+
+    @Shadow
     @Nullable
     public abstract BakedModel bake(ResourceLocation location, ModelState state);
 
@@ -65,6 +75,13 @@ public abstract class ModelBakeryMixin {
 
     @Unique
     private int launchfastertoo$currentMipLevel;
+
+    @Unique
+    private Set<ResourceLocation> launchfastertoo$sequentialModels =
+            Collections.emptySet();
+
+    @Unique
+    private boolean launchfastertoo$modelSafetyEvaluated;
 
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void launchfastertoo$preloadModelJson(
@@ -155,6 +172,16 @@ public abstract class ModelBakeryMixin {
                 LaunchFasterTooClientConfig.VALUES.parallelAtlasStitching.get())) {
             return groupedMaterials.entrySet();
         }
+        launchfastertoo$findSequentialModels();
+        if (launchfastertoo$dynamicModelProtectionEnabled()
+                && !launchfastertoo$sequentialModels.isEmpty()) {
+            LaunchFasterToo.LOGGER.info(
+                    "Using vanilla atlas preparation because {} top-level "
+                            + "models depend on custom or dynamic model loaders",
+                    launchfastertoo$sequentialModels.size()
+            );
+            return groupedMaterials.entrySet();
+        }
         if (groupedMaterials.isEmpty()) {
             return Collections.emptySet();
         }
@@ -196,17 +223,20 @@ public abstract class ModelBakeryMixin {
             )
     )
     private Set<?> launchfastertoo$bakeTopLevelModelsInParallel(
-            Map<ResourceLocation, ?> topLevelModels
+            Map<ResourceLocation, ?> models
     ) {
         if (!launchfastertoo$clientOption(
                 LaunchFasterTooClientConfig.VALUES.parallelModelBaking.get())) {
-            return topLevelModels.keySet();
+            return models.keySet();
         }
 
+        launchfastertoo$findSequentialModels();
         long startedAt = System.nanoTime();
         bakedCache = new ConcurrentHashMap<>(bakedCache);
-        List<ResourceLocation> locations = new ArrayList<>(topLevelModels.keySet());
+        List<ResourceLocation> locations = new ArrayList<>(models.keySet());
+        locations.removeAll(launchfastertoo$sequentialModels);
         Map<ResourceLocation, BakedModel> results = new ConcurrentHashMap<>();
+        Set<ResourceLocation> failures = ConcurrentHashMap.newKeySet();
 
         launchfastertoo$runBatched(locations, location -> {
             try {
@@ -216,20 +246,67 @@ public abstract class ModelBakeryMixin {
                 }
             } catch (Exception exception) {
                 LaunchFasterToo.LOGGER.warn(
-                        "Unable to bake model {} in parallel",
+                        "Unable to bake model {} in parallel; the complete "
+                                + "model set will be retried sequentially",
                         location,
                         exception
                 );
+                failures.add(location);
             }
         });
 
+        if (!failures.isEmpty()) {
+            /*
+             * A worker may have populated dependency entries before failing.
+             * Discard the whole parallel attempt so vanilla retries from a
+             * consistent cache and no model can be omitted.
+             */
+            bakedCache.clear();
+            LaunchFasterToo.LOGGER.warn(
+                    "Parallel baking failed for {} models; retrying all {} "
+                            + "top-level models on the client thread",
+                    failures.size(),
+                    models.size()
+            );
+            return models.keySet();
+        }
+
         bakedTopLevelModels.putAll(results);
         LaunchFasterToo.LOGGER.info(
-                "Baked {} top-level models in parallel in {} ms",
+                "Baked {} top-level models in parallel and reserved {} "
+                        + "custom or dynamic models for the client thread in {} ms",
                 results.size(),
+                launchfastertoo$sequentialModels.size(),
                 (System.nanoTime() - startedAt) / 1_000_000L
         );
-        return Collections.emptySet();
+        return launchfastertoo$sequentialModels;
+    }
+
+    @Unique
+    private void launchfastertoo$findSequentialModels() {
+        if (!launchfastertoo$dynamicModelProtectionEnabled()) {
+            launchfastertoo$sequentialModels = Collections.emptySet();
+            return;
+        }
+        if (launchfastertoo$modelSafetyEvaluated) {
+            return;
+        }
+
+        Set<ResourceLocation> sequential = new LinkedHashSet<>();
+        DynamicModelGuard.Scanner scanner =
+                DynamicModelGuard.scanner(this::getModel);
+        topLevelModels.forEach((location, model) -> {
+            if (scanner.requiresSequentialBaking(model)) {
+                sequential.add(location);
+            }
+        });
+        launchfastertoo$sequentialModels = Collections.unmodifiableSet(sequential);
+        launchfastertoo$modelSafetyEvaluated = true;
+    }
+
+    @Unique
+    private static boolean launchfastertoo$dynamicModelProtectionEnabled() {
+        return LaunchFasterTooClientConfig.VALUES.protectDynamicModels.get();
     }
 
     @Unique

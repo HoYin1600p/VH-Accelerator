@@ -23,6 +23,7 @@ public final class LaunchFasterTooClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
+        public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -58,6 +59,13 @@ public final class LaunchFasterTooClientConfig {
             builder.pop();
 
             builder.push("compatibility");
+            protectDynamicModels = builder
+                    .comment(
+                            "Keeps Forge custom geometry, dynamic models, and their dependency graphs",
+                            "on vanilla's single-threaded atlas and model paths.",
+                            "Also retries every model sequentially if a parallel bake fails.",
+                            "Keep this enabled unless diagnosing the compatibility guard itself.")
+                    .define("protectDynamicModels", true);
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a parallel stream for JEI's ingredient pre-sort.",
