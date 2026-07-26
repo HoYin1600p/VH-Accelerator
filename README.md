@@ -34,7 +34,7 @@ in the local LaunchFaster 1.0 jar. It has:
   group construction for faster world entry
 - one universal jar with isolated JEI 9 and JEI 10 compatibility modules,
   selected from the installed JEI class layout before mixins are applied
-- an opt-in guarded JEI startup worker with stale-connection rejection and
+- a guarded JEI startup worker with stale-connection rejection and
   main-thread publication
 - automatic disabling of overlapping mixins when ModernFix is present
 - automatic single-threaded handling and failure recovery for dynamic/custom

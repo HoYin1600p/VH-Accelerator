@@ -99,8 +99,9 @@ public final class VHAcceleratorClientConfig {
                             "Prepares isolated JEI construction on a cancellable worker during world entry.",
                             "Mod plugin callbacks, runtime publication, and event registration use the main",
                             "thread. Transfers cancel stale work and restart unpublished JEI after arrival.",
-                            "Disabled by default until each target mod list completes cluster testing.")
-                    .define("asyncJeiStartup", false);
+                            "Enabled by default to match the tested JEI 9 and JEI 10 instance profiles.",
+                            "Disable it if an untested JEI plugin performs main-thread-only work during registration.")
+                    .define("asyncJeiStartup", true);
             cacheVaultTooltips = builder
                     .comment(
                             "Caches Vault Hunters tooltip lookups by item and active locale.",

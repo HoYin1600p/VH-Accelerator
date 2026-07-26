@@ -10,18 +10,20 @@ These settings are written to the VH Accelerator client configuration.
 - `stagedVaultGroupLoading = true`
 - `vaultGroupTickBudgetMillis = 4`
 - `parallelJeiIngredientSorting = true`
+- `asyncJeiStartup = true`
 
 Powah and JEITweaker still finish their work before returning to their
 callers. Vault group construction is spread over client ticks and exposes only
 the previous complete maps or the newly completed maps, never partial worker
 results.
 
-## Experimental tier
+## Guarded asynchronous JEI tier
 
-`asyncJeiStartup = false` by default.
+`asyncJeiStartup = true` by default to match the two tested JEI 9 and JEI 10
+client profiles.
 
-Enable it for controlled cluster testing after removing the original
-LaunchFaster jar and the recovered VHClientOptimize jar. Record:
+When validating a new mod list, remove the original LaunchFaster jar and the
+recovered VHClientOptimize jar, then record:
 
 - first login;
 - repeated switches between every server type in the cluster;

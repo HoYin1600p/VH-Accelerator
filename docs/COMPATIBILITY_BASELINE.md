@@ -77,8 +77,9 @@ Compatibility conclusions:
 - The original LaunchFaster jar must be removed when testing
   VH Accelerator, because both patch the same generic startup targets.
 - JEITweaker, JustEnoughVH, and companion recipe mods make JEI lifecycle
-  ordering especially important. The asynchronous JEI mode is therefore
-  experimental and disabled by default.
+  ordering especially important. The asynchronous JEI mode defaults to the
+  enabled state used by both test profiles, but remains independently
+  configurable for untested mod lists.
 
 ## Remastered audit of VHClientOptimize ideas
 
@@ -125,8 +126,8 @@ guarded by loaded-mod checks.
 
 ## Asynchronous JEI safety boundary
 
-`asyncJeiStartup` defaults to `false`. When enabled, VH Accelerator improves
-on the recovered optimizer in these ways:
+`asyncJeiStartup` defaults to `true`, matching the tested JEI 9 and JEI 10
+profiles. VH Accelerator improves on the recovered optimizer in these ways:
 
 - a single worker prevents overlapping JEI builds;
 - disconnect and restart events invalidate the current generation;
