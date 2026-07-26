@@ -2,7 +2,7 @@
 
 ## Pinned compile targets
 
-LaunchFasterToo compiles its optional compatibility mixins against local,
+VH Accelerator compiles its optional compatibility mixins against local,
 Git-ignored copies of:
 
 | Component | Version | Source | SHA-256 |
@@ -52,7 +52,7 @@ Relevant active mods observed in that instance include:
 Compatibility conclusions:
 
 - ModernFix is already allowed to own the generic mixins that overlap it.
-- On a server with ModernFix, that disables LaunchFasterToo's reload,
+- On a server with ModernFix, that disables VH Accelerator's reload,
   registry, BlockState, and resource-list mixins instead of stacking two
   implementations on the same startup paths.
 - JEI, JEITweaker, Powah, and Vault mixins are selected only when their target
@@ -60,7 +60,7 @@ Compatibility conclusions:
 - No Vault or JEI dependency is mandatory, so the mod remains usable on
   dedicated servers and in non-Vault packs.
 - The original LaunchFaster jar must be removed when testing
-  LaunchFasterToo, because both patch the same generic startup targets.
+  VH Accelerator, because both patch the same generic startup targets.
 - JEITweaker, JustEnoughVH, and companion recipe mods make JEI lifecycle
   ordering especially important. The asynchronous JEI mode is therefore
   experimental and disabled by default.
@@ -76,7 +76,7 @@ older VHClientOptimize release supplied:
 - cached Vault loot-tooltip lines;
 - cached loot-table-to-item and item-to-loot-table indexes.
 
-LaunchFasterToo intentionally does not patch these paths again.
+VH Accelerator intentionally does not patch these paths again.
 
 The first compatibility implementation contains:
 
@@ -110,7 +110,7 @@ guarded by loaded-mod checks.
 
 ## Asynchronous JEI safety boundary
 
-`asyncJeiStartup` defaults to `false`. When enabled, LaunchFasterToo improves
+`asyncJeiStartup` defaults to `false`. When enabled, VH Accelerator improves
 on the recovered optimizer in these ways:
 
 - a single worker prevents overlapping JEI builds;
@@ -138,5 +138,5 @@ itself as `1.0.3-u18`; the locally recovered binary is `1.0.4-u19`, so the
 binary remains authoritative for the later behavior inventory.
 
 The public source is GPL-3.0. It is retained only in the Git-ignored reference
-directory. LaunchFasterToo's implementation was written independently and
+directory. VH Accelerator's implementation was written independently and
 does not copy that source.

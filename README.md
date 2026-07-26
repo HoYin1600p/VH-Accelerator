@@ -1,7 +1,19 @@
-# LaunchFasterToo
+# VH Accelerator
 
-LaunchFasterToo is a maintainable Forge 1.18.2 mod intended to reproduce and
+VH Accelerator is a maintainable Forge 1.18.2 mod intended to reproduce and
 extend the useful launch-time optimizations from LaunchFaster.
+
+## Upgrading development builds
+
+VH Accelerator uses the mod ID `vhaccelerator` and produces
+`VH-Accelerator-<version>.jar`. On its first run, it imports the previous
+development build's common and client settings when the corresponding new
+config does not exist. The original config files are left untouched for
+rollback.
+
+Remove or disable the previous jar before installing VH Accelerator. When a
+server also has the mod installed, client and server must both use the new mod
+identity.
 
 ## Current status
 

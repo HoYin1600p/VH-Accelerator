@@ -16,7 +16,7 @@
 
 The decompiled files and extracted resources are ignored by Git. This document
 contains behavioral findings only; no code from the GPL jar was copied into
-LaunchFasterToo's MIT source.
+VH Accelerator's MIT source.
 
 The public source currently identifies itself as `1.0.3-u18`, one release
 behind the recovered `1.0.4-u19` binary. It clarifies intent and build
@@ -145,9 +145,9 @@ by any other class in this jar.
 - Several overwrites are tightly coupled to exact third-party internal
   versions and are difficult to compose with other mixins.
 
-## Relationship to LaunchFasterToo
+## Relationship to VH Accelerator
 
-There is little direct overlap with LaunchFasterToo's generic model/resource
+There is little direct overlap with VH Accelerator's generic model/resource
 pipeline. VHClientOptimize works one layer higher, inside Vault Hunters, JEI,
 and specific companion mods.
 
@@ -173,7 +173,7 @@ Ideas not worth copying as implemented:
 An audit against `the_vault-1.18.2-20.0.3-remastered.6872.jar` found that
 Remastered already implements the room-icon caches, static Void Crucible
 shape, conditional lost-bounty scan, loot-tooltip cache, and loot-table
-indexes. LaunchFasterToo does not duplicate those patches.
+indexes. VH Accelerator does not duplicate those patches.
 
 The remaining first-pass work is deliberately narrower:
 
@@ -185,7 +185,7 @@ See `COMPATIBILITY_BASELINE.md` for exact versions and instance comparison.
 
 ## Recommended direction
 
-1. Keep generic startup optimizations in LaunchFasterToo's core.
+1. Keep generic startup optimizations in VH Accelerator's core.
 2. Put Vault/JEI-specific work in an optional compatibility package with
    explicit mod and version checks.
 3. Split asynchronous work into:

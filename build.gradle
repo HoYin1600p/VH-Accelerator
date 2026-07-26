@@ -21,7 +21,7 @@ group = mod_group_id
 version = mod_version
 
 base {
-    archivesName = mod_name
+    archivesName = mod_artifact_name
 }
 
 java {
@@ -153,7 +153,7 @@ tasks.register('verifyMixinPackageLayout') {
     doLast {
         def nestedMixinClasses = fileTree(
                 layout.buildDirectory.dir(
-                        'classes/java/main/dev/hoyin1600p/launchfastertoo/mixin'
+                        'classes/java/main/dev/hoyin1600p/vhaccelerator/mixin'
                 )
         ) {
             include '**/*$*.class'

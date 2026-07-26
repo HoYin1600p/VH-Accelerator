@@ -1,6 +1,6 @@
 # Dynamic model safety
 
-LaunchFasterToo protects Forge custom geometry and direct mod-provided model
+VH Accelerator protects Forge custom geometry and direct mod-provided model
 implementations from parallel model work. The protection is enabled by
 `compatibility.protectDynamicModels` and should remain enabled.
 
@@ -22,7 +22,7 @@ use Minecraft's baked item models.
 
 ## Guard behavior
 
-Before atlas preparation and top-level baking, LaunchFasterToo walks every
+Before atlas preparation and top-level baking, VH Accelerator walks every
 top-level model dependency graph. A graph is protected when it contains:
 
 - a `BlockModel` with Forge custom geometry;
@@ -34,7 +34,7 @@ single-threaded loop. During model baking, unprotected graphs may still bake
 in parallel, while protected graphs are returned to Minecraft's original
 client-thread loop.
 
-If any parallel bake throws, LaunchFasterToo discards that complete parallel
+If any parallel bake throws, VH Accelerator discards that complete parallel
 bake cache and returns every top-level model to the original sequential loop.
 A failed model is never silently omitted.
 
@@ -43,7 +43,7 @@ loaders can perform their normal live material lookup.
 
 ## Other compatibility layers
 
-When ModernFix is present, LaunchFasterToo disables its complete ModelBakery
+When ModernFix is present, VH Accelerator disables its complete ModelBakery
 and model-material mixins because those transformations overlap. In that case,
 ModernFix owns the model-loading path and this guard does not need to run.
 

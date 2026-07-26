@@ -2,7 +2,7 @@
 
 ## Physical-side boundary
 
-LaunchFasterToo is intentionally installed on both sides, but the dedicated
+VH Accelerator is intentionally installed on both sides, but the dedicated
 server does not initialize or transform its client compatibility code.
 
 - Client initialization is behind Forge's physical-side executor.
@@ -20,7 +20,7 @@ A Forge `40.3.11` dedicated-server userdev launch reached the EULA boundary
 with the server timer mixed in and no client-class or optional-mod loading
 failure.
 
-## Server paths in LaunchFasterToo
+## Server paths in VH Accelerator
 
 | Path | Default without ModernFix | With ModernFix |
 | --- | --- | --- |
@@ -46,7 +46,7 @@ experiments but are not safe defaults:
 
 The inspected compatibility instance already contains ModernFix, LazyDFU,
 Lightspeed, Fastload Reforged, FerriteCore, Smooth Boot, and Starlight.
-LaunchFasterToo yields overlapping transformations to ModernFix. This keeps
+VH Accelerator yields overlapping transformations to ModernFix. This keeps
 the primary build deliberately conservative: it measures total
 dedicated-server startup and does not stack another implementation over the
 pack's existing registry, resource, reload, or BlockState optimizations.
@@ -60,5 +60,5 @@ graphs.
 ## Deployment requirement
 
 Remove `launchfaster-1.0.jar` from both the client and server test
-environments before adding LaunchFasterToo. The two mods target several of the
+environments before adding VH Accelerator. The two mods target several of the
 same generic startup classes.

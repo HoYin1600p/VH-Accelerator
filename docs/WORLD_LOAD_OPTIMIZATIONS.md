@@ -1,6 +1,6 @@
 # World-load optimization controls
 
-These settings are written to the LaunchFasterToo client configuration.
+These settings are written to the VH Accelerator client configuration.
 
 ## Enabled safe tier
 
@@ -37,7 +37,7 @@ server change is expected and is the mechanism that prevents stale state from
 winning.
 
 If a particular JEI plugin blocks indefinitely during registration, disable
-`asyncJeiStartup`. LaunchFasterToo intentionally does not start a second JEI
+`asyncJeiStartup`. VH Accelerator intentionally does not start a second JEI
 build concurrently with a stuck worker.
 
 ## Server-login timing
@@ -47,7 +47,7 @@ connect screen through client-player initialization to the first rendered
 world frame after the Downloading Terrain screen closes. The chat display
 shows:
 
-`[LaunchFasterToo] Launch: 00.00s | Server login: 00.00s`
+`[VH Accelerator] Launch: 00.00s | Server login: 00.00s`
 
 The log records the total in milliseconds and splits it into time before
 client-player initialization and time from initialization to the first
@@ -65,7 +65,7 @@ a transfer implementation replaces the world without that packet hook.
 
 The timer stops on the first playable rendered frame and displays:
 
-`[LaunchFasterToo] Server/world transfer: 00.00s`
+`[VH Accelerator] Server/world transfer: 00.00s`
 
 Initial connections retain the server-login timer and take priority over
 transfer signals. Repeated dispatch of the same packet does not reset an
