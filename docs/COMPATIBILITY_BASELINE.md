@@ -115,36 +115,43 @@ The first compatibility implementation contains:
    main-thread tick slices. Live entities and Vault predicates never execute
    on a worker, a changed client level discards unfinished work, and both
    complete maps are published together.
-6. **Guarded asynchronous JEI:** optionally prepares one JEI generation on a
-   daemon worker. JEI globals are captured in thread-local storage, runtime
-   plugin callbacks and event subscription happen on the main thread, and a
-   connection generation plus level identity prevents stale publication.
-   Preparation failures retry synchronously on the same connection.
+6. **Isolated JEI indexing:** constructs a new ingredient search index on a
+   low-priority worker while JEI lifecycle and every plugin callback remain
+   serialized on Minecraft's thread. Runtime additions are journaled and
+   merged before one main-thread reference swap. Independent prefix storages
+   are populated in parallel with one writer per storage.
+7. **Vanilla recipe validation:** validates sufficiently large vanilla JEI
+   recipe lists in the bounded loading pool while preserving encounter order.
+   Any exception falls through to JEI's original sequential implementation.
+8. **JER compatibility reuse:** allows JER to initialize its pack-local
+   compatibility and loot registries normally with an active client level,
+   then reuses them during subsequent JEI rebuilds.
+9. **Iron Furnaces recipe scan:** combines the mod's two complete item-registry
+   walks into one, avoids its duplicate fuel-hook calls, and reuses only the
+   resulting immutable lists. Menu precompile is restricted to food/smoking
+   data; fuel values are evaluated only with an active client world. World
+   generator recipes remain live. Active-world fuel results persist across
+   launches only behind exact login-state fingerprint validation; cache misses
+   finish before the first rendered world frame.
 
 All compatibility behaviors are client-only, individually configurable, and
 guarded by loaded-mod checks.
 
 ## Asynchronous JEI safety boundary
 
-`asyncJeiStartup` defaults to `true`, matching the tested JEI 9 and JEI 10
-profiles. VH Accelerator improves on the recovered optimizer in these ways:
+`asyncJeiSearchIndex` defaults to `true` for the supported JEI 9 and JEI 10
+profiles. Its boundary is deliberately narrow:
 
-- a single worker prevents overlapping JEI builds;
-- disconnect and restart events invalidate the current generation;
-- stale work cannot publish a runtime or event listeners;
-- `Internal` helpers, registered ingredients, and runtime remain isolated
-  until main-thread finalization;
-- JEI `onRuntimeAvailable` callbacks retain JEI's normal error handling and
-  execute on the main thread;
-- partial event registration is cleared before synchronous recovery.
+- plugins, globals, event listeners, and the JEI runtime are never built on a
+  VH Accelerator worker;
+- the worker mutates only a newly constructed, unpublished search object;
+- the live filter continues to receive and journal runtime ingredient adds;
+- publication and cache/listener invalidation happen on the main thread;
+- a failed private build falls back to sequential population.
 
-This mode cannot make arbitrary JEI registration callbacks inherently
-thread-safe. Those callbacks still run during worker preparation, and other
-mods may access main-thread-only Minecraft state despite the JEI API not
-requiring it. A worker that is stuck inside third-party code is not followed
-by concurrent synchronous startup, because two overlapping builds would be
-less safe. Validate this mode against the exact cluster mod list before
-enabling it broadly.
+Individual JEI plugins are not parallelized by this mechanism. Expensive
+plugins can be optimized separately with plugin-specific caches or indexed
+lookups without widening this safety boundary.
 
 ## Source-reference status
 

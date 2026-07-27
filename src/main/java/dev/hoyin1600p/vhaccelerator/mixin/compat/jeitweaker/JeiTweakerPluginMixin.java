@@ -5,10 +5,10 @@ import com.blamejared.jeitweaker.implementation.state.StateManager;
 import com.blamejared.jeitweaker.jei.JeiTweakerPlugin;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
 import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.runtime.IIngredientManager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,26 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = JeiTweakerPlugin.class, remap = false)
 public abstract class JeiTweakerPluginMixin {
-    private static final int WORKERS = Math.max(
-            1,
-            Math.min(4, Runtime.getRuntime().availableProcessors() - 1)
-    );
-    private static final ForkJoinPool MATCH_POOL = new ForkJoinPool(
-            WORKERS,
-            pool -> {
-                ForkJoinPool.ForkJoinWorkerThreadFactory factory =
-                        ForkJoinPool.defaultForkJoinWorkerThreadFactory;
-                java.util.concurrent.ForkJoinWorkerThread worker = factory.newThread(pool);
-                worker.setName("VH-Accelerator-JEITweaker-" + worker.getPoolIndex());
-                worker.setDaemon(true);
-                return worker;
-            },
-            (thread, throwable) -> VHAccelerator.LOGGER.error(
-                    "Uncaught JEITweaker matching failure on {}", thread.getName(), throwable
-            ),
-            true
-    );
-
     @Inject(method = "hideIngredientsFor", at = @At("HEAD"), cancellable = true)
     private <T, U> void vhaccelerator$matchHiddenIngredients(
             IIngredientManager manager,
@@ -65,15 +45,21 @@ public abstract class JeiTweakerPluginMixin {
         List<U> removals;
 
         int threshold = VHAcceleratorClientConfig.VALUES.jeiTweakerParallelThreshold.get();
-        if (available.size() >= threshold && WORKERS > 1) {
+        if (available.size() >= threshold
+                && AdaptiveJeiWorkScheduler.currentParallelism() > 1) {
             try {
-                removals = MATCH_POOL.submit(
+                VHAccelerator.LOGGER.info(
+                        "Matching {} JEITweaker ingredients with {} adaptive workers",
+                        available.size(),
+                        AdaptiveJeiWorkScheduler.currentParallelism()
+                );
+                removals = AdaptiveJeiWorkScheduler.invokeParallel(
                         () -> available.parallelStream()
                                 .map(type::toJeiTweakerType)
                                 .filter(candidate -> vhaccelerator$matches(type, hidden, candidate))
                                 .map(type::toJeiType)
                                 .toList()
-                ).join();
+                );
             } catch (RuntimeException exception) {
                 VHAccelerator.LOGGER.warn(
                         "Parallel JEITweaker matching failed for {}; retrying synchronously",

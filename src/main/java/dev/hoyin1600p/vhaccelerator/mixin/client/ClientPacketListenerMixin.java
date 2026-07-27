@@ -2,9 +2,12 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.ServerLoginTimer;
 import dev.hoyin1600p.vhaccelerator.client.ServerTransferTimer;
+import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,6 +21,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
+    @Inject(method = "handleUpdateRecipes", at = @At("HEAD"))
+    private void vhaccelerator$captureRecipeFingerprint(
+            ClientboundUpdateRecipesPacket packet,
+            CallbackInfo callback
+    ) {
+        LoginStateFingerprint.captureRecipePacket(packet);
+    }
+
+    @Inject(method = "handleUpdateTags", at = @At("HEAD"))
+    private void vhaccelerator$captureTagFingerprint(
+            ClientboundUpdateTagsPacket packet,
+            CallbackInfo callback
+    ) {
+        if (Minecraft.getInstance().isSameThread()) {
+            LoginStateFingerprint.captureCanonicalItemTags(packet);
+        }
+    }
+
     @Inject(method = "handleRespawn", at = @At("HEAD"))
     private void vhaccelerator$startTransferTimer(
             ClientboundRespawnPacket packet,

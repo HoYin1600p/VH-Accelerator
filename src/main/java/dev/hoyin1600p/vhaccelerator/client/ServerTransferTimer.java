@@ -24,11 +24,13 @@ public final class ServerTransferTimer {
         startNanos = System.nanoTime();
         VHAccelerator.LOGGER.info(
                 "Server/world transfer timer started for attempt {} from {} "
-                        + "[asyncJeiStartup={}, stagedVaultGroupLoading={}, "
-                        + "parallelJeiIngredientSorting={}, parallelJeiTweakerMatching={}]",
+                        + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
+                        + "stagedVaultGroupLoading={}, parallelJeiIngredientSorting={}, "
+                        + "parallelJeiTweakerMatching={}]",
                 attempt,
                 trigger,
-                VHAcceleratorClientConfig.VALUES.asyncJeiStartup.get(),
+                VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get(),
+                VHAcceleratorClientConfig.VALUES.parallelVanillaRecipeValidation.get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()

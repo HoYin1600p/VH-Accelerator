@@ -30,7 +30,14 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue jeiTweakerParallelThreshold;
         public final ForgeConfigSpec.BooleanValue stagedVaultGroupLoading;
         public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
-        public final ForgeConfigSpec.BooleanValue asyncJeiStartup;
+        public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
+        public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
+        public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
+        public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
+        public final ForgeConfigSpec.BooleanValue cacheIronFurnacesJeiRecipes;
+        public final ForgeConfigSpec.BooleanValue persistentIronFurnacesFuelCache;
+        public final ForgeConfigSpec.BooleanValue precompileIronFurnacesJeiRecipes;
+        public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue showLaunchTimer;
 
@@ -68,7 +75,9 @@ public final class VHAcceleratorClientConfig {
                     .define("protectDynamicModels", true);
             parallelJeiIngredientSorting = builder
                     .comment(
-                            "Uses a parallel stream for JEI's ingredient pre-sort.",
+                            "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",
+                            "Worker count is derived from available processors and reduced after",
+                            "the first playable frame so the sort does not saturate gameplay.",
                             "The sort remains synchronous: JEI is not published and plugins are not notified",
                             "until every sorted index has been assigned.")
                     .define("parallelJeiIngredientSorting", true);
@@ -94,14 +103,59 @@ public final class VHAcceleratorClientConfig {
             vaultGroupTickBudgetMillis = builder
                     .comment("Maximum main-thread time used by staged Vault group loading per client tick.")
                     .defineInRange("vaultGroupTickBudgetMillis", 4, 1, 25);
-            asyncJeiStartup = builder
+            asyncJeiSearchIndex = builder
                     .comment(
-                            "Prepares isolated JEI construction on a cancellable worker during world entry.",
-                            "Mod plugin callbacks, runtime publication, and event registration use the main",
-                            "thread. Transfers cancel stale work and restart unpublished JEI after arrival.",
-                            "Enabled by default to match the tested JEI 9 and JEI 10 instance profiles.",
-                            "Disable it if an untested JEI plugin performs main-thread-only work during registration.")
-                    .define("asyncJeiStartup", true);
+                            "Builds JEI's ingredient search index as a private worker-owned object.",
+                            "Plugin registration and JEI lifecycle work stay on Minecraft's main thread.",
+                            "The complete index is published with one main-thread reference swap.",
+                            "Runtime ingredient additions are journaled and merged before publication.",
+                            "A failed worker build automatically retries on the main thread.")
+                    .define("asyncJeiSearchIndex", true);
+            parallelJeiSearchPrefixes = builder
+                    .comment(
+                            "Populates each independent JEI search-prefix storage in parallel.",
+                            "Ingredient order inside every prefix remains sequential and the private",
+                            "index is published only after all prefixes complete.",
+                            "Any failure discards the private index and uses the sequential fallback.")
+                    .define("parallelJeiSearchPrefixes", true);
+            parallelVanillaRecipeValidation = builder
+                    .comment(
+                            "Validates JEI's vanilla crafting, furnace, smoking, blasting,",
+                            "campfire, stonecutting, and smithing recipe lists in a bounded pool.",
+                            "Result ordering is preserved and any failure retries JEI's original",
+                            "sequential validation path.")
+                    .define("parallelVanillaRecipeValidation", true);
+            cacheJerCompatibility = builder
+                    .comment(
+                            "Reuses Just Enough Resources' compatibility and loot scan for later JEI rebuilds.",
+                            "JER data is local to the installed pack, so cluster transfers do not need to",
+                            "rebuild the same registries.")
+                    .define("cacheJerCompatibility", true);
+            cacheIronFurnacesJeiRecipes = builder
+                    .comment(
+                            "Builds Iron Furnaces' fuel and smoking JEI lists in one main-thread pass",
+                            "and reuses the immutable lists for later JEI rebuilds in this game session.",
+                            "Actual generator recipes remain world-specific and are always read fresh.")
+                    .define("cacheIronFurnacesJeiRecipes", true);
+            persistentIronFurnacesFuelCache = builder
+                    .comment(
+                            "Persists validated Iron Furnaces fuel results between client launches.",
+                            "A cached list is used only when synchronized item tags and Forge configs,",
+                            "local mod versions/files, and the item registry match.",
+                            "Recipes and unrelated client configs do not affect furnace fuel values.",
+                            "Cache misses rebuild before the first world frame; no fuel scan is deferred.")
+                    .define("persistentIronFurnacesFuelCache", true);
+            precompileIronFurnacesJeiRecipes = builder
+                    .comment(
+                            "Precompiles only Iron Furnaces' server-independent smoking list",
+                            "in small menu-frame slices. Fuel burn times are always evaluated",
+                            "after the active client world exists so server tags and config apply.")
+                    .define("precompileIronFurnacesJeiRecipes", true);
+            ironFurnacesPrecompileFrameBudgetMillis = builder
+                    .comment(
+                            "Maximum main-thread time used by the smoking-list precompile per menu frame.",
+                            "The default targets smooth menus while normally completing during server selection.")
+                    .defineInRange("ironFurnacesPrecompileFrameBudgetMillis", 3, 1, 8);
             cacheVaultTooltips = builder
                     .comment(
                             "Caches Vault Hunters tooltip lookups by item and active locale.",
@@ -113,7 +167,9 @@ public final class VHAcceleratorClientConfig {
             showLaunchTimer = builder
                     .comment(
                             "Shows measured launch time on the title screen and after joining a world.",
-                            "Multiplayer joins also show connect-to-first-playable-frame server login time.")
+                            "Multiplayer joins also show connect-to-first-playable-frame server login time.",
+                            "The JEI search-index worker reports remaining post-login work",
+                            "when its completed index is published.")
                     .define("showLaunchTimer", true);
             builder.pop();
         }

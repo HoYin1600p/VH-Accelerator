@@ -10,17 +10,33 @@ These settings are written to the VH Accelerator client configuration.
 - `stagedVaultGroupLoading = true`
 - `vaultGroupTickBudgetMillis = 4`
 - `parallelJeiIngredientSorting = true`
-- `asyncJeiStartup = true`
+- `asyncJeiSearchIndex = true`
+- `parallelJeiSearchPrefixes = true`
+- `parallelVanillaRecipeValidation = true`
+- `cacheJerCompatibility = true`
+- `cacheIronFurnacesJeiRecipes = true`
+- `precompileIronFurnacesJeiRecipes = true`
+- `ironFurnacesPrecompileFrameBudgetMillis = 3`
 
 Powah and JEITweaker still finish their work before returning to their
 callers. Vault group construction is spread over client ticks and exposes only
 the previous complete maps or the newly completed maps, never partial worker
 results.
 
-## Guarded asynchronous JEI tier
+## Isolated JEI search work
 
-`asyncJeiStartup = true` by default to match the two tested JEI 9 and JEI 10
-client profiles.
+JEI lifecycle, plugin registration, runtime publication, and event
+registration remain on Minecraft's main thread. Only the ingredient search
+index is built asynchronously. The worker owns a new, private search object;
+runtime additions are journaled; and the completed object is swapped into
+the live filter once on the main thread. A worker failure rebuilds the
+original search object sequentially.
+
+Within that private object, `parallelJeiSearchPrefixes` assigns each enabled
+search prefix to an independent bounded-pool task. Each task is the sole
+writer to its prefix storage and processes ingredients in their original
+order. Publication still waits for every prefix, and a failure discards the
+entire private object before JEI's sequential recovery runs.
 
 When validating a new mod list, remove the original LaunchFaster jar and the
 recovered VHClientOptimize jar, then record:
@@ -33,14 +49,61 @@ recovered VHClientOptimize jar, then record:
 - JEI search, bookmarks, hidden ingredients, custom categories, and recipe
   transfer after each switch.
 
-Expected log messages identify the JEI generation being prepared, discarded,
-published, or recovered synchronously. A discarded generation after a quick
-server change is expected and is the mechanism that prevents stale state from
-winning.
+Expected log messages report the private index build, its main-thread
+publication, any runtime additions merged into it, and sequential recovery
+if the build fails.
 
-If a particular JEI plugin blocks indefinitely during registration, disable
-`asyncJeiStartup`. VH Accelerator intentionally does not start a second JEI
-build concurrently with a stuck worker.
+Vanilla recipe validation uses the bounded loading pool, preserves recipe
+encounter order, and lets JEI run its original sequential method if any
+parallel validation call fails.
+
+## Plugin-specific caches
+
+Just Enough Resources rebuilds pack-local compatibility registries and scans
+loot data whenever JEI starts. VH Accelerator allows the first initialization
+to run normally with an active client level, then reuses the completed
+registries for later JEI rebuilds. It does not place JER or loot parsing on a
+worker and never attempts JER initialization from the title screen.
+
+Iron Furnaces normally traverses the complete item registry twice and asks
+Forge for every item's burn time during each JEI rebuild. VH Accelerator
+produces the same fuel and smoking lists in one client-thread pass, calls the
+burn-time hook once per item, and keeps immutable lists for the game session.
+Its actual generator recipes are still read from the current world's recipe
+manager every time.
+
+Only the server-independent smoking list is opportunistically precompiled
+after the title screen appears. Work is limited to a configurable per-frame
+budget, pauses when connection begins, and publishes only a complete immutable
+list. If the player connects before it finishes, JEI completes the remaining
+food checks on its normal thread. Fuel burn times are never evaluated at the
+menu: they are always rebuilt after an active client world exists so the
+current server's tags and configuration are honored. The title-screen status
+reports percent complete and total wall time.
+
+Iron Furnaces fuel results can also be persisted between client launches
+without requiring VH Accelerator on the server. The first connection performs
+the normal active-world scan and atomically stores its result. Later launches
+preload that result, but keep it quarantined until the current login's exact
+item-tag payload, Forge-synchronized server configs, mod versions/files, item
+registry, server address, and cache schema all match. Recipe ordering and
+unrelated client configuration do not invalidate fuel results. Item tags are
+canonicalized by tag name and item ID, so harmless network-map ordering changes
+do not create false misses. A match
+replaces the complete item scan with restoration of the stored fuel entries.
+A mismatch reports the changed dependency, rebuilds before the first world
+frame, and replaces the stored cache; fuel work is never deferred into
+gameplay.
+
+This dependency fingerprint is intended to support other deterministic caches.
+Recipe-derived caches must include the full recipe payload hash, so any recipe
+addition, removal, or content change pushed by the server invalidates only
+products that depend on recipes.
+
+Runtime JEI additions and removals that arrive while the private search index
+is being built are deferred until the complete index is published. This keeps
+JEITweaker and Vault hidden-ingredient removals ordered after the data they
+search, instead of producing thousands of false "matching ingredient" errors.
 
 ## Server-login timing
 

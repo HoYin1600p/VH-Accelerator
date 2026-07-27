@@ -1,7 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLifecycleBridge;
+import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -20,6 +22,8 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.internal.BrandingControl;
 
 public final class VHAcceleratorClient {
+    private static boolean ironFurnacesLoaded;
+
     private VHAcceleratorClient() {
     }
 
@@ -35,20 +39,27 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedOut);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onLevelRendered);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenDrawn);
+        ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
+        AdaptiveJeiWorkScheduler.initialize();
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
+            LoginStateFingerprint.beginConnection();
+            IronFurnacesRecipeCache.beginConnection();
+            AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.cancelActiveAttempt();
             ServerLoginTimer.markStart();
         } else if (event.getScreen() instanceof ReceivingLevelScreen
                 && !ServerLoginTimer.isActive()
                 && !ServerTransferTimer.isActive()) {
+            AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.markStart("receiving-level screen");
         }
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
+        runMenuPrecompile(event);
         if (!(event.getScreen() instanceof TitleScreen)
                 || !LaunchTimer.isFinished()
                 || !VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()) {
@@ -63,10 +74,12 @@ public final class VHAcceleratorClient {
         );
         ServerLoginTimer.Sample lastLogin = ServerLoginTimer.lastSample();
         ServerTransferTimer.Sample lastTransfer = ServerTransferTimer.lastSample();
+        PostLoginWorkTimer.Sample lastPostLogin = PostLoginWorkTimer.lastSample();
         StringBuilder launchText = new StringBuilder(String.format(
                 "VH Accelerator: Launch %.2fs",
                 LaunchTimer.elapsedMillis() / 1000.0
         ));
+        appendPrecompileStatus(launchText);
         if (lastLogin != null) {
             launchText.append(String.format(
                     " | Last server login %.2fs",
@@ -77,6 +90,12 @@ public final class VHAcceleratorClient {
             launchText.append(String.format(
                     " | Last transfer %.2fs",
                     lastTransfer.totalMillis() / 1000.0
+            ));
+        }
+        if (lastPostLogin != null) {
+            launchText.append(String.format(
+                    " | Last post-login %.2fs",
+                    lastPostLogin.totalMillis() / 1000.0
             ));
         }
         int y = event.getScreen().height - (10 + brandingLines[0] * 10);
@@ -93,6 +112,62 @@ public final class VHAcceleratorClient {
         event.getPoseStack().popPose();
     }
 
+    private static void runMenuPrecompile(ScreenEvent.DrawScreenEvent.Post event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!ironFurnacesLoaded
+                || !LaunchTimer.isFinished()
+                || !VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+                || !VHAcceleratorClientConfig.VALUES.cacheIronFurnacesJeiRecipes.get()
+                || !VHAcceleratorClientConfig.VALUES.precompileIronFurnacesJeiRecipes.get()
+                || minecraft.level != null
+                || minecraft.getConnection() != null
+                || event.getScreen() instanceof ConnectScreen
+                || event.getScreen() instanceof ReceivingLevelScreen) {
+            return;
+        }
+
+        if (event.getScreen() instanceof TitleScreen) {
+            IronFurnacesRecipeCache.beginMenuPrecompile();
+        }
+        IronFurnacesRecipeCache.runMenuPrecompileSlice(
+                VHAcceleratorClientConfig.VALUES
+                        .ironFurnacesPrecompileFrameBudgetMillis
+                        .get()
+        );
+    }
+
+    private static void appendPrecompileStatus(StringBuilder text) {
+        if (!ironFurnacesLoaded
+                || !VHAcceleratorClientConfig.VALUES.precompileIronFurnacesJeiRecipes.get()) {
+            return;
+        }
+
+        IronFurnacesRecipeCache.PrecompileStatus status =
+                IronFurnacesRecipeCache.precompileStatus();
+        if (status.phase() == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
+            text.append(String.format(
+                    " | Smoking prep: %d%%",
+                    status.percent()
+            ));
+        } else if (status.phase()
+                == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
+            if (status.elapsedMillis() < 1000L) {
+                text.append(String.format(
+                        " | Smoking prep: %dms",
+                        status.elapsedMillis()
+                ));
+            } else {
+                text.append(String.format(
+                        " | Smoking prep: %.2fs",
+                        status.elapsedMillis() / 1000.0
+                ));
+            }
+        } else if (status.phase()
+                == IronFurnacesRecipeCache.PrecompilePhase.FAILED) {
+            text.append(" | Smoking prep: deferred");
+        }
+    }
+
     private static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggedInEvent event) {
         if (event.getPlayer() == null) {
             return;
@@ -106,11 +181,9 @@ public final class VHAcceleratorClient {
     }
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
-        if (ModList.get().isLoaded("jei")) {
-            JeiLifecycleBridge.onClientDisconnected();
-        }
         ServerLoginTimer.cancelActiveAttempt();
         ServerTransferTimer.cancelActiveAttempt();
+        PostLoginWorkTimer.cancelActive();
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {
@@ -122,24 +195,26 @@ public final class VHAcceleratorClient {
             return;
         }
 
+        AdaptiveJeiWorkScheduler.markGameplayActive();
+        PostLoginWorkTimer.markFirstPlayableFrame();
         ServerLoginTimer.Sample loginSample = ServerLoginTimer.markFirstPlayableFrame();
         ServerTransferTimer.Sample transferSample =
                 ServerTransferTimer.markFirstPlayableFrame();
-        if (transferSample != null && ModList.get().isLoaded("jei")) {
-            JeiLifecycleBridge.recoverAfterTransfer();
-        }
+        PostLoginWorkTimer.Sample postLoginSample =
+                PostLoginWorkTimer.claimCompletedSample();
         if (!VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()) {
             return;
         }
 
         if (loginSample != null) {
-            String text = String.format(
+            StringBuilder text = new StringBuilder(String.format(
                     "[VH Accelerator] Launch: %.2fs | Server login: %.2fs",
                     LaunchTimer.elapsedMillis() / 1000.0,
                     loginSample.totalMillis() / 1000.0
-            );
+            ));
+            appendPostLoginStatus(text, postLoginSample);
             minecraft.player.displayClientMessage(
-                    new TextComponent(text).withStyle(ChatFormatting.GREEN),
+                    new TextComponent(text.toString()).withStyle(ChatFormatting.GREEN),
                     false
             );
         } else if (transferSample != null) {
@@ -151,6 +226,8 @@ public final class VHAcceleratorClient {
                     new TextComponent(text).withStyle(ChatFormatting.GREEN),
                     false
             );
+        } else if (postLoginSample != null) {
+            showPostLoginMessage(minecraft, postLoginSample);
         }
     }
 
@@ -160,9 +237,38 @@ public final class VHAcceleratorClient {
             return;
         }
 
-        String text = String.format(
+        StringBuilder text = new StringBuilder(String.format(
                 "[VH Accelerator] Launch: %.2fs",
                 LaunchTimer.elapsedMillis() / 1000.0
+        ));
+        appendPostLoginStatus(text, null);
+        minecraft.player.displayClientMessage(
+                new TextComponent(text.toString()).withStyle(ChatFormatting.GREEN),
+                false
+        );
+    }
+
+    private static void appendPostLoginStatus(
+            StringBuilder text,
+            PostLoginWorkTimer.Sample completedSample
+    ) {
+        if (completedSample != null) {
+            text.append(String.format(
+                    " | Post-login: %.2fs",
+                    completedSample.totalMillis() / 1000.0
+            ));
+        } else if (PostLoginWorkTimer.isRunning()) {
+            text.append(" | Post-login: running");
+        }
+    }
+
+    private static void showPostLoginMessage(
+            Minecraft minecraft,
+            PostLoginWorkTimer.Sample sample
+    ) {
+        String text = String.format(
+                "[VH Accelerator] Post-login work completed in %.2fs",
+                sample.totalMillis() / 1000.0
         );
         minecraft.player.displayClientMessage(
                 new TextComponent(text).withStyle(ChatFormatting.GREEN),

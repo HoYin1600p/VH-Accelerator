@@ -102,6 +102,8 @@ dependencies {
     compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
     compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
     compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
+    compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
+    compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
 }
 
 def compatibilityProfiles = [
@@ -164,11 +166,19 @@ tasks.register('verifyUnifiedCompatibilityJar') {
         def archive = new java.util.zip.ZipFile(outputJar)
         try {
             def requiredEntries = [
-                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/JeiLifecycleBridge.class',
-                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/v9/AsyncJeiCoordinator.class',
-                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/v10/AsyncJeiCoordinator.class',
-                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/ClientLifecycleHandlerMixin.class',
-                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/ClientLifecycleHandlerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/AdaptiveJeiWorkScheduler.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/DeferredIngredientMutations.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jei/ParallelJeiPrefixIndexer.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientFilterMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientManagerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/IngredientFilterMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/IngredientManagerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/VanillaRecipesMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/VanillaRecipesMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/jer/JerCompatibilityCache.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/ironfurnaces/IronFurnacesRecipeCache.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jer/JeiConfigMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/ironfurnaces/IronFurnacesJeiPluginMixin.class',
                     'vhaccelerator.mixins.json'
             ]
             def missingEntries = requiredEntries.findAll {
@@ -178,6 +188,37 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                 throw new GradleException(
                         'Universal compatibility classes are missing from the jar: ' +
                                 missingEntries.join(', ')
+                )
+            }
+
+            def removedMainThreadRouters = [
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/PluginCallerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/PluginCallerMixin.class'
+            ]
+            def presentMainThreadRouters = removedMainThreadRouters.findAll {
+                archive.getEntry(it) != null
+            }
+            if (!presentMainThreadRouters.isEmpty()) {
+                throw new GradleException(
+                        'The jar still contains blanket JEI main-thread routing: ' +
+                                presentMainThreadRouters.join(', ')
+                )
+            }
+
+            def mixinConfig = archive.getInputStream(
+                    archive.getEntry('vhaccelerator.mixins.json')
+            ).getText('UTF-8')
+            def removedWholeStartupMixins = [
+                    'ClientLifecycleHandlerMixin',
+                    'InternalMixin',
+                    'JeiStarterMixin',
+                    'PluginLoaderMixin',
+                    'PluginCallerSelectiveMixin'
+            ].findAll { mixinConfig.contains(it) }
+            if (!removedWholeStartupMixins.isEmpty()) {
+                throw new GradleException(
+                        'Whole-startup JEI worker mixins are still active: ' +
+                                removedWholeStartupMixins.join(', ')
                 )
             }
 

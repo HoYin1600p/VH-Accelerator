@@ -22,10 +22,12 @@ public final class ServerLoginTimer {
 
         VHAccelerator.LOGGER.info(
                 "Server login timer started for attempt {} "
-                        + "[asyncJeiStartup={}, stagedVaultGroupLoading={}, "
-                        + "parallelJeiIngredientSorting={}, parallelJeiTweakerMatching={}]",
+                        + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
+                        + "stagedVaultGroupLoading={}, parallelJeiIngredientSorting={}, "
+                        + "parallelJeiTweakerMatching={}]",
                 attempt,
-                VHAcceleratorClientConfig.VALUES.asyncJeiStartup.get(),
+                VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get(),
+                VHAcceleratorClientConfig.VALUES.parallelVanillaRecipeValidation.get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()

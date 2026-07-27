@@ -28,6 +28,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean vaultHuntersLoaded;
     private boolean powahLoaded;
     private boolean jeiTweakerLoaded;
+    private boolean jerLoaded;
+    private boolean ironFurnacesLoaded;
     private boolean physicalClient;
 
     @Override
@@ -54,6 +56,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 powahLoaded = modList != null && modList.getModFileById("powah") != null;
                 jeiTweakerLoaded =
                         modList != null && modList.getModFileById("jeitweaker") != null;
+                jerLoaded = modList != null
+                        && modList.getModFileById("jeresources") != null;
+                ironFurnacesLoaded = modList != null
+                        && modList.getModFileById("ironfurnaces") != null;
             }
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
@@ -62,6 +68,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             vaultHuntersLoaded = false;
             powahLoaded = false;
             jeiTweakerLoaded = false;
+            jerLoaded = false;
+            ironFurnacesLoaded = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
 
@@ -110,6 +118,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.jeitweaker.")) {
             return jeiLoaded && jeiTweakerLoaded;
+        }
+        if (mixinClassName.contains(".compat.jer.")) {
+            return jeiLoaded && jerLoaded;
+        }
+        if (mixinClassName.contains(".compat.ironfurnaces.")) {
+            return jeiLoaded && ironFurnacesLoaded;
         }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
     }
