@@ -130,8 +130,10 @@ public final class VHAcceleratorClientConfig {
                     .comment(
                             "Persists the IDs that passed JEI's vanilla recipe validation.",
                             "Recipe objects are always resolved from the active world; cached IDs",
-                            "are accepted only when the complete server recipe/tag fingerprint,",
-                            "server configs, local configs, and installed mod files match.")
+                            "are accepted only when the server recipe/tag payloads, synchronized",
+                            "server configs, and installed mod files match.",
+                            "Volatile UI and per-world client settings are intentionally excluded",
+                            "because they do not define the server-synchronized recipe set.")
                     .define("persistentVanillaRecipeValidationCache", true);
             cacheJerCompatibility = builder
                     .comment(

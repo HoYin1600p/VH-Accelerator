@@ -41,6 +41,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
+    private static final int RECIPE_SCHEMA_VERSION = 1;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -191,6 +192,13 @@ public final class LoginStateFingerprint {
                 "tags=" + tags,
                 "server-configs=" + serverConfigs
         );
+        List<String> recipeInputs = List.of(
+                "recipe-schema=" + RECIPE_SCHEMA_VERSION,
+                "local-code=" + localCode,
+                "recipes=" + recipes,
+                "tags=" + tags,
+                "server-configs=" + serverConfigs
+        );
 
         String serverIdentity = serverIdentity();
         if (serverIdentity == null) {
@@ -203,6 +211,13 @@ public final class LoginStateFingerprint {
                 new FuelDependencies(
                         digestStrings(fuelInputs),
                         localCode,
+                        tags,
+                        serverConfigs
+                ),
+                new RecipeDependencies(
+                        digestStrings(recipeInputs),
+                        localCode,
+                        recipes,
                         tags,
                         serverConfigs
                 )
@@ -386,13 +401,23 @@ public final class LoginStateFingerprint {
             String value,
             String serverKey,
             int synchronizedConfigCount,
-            FuelDependencies fuel
+            FuelDependencies fuel,
+            RecipeDependencies recipes
     ) {
     }
 
     public record FuelDependencies(
             String value,
             String localCodeHash,
+            String tagPayloadHash,
+            String serverConfigHash
+    ) {
+    }
+
+    public record RecipeDependencies(
+            String value,
+            String localCodeHash,
+            String recipePayloadHash,
             String tagPayloadHash,
             String serverConfigHash
     ) {

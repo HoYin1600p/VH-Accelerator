@@ -46,7 +46,7 @@ public final class PersistentRecipeValidationCache {
     public static final String SMITHING = "smithing";
 
     private static final int MAGIC = 0x56484152;
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
     private static final int MAX_CATEGORIES = 32;
     private static final int MAX_RECIPES_PER_CATEGORY = 250_000;
     private static final Set<String> COMPLETE_CATEGORY_SET = Set.of(
@@ -66,6 +66,7 @@ public final class PersistentRecipeValidationCache {
 
     private static volatile CompletableFuture<Map<String, CachedManifest>> preload;
     private static PendingManifest pending;
+    private static String reportedMissKey;
 
     private PersistentRecipeValidationCache() {
     }
@@ -93,6 +94,7 @@ public final class PersistentRecipeValidationCache {
 
     public static synchronized void beginConnection() {
         pending = null;
+        reportedMissKey = null;
     }
 
     public static <T extends Recipe<?>> CraftingResult<T> restoreCrafting(
@@ -207,11 +209,44 @@ public final class PersistentRecipeValidationCache {
         }
         prewarm();
         CachedManifest manifest = preload.join().get(fingerprint.serverKey());
-        if (manifest == null
-                || !manifest.fingerprint().equals(fingerprint.value())
-                || !manifest.categories().keySet().containsAll(
-                        COMPLETE_CATEGORY_SET
-                )) {
+        if (manifest == null) {
+            reportMiss(fingerprint, "no compatible cache exists for this server");
+            return null;
+        }
+        LoginStateFingerprint.RecipeDependencies stored =
+                manifest.dependencies();
+        LoginStateFingerprint.RecipeDependencies current =
+                fingerprint.recipes();
+        if (!stored.localCodeHash().equals(current.localCodeHash())) {
+            reportMiss(
+                    fingerprint,
+                    "local mods, mod files, or the item registry changed"
+            );
+            return null;
+        }
+        if (!stored.recipePayloadHash().equals(current.recipePayloadHash())) {
+            reportMiss(fingerprint, "the synchronized recipe payload changed");
+            return null;
+        }
+        if (!stored.tagPayloadHash().equals(current.tagPayloadHash())) {
+            reportMiss(fingerprint, "the synchronized item tags changed");
+            return null;
+        }
+        if (!stored.serverConfigHash().equals(current.serverConfigHash())) {
+            reportMiss(
+                    fingerprint,
+                    "the synchronized Forge server configs changed"
+            );
+            return null;
+        }
+        if (!stored.value().equals(current.value())) {
+            reportMiss(fingerprint, "the recipe-cache schema changed");
+            return null;
+        }
+        if (!manifest.categories().keySet().containsAll(
+                COMPLETE_CATEGORY_SET
+        )) {
+            reportMiss(fingerprint, "the cached recipe groups are incomplete");
             return null;
         }
         return manifest;
@@ -222,7 +257,9 @@ public final class PersistentRecipeValidationCache {
     ) {
         if (pending != null
                 && pending.serverKey().equals(fingerprint.serverKey())
-                && pending.fingerprint().equals(fingerprint.value())) {
+                && pending.dependencies().value().equals(
+                        fingerprint.recipes().value()
+                )) {
             return pending;
         }
 
@@ -233,7 +270,7 @@ public final class PersistentRecipeValidationCache {
         }
         pending = new PendingManifest(
                 fingerprint.serverKey(),
-                fingerprint.value(),
+                fingerprint.recipes(),
                 categories
         );
         return pending;
@@ -244,7 +281,7 @@ public final class PersistentRecipeValidationCache {
             return;
         }
         CachedManifest manifest = new CachedManifest(
-                current.fingerprint(),
+                current.dependencies(),
                 Map.copyOf(current.categories())
         );
         save(current.serverKey(), manifest);
@@ -256,6 +293,24 @@ public final class PersistentRecipeValidationCache {
             List<? extends Recipe<?>> recipes
     ) {
         return entry != null && entry.sourceCount() == recipes.size();
+    }
+
+    private static synchronized void reportMiss(
+            LoginStateFingerprint.Snapshot fingerprint,
+            String reason
+    ) {
+        String missKey = fingerprint.serverKey()
+                + ":"
+                + fingerprint.recipes().value();
+        if (missKey.equals(reportedMissKey)) {
+            return;
+        }
+        reportedMissKey = missKey;
+        VHAccelerator.LOGGER.info(
+                "Persistent vanilla JEI recipe cache miss because {}; "
+                        + "validating the active recipe set",
+                reason
+        );
     }
 
     private static Set<String> validatedIds(
@@ -303,7 +358,13 @@ public final class PersistentRecipeValidationCache {
             )) {
                 output.writeInt(MAGIC);
                 output.writeInt(FORMAT_VERSION);
-                output.writeUTF(manifest.fingerprint());
+                LoginStateFingerprint.RecipeDependencies dependencies =
+                        manifest.dependencies();
+                output.writeUTF(dependencies.value());
+                output.writeUTF(dependencies.localCodeHash());
+                output.writeUTF(dependencies.recipePayloadHash());
+                output.writeUTF(dependencies.tagPayloadHash());
+                output.writeUTF(dependencies.serverConfigHash());
                 List<String> categories = manifest.categories().keySet().stream()
                         .sorted()
                         .toList();
@@ -394,7 +455,14 @@ public final class PersistentRecipeValidationCache {
             if (input.readInt() != MAGIC || input.readInt() != FORMAT_VERSION) {
                 return;
             }
-            String fingerprint = input.readUTF();
+            LoginStateFingerprint.RecipeDependencies dependencies =
+                    new LoginStateFingerprint.RecipeDependencies(
+                            input.readUTF(),
+                            input.readUTF(),
+                            input.readUTF(),
+                            input.readUTF(),
+                            input.readUTF()
+                    );
             int categoryCount = input.readInt();
             if (categoryCount < 0 || categoryCount > MAX_CATEGORIES) {
                 throw new IOException("Invalid recipe category count " + categoryCount);
@@ -439,7 +507,7 @@ public final class PersistentRecipeValidationCache {
             }
 
             CachedManifest manifest = new CachedManifest(
-                    fingerprint,
+                    dependencies,
                     Map.copyOf(categories)
             );
             if (!input.readUTF().equals(manifestHash(manifest))) {
@@ -473,7 +541,13 @@ public final class PersistentRecipeValidationCache {
     private static String manifestHash(CachedManifest manifest) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            updateDigest(digest, manifest.fingerprint());
+            LoginStateFingerprint.RecipeDependencies dependencies =
+                    manifest.dependencies();
+            updateDigest(digest, dependencies.value());
+            updateDigest(digest, dependencies.localCodeHash());
+            updateDigest(digest, dependencies.recipePayloadHash());
+            updateDigest(digest, dependencies.tagPayloadHash());
+            updateDigest(digest, dependencies.serverConfigHash());
             manifest.categories().entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> {
@@ -514,14 +588,14 @@ public final class PersistentRecipeValidationCache {
     }
 
     private record CachedManifest(
-            String fingerprint,
+            LoginStateFingerprint.RecipeDependencies dependencies,
             Map<String, CategoryEntry> categories
     ) {
     }
 
     private record PendingManifest(
             String serverKey,
-            String fingerprint,
+            LoginStateFingerprint.RecipeDependencies dependencies,
             Map<String, CategoryEntry> categories
     ) {
     }
