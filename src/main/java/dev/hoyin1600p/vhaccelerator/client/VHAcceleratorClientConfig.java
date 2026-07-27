@@ -125,8 +125,9 @@ public final class VHAcceleratorClientConfig {
                     .comment(
                             "Persists JEI's completed vanilla item ingredient list between launches.",
                             "A cached list is restored only when the server address, JEI generation,",
-                            "installed mods/files, item registry, local configs, synchronized item tags,",
-                            "and Forge server configs match. A miss runs JEI's original factory.",
+                            "installed mods/files, item registry, registered client/common configs,",
+                            "synchronized item tags, and Forge server configs match.",
+                            "A miss runs JEI's original factory.",
                             "Item stacks are reconstructed on the client thread before JEI sees them.")
                     .define("persistentVanillaIngredientCache", true);
             parallelVanillaRecipeValidation = builder

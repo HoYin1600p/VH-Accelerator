@@ -31,6 +31,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.config.ConfigTracker;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.forgespi.language.IModInfo;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -42,7 +44,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
-    private static final int INGREDIENT_SCHEMA_VERSION = 1;
+    private static final int INGREDIENT_SCHEMA_VERSION = 2;
     private static final int RECIPE_SCHEMA_VERSION = 2;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
@@ -62,12 +64,12 @@ public final class LoginStateFingerprint {
     }
 
     public static void prewarmLocalEnvironment() {
-        if (localCodeHash != null && localConfigHash != null) {
+        if (localCodeHash != null) {
             return;
         }
 
         synchronized (LoginStateFingerprint.class) {
-            if (localCodeHash != null && localConfigHash != null) {
+            if (localCodeHash != null) {
                 return;
             }
 
@@ -85,10 +87,6 @@ public final class LoginStateFingerprint {
             localCodeHash = backgroundDigest(
                     () -> digestCodeEnvironment(inputs),
                     "VH Accelerator code fingerprint"
-            );
-            localConfigHash = backgroundDigest(
-                    LoginStateFingerprint::digestLocalConfigs,
-                    "VH Accelerator config fingerprint"
             );
         }
     }
@@ -180,7 +178,7 @@ public final class LoginStateFingerprint {
 
         prewarmLocalEnvironment();
         String localCode = localCodeHash.join();
-        String localConfigs = localConfigHash.join();
+        String localConfigs = localConfigHash().join();
         List<String> serverConfigInputs = new ArrayList<>();
         SERVER_CONFIGS.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -322,28 +320,69 @@ public final class LoginStateFingerprint {
         return digestStrings(inputs);
     }
 
+    private static CompletableFuture<String> localConfigHash() {
+        CompletableFuture<String> current = localConfigHash;
+        if (current != null) {
+            return current;
+        }
+        synchronized (LoginStateFingerprint.class) {
+            if (localConfigHash == null) {
+                localConfigHash = backgroundDigest(
+                        LoginStateFingerprint::digestLocalConfigs,
+                        "VH Accelerator config fingerprint"
+                );
+            }
+            return localConfigHash;
+        }
+    }
+
     private static String digestLocalConfigs() {
         List<String> inputs = new ArrayList<>();
-        Path configDirectory = FMLPaths.CONFIGDIR.get();
-        if (!Files.isDirectory(configDirectory)) {
-            return digestStrings(inputs);
+        List<ModConfig> configs = new ArrayList<>();
+        for (ModConfig.Type type : List.of(
+                ModConfig.Type.CLIENT,
+                ModConfig.Type.COMMON
+        )) {
+            var tracked = ConfigTracker.INSTANCE.configSets().get(type);
+            if (tracked == null) {
+                continue;
+            }
+            synchronized (tracked) {
+                configs.addAll(tracked);
+            }
         }
-        try (Stream<Path> paths = Files.walk(configDirectory)) {
-            paths.filter(Files::isRegularFile)
-                    .sorted(Comparator.comparing(Path::toString))
-                    .forEach(path -> inputs.add(
-                            "local-config="
-                                    + configDirectory.relativize(path)
-                                    + ":"
-                                    + digestFile(path)
-                    ));
-        } catch (IOException exception) {
-            VHAccelerator.LOGGER.warn(
-                    "Could not fingerprint the local config directory; "
-                            + "persistent login caches will be conservatively changed",
-                    exception
+
+        configs.sort(
+                Comparator.comparing((ModConfig config) ->
+                                config.getType().name())
+                        .thenComparing(ModConfig::getModId)
+                        .thenComparing(ModConfig::getFileName)
+        );
+        Path configDirectory = FMLPaths.CONFIGDIR.get();
+        for (ModConfig config : configs) {
+            Path path = configDirectory.resolve(config.getFileName()).normalize();
+            if (!path.startsWith(configDirectory)
+                    || !Files.isRegularFile(path)) {
+                inputs.add(
+                        "registered-local-config-missing="
+                                + config.getType()
+                                + ":"
+                                + config.getModId()
+                                + ":"
+                                + config.getFileName()
+                );
+                continue;
+            }
+            inputs.add(
+                    "registered-local-config="
+                            + config.getType()
+                            + ":"
+                            + config.getModId()
+                            + ":"
+                            + config.getFileName()
+                            + ":"
+                            + digestFile(path)
             );
-            inputs.add("local-config-read-failed");
         }
         return digestStrings(inputs);
     }

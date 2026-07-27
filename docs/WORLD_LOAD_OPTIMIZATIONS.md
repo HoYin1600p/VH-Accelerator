@@ -75,6 +75,12 @@ reconstructs every stack on the client thread and preserves the exact stored
 order. Any missing dependency, malformed stack, or fingerprint mismatch runs
 JEI's original factory and atomically replaces the cache.
 
+The local-config dependency is computed after Forge config loading from the
+registered client and common config set. It does not scan unrelated runtime
+state such as map waypoints, HUD layouts, player-volume files, or per-server
+UI state, which may be rewritten during every startup without affecting
+creative-tab contents.
+
 ## Plugin-specific caches
 
 Just Enough Resources rebuilds pack-local compatibility registries and scans
