@@ -32,6 +32,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
         public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
         public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
+        public final ForgeConfigSpec.BooleanValue persistentVanillaIngredientCache;
         public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
         public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
         public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
@@ -120,6 +121,14 @@ public final class VHAcceleratorClientConfig {
                             "index is published only after all prefixes complete.",
                             "Any failure discards the private index and uses the sequential fallback.")
                     .define("parallelJeiSearchPrefixes", true);
+            persistentVanillaIngredientCache = builder
+                    .comment(
+                            "Persists JEI's completed vanilla item ingredient list between launches.",
+                            "A cached list is restored only when the server address, JEI generation,",
+                            "installed mods/files, item registry, local configs, synchronized item tags,",
+                            "and Forge server configs match. A miss runs JEI's original factory.",
+                            "Item stacks are reconstructed on the client thread before JEI sees them.")
+                    .define("persistentVanillaIngredientCache", true);
             parallelVanillaRecipeValidation = builder
                     .comment(
                             "Validates JEI's vanilla crafting, furnace, smoking, blasting,",

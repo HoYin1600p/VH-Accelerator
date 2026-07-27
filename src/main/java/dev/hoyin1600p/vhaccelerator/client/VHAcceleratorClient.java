@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import net.minecraft.ChatFormatting;
@@ -47,6 +48,7 @@ public final class VHAcceleratorClient {
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
         AdaptiveJeiWorkScheduler.initialize();
+        PersistentVanillaIngredientCache.prewarm();
         PersistentRecipeValidationCache.prewarm();
     }
 
@@ -55,6 +57,7 @@ public final class VHAcceleratorClient {
             ClientWorkSession.begin();
             LoginStateFingerprint.beginConnection();
             IronFurnacesRecipeCache.beginConnection();
+            PersistentVanillaIngredientCache.beginConnection();
             PersistentRecipeValidationCache.beginConnection();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.cancelActiveAttempt();
@@ -63,6 +66,7 @@ public final class VHAcceleratorClient {
                 && !ServerLoginTimer.isActive()
                 && !ServerTransferTimer.isActive()) {
             ClientWorkSession.begin();
+            PersistentVanillaIngredientCache.beginConnection();
             PersistentRecipeValidationCache.beginConnection();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.markStart("receiving-level screen");

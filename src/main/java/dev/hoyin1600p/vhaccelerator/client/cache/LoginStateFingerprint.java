@@ -42,6 +42,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
+    private static final int INGREDIENT_SCHEMA_VERSION = 1;
     private static final int RECIPE_SCHEMA_VERSION = 2;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
@@ -201,6 +202,13 @@ public final class LoginStateFingerprint {
                 "tags=" + tags,
                 "server-configs=" + serverConfigs
         );
+        List<String> ingredientInputs = List.of(
+                "ingredient-schema=" + INGREDIENT_SCHEMA_VERSION,
+                "local-code=" + localCode,
+                "local-configs=" + localConfigs,
+                "tags=" + tags,
+                "server-configs=" + serverConfigs
+        );
         List<String> recipeInputs = List.of(
                 "recipe-schema=" + RECIPE_SCHEMA_VERSION,
                 "local-code=" + localCode,
@@ -220,6 +228,13 @@ public final class LoginStateFingerprint {
                 new FuelDependencies(
                         digestStrings(fuelInputs),
                         localCode,
+                        tags,
+                        serverConfigs
+                ),
+                new IngredientDependencies(
+                        digestStrings(ingredientInputs),
+                        localCode,
+                        localConfigs,
                         tags,
                         serverConfigs
                 ),
@@ -411,6 +426,7 @@ public final class LoginStateFingerprint {
             String serverKey,
             int synchronizedConfigCount,
             FuelDependencies fuel,
+            IngredientDependencies ingredients,
             RecipeDependencies recipes
     ) {
     }
@@ -418,6 +434,15 @@ public final class LoginStateFingerprint {
     public record FuelDependencies(
             String value,
             String localCodeHash,
+            String tagPayloadHash,
+            String serverConfigHash
+    ) {
+    }
+
+    public record IngredientDependencies(
+            String value,
+            String localCodeHash,
+            String localConfigHash,
             String tagPayloadHash,
             String serverConfigHash
     ) {

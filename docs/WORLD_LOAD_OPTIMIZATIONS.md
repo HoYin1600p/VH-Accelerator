@@ -12,6 +12,7 @@ These settings are written to the VH Accelerator client configuration.
 - `parallelJeiIngredientSorting = true`
 - `asyncJeiSearchIndex = true`
 - `parallelJeiSearchPrefixes = true`
+- `persistentVanillaIngredientCache = true`
 - `parallelVanillaRecipeValidation = true`
 - `cacheJerCompatibility = true`
 - `cacheIronFurnacesJeiRecipes = true`
@@ -64,6 +65,15 @@ if the build fails.
 Vanilla recipe validation uses the bounded loading pool, preserves recipe
 encounter order, and lets JEI run its original sequential method if any
 parallel validation call fails.
+
+JEI's vanilla item ingredient list is also persisted after its original
+creative-tab enumeration and subtype-aware deduplication completes. On later
+launches, the cached list stays quarantined until the server address, JEI
+generation, installed mod files and item registry, local configuration,
+synchronized item tags, and Forge server configuration all match. A match
+reconstructs every stack on the client thread and preserves the exact stored
+order. Any missing dependency, malformed stack, or fingerprint mismatch runs
+JEI's original factory and atomically replaces the cache.
 
 ## Plugin-specific caches
 
