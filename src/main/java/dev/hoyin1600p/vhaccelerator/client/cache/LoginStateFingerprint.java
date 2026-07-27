@@ -29,6 +29,7 @@ import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagNetworkSerialization;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.forgespi.language.IModInfo;
@@ -41,7 +42,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
-    private static final int RECIPE_SCHEMA_VERSION = 1;
+    private static final int RECIPE_SCHEMA_VERSION = 2;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -104,7 +105,15 @@ public final class LoginStateFingerprint {
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
-        recipePayloadHash = digestPacket(packet::write);
+        List<Recipe<?>> canonicalRecipes =
+                packet.getRecipes().stream()
+                        .sorted(Comparator.comparing(
+                                recipe -> recipe.getId().toString()
+                        ))
+                        .toList();
+        ClientboundUpdateRecipesPacket canonicalPacket =
+                new ClientboundUpdateRecipesPacket(canonicalRecipes);
+        recipePayloadHash = digestPacket(canonicalPacket::write);
     }
 
     public static void captureTagPacket(ClientboundUpdateTagsPacket packet) {
