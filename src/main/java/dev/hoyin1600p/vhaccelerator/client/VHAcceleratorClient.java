@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecip
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -26,6 +27,7 @@ import net.minecraftforge.internal.BrandingControl;
 
 public final class VHAcceleratorClient {
     private static boolean ironFurnacesLoaded;
+    private static boolean jerLoaded;
 
     private VHAcceleratorClient() {
     }
@@ -43,6 +45,7 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onLevelRendered);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenDrawn);
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
+        jerLoaded = ModList.get().isLoaded("jeresources");
         AdaptiveJeiWorkScheduler.initialize();
         PersistentRecipeValidationCache.prewarm();
     }
@@ -137,11 +140,8 @@ public final class VHAcceleratorClient {
 
     private static void runMenuPrecompile(ScreenEvent.DrawScreenEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!ironFurnacesLoaded
-                || !LaunchTimer.isFinished()
+        if (!LaunchTimer.isFinished()
                 || !VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
-                || !VHAcceleratorClientConfig.VALUES.cacheIronFurnacesJeiRecipes.get()
-                || !VHAcceleratorClientConfig.VALUES.precompileIronFurnacesJeiRecipes.get()
                 || minecraft.level != null
                 || minecraft.getConnection() != null
                 || event.getScreen() instanceof ConnectScreen
@@ -150,44 +150,101 @@ public final class VHAcceleratorClient {
         }
 
         if (event.getScreen() instanceof TitleScreen) {
-            IronFurnacesRecipeCache.beginMenuPrecompile();
+            if (ironFurnacesLoaded
+                    && VHAcceleratorClientConfig.VALUES
+                            .cacheIronFurnacesJeiRecipes
+                            .get()
+                    && VHAcceleratorClientConfig.VALUES
+                            .precompileIronFurnacesJeiRecipes
+                            .get()) {
+                IronFurnacesRecipeCache.beginMenuPrecompile();
+            }
+            if (jerLoaded
+                    && VHAcceleratorClientConfig.VALUES
+                            .cacheJerCompatibility
+                            .get()) {
+                JerCompatibilityCache.beginMenuPreload();
+            }
         }
-        IronFurnacesRecipeCache.runMenuPrecompileSlice(
-                VHAcceleratorClientConfig.VALUES
-                        .ironFurnacesPrecompileFrameBudgetMillis
+
+        if (jerLoaded
+                && VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
+            JerCompatibilityCache.pollMenuPreload();
+        }
+        if (ironFurnacesLoaded
+                && VHAcceleratorClientConfig.VALUES
+                        .cacheIronFurnacesJeiRecipes
                         .get()
-        );
+                && VHAcceleratorClientConfig.VALUES
+                        .precompileIronFurnacesJeiRecipes
+                        .get()) {
+            IronFurnacesRecipeCache.runMenuPrecompileSlice(
+                    VHAcceleratorClientConfig.VALUES
+                            .ironFurnacesPrecompileFrameBudgetMillis
+                            .get()
+            );
+        }
     }
 
     private static void appendPrecompileStatus(StringBuilder text) {
-        if (!ironFurnacesLoaded
-                || !VHAcceleratorClientConfig.VALUES.precompileIronFurnacesJeiRecipes.get()) {
-            return;
+        if (jerLoaded
+                && VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
+            JerCompatibilityCache.PreloadStatus jerStatus =
+                    JerCompatibilityCache.preloadStatus();
+            if (jerStatus.phase()
+                    == JerCompatibilityCache.PreloadPhase.RUNNING) {
+                text.append(String.format(
+                        " | JER prep: %d%%",
+                        jerStatus.percent()
+                ));
+            } else if (jerStatus.phase()
+                    == JerCompatibilityCache.PreloadPhase.COMPLETED) {
+                if (jerStatus.elapsedMillis() < 1000L) {
+                    text.append(String.format(
+                            " | JER prep: %dms",
+                            jerStatus.elapsedMillis()
+                    ));
+                } else {
+                    text.append(String.format(
+                            " | JER prep: %.2fs",
+                            jerStatus.elapsedMillis() / 1000.0
+                    ));
+                }
+            } else if (jerStatus.phase()
+                    == JerCompatibilityCache.PreloadPhase.FAILED) {
+                text.append(" | JER prep: deferred");
+            }
         }
 
-        IronFurnacesRecipeCache.PrecompileStatus status =
-                IronFurnacesRecipeCache.precompileStatus();
-        if (status.phase() == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
-            text.append(String.format(
-                    " | Smoking prep: %d%%",
-                    status.percent()
-            ));
-        } else if (status.phase()
-                == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
-            if (status.elapsedMillis() < 1000L) {
+        if (ironFurnacesLoaded
+                && VHAcceleratorClientConfig.VALUES
+                        .precompileIronFurnacesJeiRecipes
+                        .get()) {
+            IronFurnacesRecipeCache.PrecompileStatus status =
+                    IronFurnacesRecipeCache.precompileStatus();
+            if (status.phase()
+                    == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
                 text.append(String.format(
-                        " | Smoking prep: %dms",
-                        status.elapsedMillis()
+                        " | Smoking prep: %d%%",
+                        status.percent()
                 ));
-            } else {
-                text.append(String.format(
-                        " | Smoking prep: %.2fs",
-                        status.elapsedMillis() / 1000.0
-                ));
+            } else if (status.phase()
+                    == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
+                if (status.elapsedMillis() < 1000L) {
+                    text.append(String.format(
+                            " | Smoking prep: %dms",
+                            status.elapsedMillis()
+                    ));
+                } else {
+                    text.append(String.format(
+                            " | Smoking prep: %.2fs",
+                            status.elapsedMillis() / 1000.0
+                    ));
+                }
+            } else if (status.phase()
+                    == IronFurnacesRecipeCache.PrecompilePhase.FAILED) {
+                text.append(" | Smoking prep: deferred");
             }
-        } else if (status.phase()
-                == IronFurnacesRecipeCache.PrecompilePhase.FAILED) {
-            text.append(" | Smoking prep: deferred");
         }
     }
 

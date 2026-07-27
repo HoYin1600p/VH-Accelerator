@@ -137,9 +137,10 @@ public final class VHAcceleratorClientConfig {
                     .define("persistentVanillaRecipeValidationCache", true);
             cacheJerCompatibility = builder
                     .comment(
-                            "Reuses Just Enough Resources' compatibility and loot scan for later JEI rebuilds.",
-                            "JER data is local to the installed pack, so cluster transfers do not need to",
-                            "rebuild the same registries.")
+                            "Preloads Just Enough Resources' local loot tables asynchronously in menus,",
+                            "then reuses its compatibility scan for later JEI rebuilds.",
+                            "Connecting before the preload finishes safely waits for the remaining work.",
+                            "JER data is local to the installed pack, so cluster transfers do not rebuild it.")
                     .define("cacheJerCompatibility", true);
             cacheIronFurnacesJeiRecipes = builder
                     .comment(
