@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
 import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
@@ -17,6 +18,8 @@ import mezz.jei.common.search.ElementPrefixParser;
 import mezz.jei.common.search.ElementSearch;
 import mezz.jei.common.search.IElementSearch;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.PlayerHeadItem;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -115,66 +118,114 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
 
         List<IListElementInfo<?>> initial =
                 List.copyOf(vhaccelerator$initialIngredients);
+        List<IListElementInfo<?>> workerSafe = new ArrayList<>(initial.size());
+        List<IListElementInfo<?>> dynamicPlayerHeads = new ArrayList<>();
+        for (IListElementInfo<?> info : initial) {
+            if (vhaccelerator$isDynamicPlayerHead(info)) {
+                dynamicPlayerHeads.add(info);
+            } else {
+                workerSafe.add(info);
+            }
+        }
         vhaccelerator$initialIngredients = null;
         vhaccelerator$runtimeAdditions = new ArrayList<>();
         vhaccelerator$deferredMutations = new ArrayList<>();
         vhaccelerator$indexing = true;
-        long workToken = PostLoginWorkTimer.markWorkStarted();
+        long sessionGeneration = ClientWorkSession.current();
+        long workToken = PostLoginWorkTimer.markWorkStarted(
+                sessionGeneration,
+                "JEI 10 search index"
+        );
 
         VHAccelerator.LOGGER.info(
-                "Building an isolated JEI 10 search index for {} ingredients",
-                initial.size()
+                "Building an isolated JEI 10 search index for {} ingredients "
+                        + "({} dynamic player-head ingredient(s) reserved for "
+                        + "the client thread)",
+                workerSafe.size(),
+                dynamicPlayerHeads.size()
         );
         AdaptiveJeiWorkScheduler.submitIsolated(() -> {
             IElementSearch privateIndex = new ElementSearch(elementPrefixParser);
             if (VHAcceleratorClientConfig.VALUES.parallelJeiSearchPrefixes.get()
-                    && AdaptiveJeiWorkScheduler.currentParallelism() > 1) {
-                ParallelJeiPrefixIndexer.populate(privateIndex, initial);
+                    && AdaptiveJeiWorkScheduler.currentParallelism() > 1
+                    && !workerSafe.isEmpty()) {
+                ParallelJeiPrefixIndexer.populate(privateIndex, workerSafe);
             } else {
-                initial.forEach(privateIndex::add);
+                workerSafe.forEach(privateIndex::add);
             }
             int indexedCount = privateIndex.getAllIngredients().size();
-            if (indexedCount != initial.size()) {
+            if (indexedCount != workerSafe.size()) {
                 throw new IllegalStateException(
                         "JEI 10 private index contains "
                                 + indexedCount
                                 + " of "
-                                + initial.size()
-                                + " ingredients"
+                                + workerSafe.size()
+                                + " worker-safe ingredients"
                 );
             }
             return privateIndex;
-        }).whenComplete((privateIndex, failure) ->
-                Minecraft.getInstance().execute(() ->
-                        vhaccelerator$publishOrRecover(
-                                initial,
-                                privateIndex,
-                                failure,
-                                workToken
-                        )
-                )
-        );
+        }).whenComplete((privateIndex, failure) -> {
+            if (!ClientWorkSession.isCurrent(sessionGeneration)) {
+                vhaccelerator$cancelStaleBuild(workToken, sessionGeneration);
+                return;
+            }
+            Minecraft.getInstance().execute(() ->
+                    vhaccelerator$publishOrRecover(
+                            initial,
+                            dynamicPlayerHeads,
+                            privateIndex,
+                            failure,
+                            workToken,
+                            sessionGeneration
+                    )
+            );
+        });
     }
 
     @Unique
     private void vhaccelerator$publishOrRecover(
             List<IListElementInfo<?>> initial,
+            List<IListElementInfo<?>> dynamicPlayerHeads,
             IElementSearch privateIndex,
             Throwable failure,
-            long workToken
+            long workToken,
+            long sessionGeneration
     ) {
         List<Runnable> deferredMutations;
         synchronized (vhaccelerator$indexLock) {
-            if (!vhaccelerator$indexing) {
+            if (!vhaccelerator$indexing
+                    || !ClientWorkSession.isCurrent(sessionGeneration)) {
+                vhaccelerator$indexing = false;
+                vhaccelerator$runtimeAdditions.clear();
+                vhaccelerator$deferredMutations.clear();
                 PostLoginWorkTimer.cancel(workToken);
                 return;
             }
 
             if (failure == null && privateIndex != null) {
+                dynamicPlayerHeads.forEach(privateIndex::add);
                 vhaccelerator$runtimeAdditions.forEach(privateIndex::add);
+                int indexedCount = privateIndex.getAllIngredients().size();
+                int expectedCount = initial.size()
+                        + vhaccelerator$runtimeAdditions.size();
+                if (indexedCount != expectedCount) {
+                    failure = new IllegalStateException(
+                            "JEI 10 completed index contains "
+                                    + indexedCount
+                                    + " of "
+                                    + expectedCount
+                                    + " ingredients"
+                    );
+                }
+            }
+
+            if (failure == null && privateIndex != null) {
                 elementSearch = privateIndex;
                 VHAccelerator.LOGGER.info(
-                        "Published the complete JEI 10 search index with {} runtime additions",
+                        "Published the complete JEI 10 search index with {} "
+                                + "client-thread player head(s) and {} runtime "
+                                + "addition(s)",
+                        dynamicPlayerHeads.size(),
                         vhaccelerator$runtimeAdditions.size()
                 );
             } else {
@@ -195,6 +246,38 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
         invalidateCache();
         listeners.forEach(IIngredientGridSource.SourceListChangedListener::onSourceListChanged);
         PostLoginWorkTimer.markWorkCompleted(workToken);
+    }
+
+    @Unique
+    private void vhaccelerator$cancelStaleBuild(
+            long workToken,
+            long sessionGeneration
+    ) {
+        synchronized (vhaccelerator$indexLock) {
+            vhaccelerator$indexing = false;
+            vhaccelerator$runtimeAdditions.clear();
+            vhaccelerator$deferredMutations.clear();
+        }
+        PostLoginWorkTimer.cancel(workToken);
+        VHAccelerator.LOGGER.info(
+                "Discarded stale JEI 10 search-index callback for client "
+                        + "session {}",
+                sessionGeneration
+        );
+    }
+
+    @Unique
+    private static boolean vhaccelerator$isDynamicPlayerHead(
+            IListElementInfo<?> info
+    ) {
+        Object ingredient = info.getTypedIngredient().getIngredient();
+        if (!(ingredient instanceof ItemStack stack)) {
+            return false;
+        }
+        return stack.getItem() instanceof PlayerHeadItem
+                || stack.hasTag()
+                && (stack.getTag().contains("SkullOwner")
+                || stack.getTag().contains("ExtraType"));
     }
 
     @Unique

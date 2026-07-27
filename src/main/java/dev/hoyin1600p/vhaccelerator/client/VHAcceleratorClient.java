@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
+import com.mojang.realmsclient.RealmsMainScreen;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
@@ -10,6 +11,7 @@ import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -45,6 +47,7 @@ public final class VHAcceleratorClient {
 
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
+            ClientWorkSession.begin();
             LoginStateFingerprint.beginConnection();
             IronFurnacesRecipeCache.beginConnection();
             AdaptiveJeiWorkScheduler.markLoading();
@@ -53,8 +56,17 @@ public final class VHAcceleratorClient {
         } else if (event.getScreen() instanceof ReceivingLevelScreen
                 && !ServerLoginTimer.isActive()
                 && !ServerTransferTimer.isActive()) {
+            ClientWorkSession.begin();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.markStart("receiving-level screen");
+        }
+
+        if (event.getScreen() instanceof JoinMultiplayerScreen
+                || event.getScreen() instanceof TitleScreen
+                || event.getScreen() instanceof RealmsMainScreen) {
+            DisconnectTimer.finishMenuTransition(
+                    event.getScreen().getClass().getSimpleName()
+            );
         }
     }
 
@@ -75,6 +87,7 @@ public final class VHAcceleratorClient {
         ServerLoginTimer.Sample lastLogin = ServerLoginTimer.lastSample();
         ServerTransferTimer.Sample lastTransfer = ServerTransferTimer.lastSample();
         PostLoginWorkTimer.Sample lastPostLogin = PostLoginWorkTimer.lastSample();
+        DisconnectTimer.Sample lastDisconnect = DisconnectTimer.lastSample();
         StringBuilder launchText = new StringBuilder(String.format(
                 "VH Accelerator: Launch %.2fs",
                 LaunchTimer.elapsedMillis() / 1000.0
@@ -96,6 +109,12 @@ public final class VHAcceleratorClient {
             launchText.append(String.format(
                     " | Last post-login %.2fs",
                     lastPostLogin.totalMillis() / 1000.0
+            ));
+        }
+        if (lastDisconnect != null) {
+            launchText.append(String.format(
+                    " | Last disconnect %.2fs",
+                    lastDisconnect.totalMillis() / 1000.0
             ));
         }
         int y = event.getScreen().height - (10 + brandingLines[0] * 10);
@@ -181,9 +200,9 @@ public final class VHAcceleratorClient {
     }
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
+        ClientWorkSession.invalidate("Forge player logout");
         ServerLoginTimer.cancelActiveAttempt();
         ServerTransferTimer.cancelActiveAttempt();
-        PostLoginWorkTimer.cancelActive();
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {

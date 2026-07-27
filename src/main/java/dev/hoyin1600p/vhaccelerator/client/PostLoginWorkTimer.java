@@ -1,63 +1,110 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * Measures the work that remains after the first playable world frame. JEI
- * startup owns the current work token, so stale transfer generations cannot
- * complete a newer sample.
+ * Measures every tracked login job that remains after the first playable
+ * frame. A session can own multiple work tokens, including delayed player-head
+ * profile callbacks started while JEI builds its search index.
  */
 public final class PostLoginWorkTimer {
     private static long nextToken;
-    private static long activeToken = -1L;
+    private static long activeSession = -1L;
     private static long firstPlayableFrameNanos = -1L;
     private static long workCompletedNanos = -1L;
+    private static boolean finalized;
+    private static final Map<Long, String> ACTIVE_WORK =
+            new LinkedHashMap<>();
     private static Sample lastSample;
     private static Sample unannouncedSample;
 
     private PostLoginWorkTimer() {
     }
 
-    public static synchronized long markWorkStarted() {
-        activeToken = ++nextToken;
+    public static synchronized void beginSession(long session) {
+        activeSession = session;
         firstPlayableFrameNanos = -1L;
         workCompletedNanos = -1L;
+        finalized = false;
+        ACTIVE_WORK.clear();
         unannouncedSample = null;
         VHAccelerator.LOGGER.info(
-                "Post-login work timer started for generation {}",
-                activeToken
+                "Post-login work timer started for session {}",
+                activeSession
         );
-        return activeToken;
+    }
+
+    public static synchronized long markWorkStarted(
+            long session,
+            String description
+    ) {
+        if (session < 0L || session != activeSession || finalized) {
+            return -1L;
+        }
+        long token = ++nextToken;
+        ACTIVE_WORK.put(token, description);
+        workCompletedNanos = -1L;
+        return token;
+    }
+
+    public static synchronized long markAuxiliaryWorkStarted(
+            long session,
+            String description
+    ) {
+        if (session < 0L || session != activeSession || finalized) {
+            return -1L;
+        }
+        return markWorkStarted(session, description);
     }
 
     public static synchronized void markFirstPlayableFrame() {
-        if (activeToken < 0L || firstPlayableFrameNanos >= 0L) {
+        if (activeSession < 0L || firstPlayableFrameNanos >= 0L) {
             return;
         }
         firstPlayableFrameNanos = System.nanoTime();
+        if (ACTIVE_WORK.isEmpty() && workCompletedNanos < 0L) {
+            workCompletedNanos = firstPlayableFrameNanos;
+        }
         finishIfReady();
     }
 
     public static synchronized void markWorkCompleted(long token) {
-        if (token != activeToken || workCompletedNanos >= 0L) {
+        if (token < 0L || ACTIVE_WORK.remove(token) == null) {
             return;
         }
-        workCompletedNanos = System.nanoTime();
+        if (ACTIVE_WORK.isEmpty()) {
+            workCompletedNanos = System.nanoTime();
+        }
         finishIfReady();
     }
 
     public static synchronized void cancel(long token) {
-        if (token == activeToken) {
+        if (token >= 0L && ACTIVE_WORK.remove(token) != null
+                && ACTIVE_WORK.isEmpty()) {
+            workCompletedNanos = System.nanoTime();
+            finishIfReady();
+        }
+    }
+
+    public static synchronized void cancelSession(long session) {
+        if (session == activeSession) {
+            if (!ACTIVE_WORK.isEmpty()) {
+                VHAccelerator.LOGGER.info(
+                        "Cancelling {} outstanding post-login job(s) for "
+                                + "session {}: {}",
+                        ACTIVE_WORK.size(),
+                        session,
+                        String.join(", ", ACTIVE_WORK.values())
+                );
+            }
             clearActive();
         }
     }
 
-    public static synchronized void cancelActive() {
-        clearActive();
-    }
-
     public static synchronized boolean isRunning() {
-        return activeToken >= 0L && unannouncedSample == null;
+        return activeSession >= 0L && !finalized;
     }
 
     public static synchronized Sample claimCompletedSample() {
@@ -71,28 +118,31 @@ public final class PostLoginWorkTimer {
     }
 
     private static void finishIfReady() {
-        if (firstPlayableFrameNanos < 0L || workCompletedNanos < 0L) {
+        if (finalized
+                || firstPlayableFrameNanos < 0L
+                || workCompletedNanos < 0L
+                || !ACTIVE_WORK.isEmpty()) {
             return;
         }
 
         long elapsedNanos = Math.max(0L, workCompletedNanos - firstPlayableFrameNanos);
-        Sample sample = new Sample(activeToken, elapsedNanos / 1_000_000L);
+        Sample sample = new Sample(activeSession, elapsedNanos / 1_000_000L);
         lastSample = sample;
         unannouncedSample = sample;
+        finalized = true;
         VHAccelerator.LOGGER.info(
                 "Post-login work completed in {} ms ({})",
                 sample.totalMillis(),
                 String.format("%.2f seconds", sample.totalMillis() / 1000.0)
         );
-        activeToken = -1L;
-        firstPlayableFrameNanos = -1L;
-        workCompletedNanos = -1L;
     }
 
     private static void clearActive() {
-        activeToken = -1L;
+        activeSession = -1L;
         firstPlayableFrameNanos = -1L;
         workCompletedNanos = -1L;
+        finalized = false;
+        ACTIVE_WORK.clear();
         unannouncedSample = null;
     }
 

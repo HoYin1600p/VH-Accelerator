@@ -38,6 +38,14 @@ writer to its prefix storage and processes ingredients in their original
 order. Publication still waits for every prefix, and a failure discards the
 entire private object before JEI's sequential recovery runs.
 
+Player-head ingredients and stacks carrying dynamic skull-owner data are
+excluded from worker search indexing. They are added to the completed private
+index on Minecraft's client thread immediately before publication. Profile
+lookups started during login are included in post-login work, and their
+callbacks carry the client-session generation that created them. Disconnect
+invalidates that generation before the network channel is closed, so a late
+profile result cannot mutate an unloaded or replacement world.
+
 When validating a new mod list, remove the original LaunchFaster jar and the
 recovered VHClientOptimize jar, then record:
 
@@ -138,3 +146,14 @@ active measurement, and disconnecting cancels an unfinished transfer. Vanilla
 dimension changes and death respawns can use the same protocol packet, so the
 metric is deliberately labelled as a server/world transfer rather than
 claiming every sample is a proxy backend switch.
+
+## Disconnect timing
+
+Client disconnects are measured from the start of Minecraft's synchronous
+network-channel close until the multiplayer, title, or Realms menu is opened.
+The log separates network close, client-world teardown, and final menu
+transition. The title-screen footer also retains the most recent total.
+
+This split is important because vanilla waits for Netty's channel-close future
+on the render thread. A slow network close therefore looks like a frozen
+client even when JEI and world cleanup are fast.

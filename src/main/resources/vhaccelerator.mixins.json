@@ -15,9 +15,12 @@
   "client": [
     "client.ClientMainMixin",
     "client.ClientPacketListenerMixin",
+    "client.ConnectionMixin",
     "client.ForgeConfigSyncMixin",
     "client.LoadingOverlayMixin",
+    "client.MinecraftDisconnectMixin",
     "client.MinecraftUserApiMixin",
+    "client.SkullBlockEntityMixin",
     "client.BlockModelMixin",
     "client.ModelBakeryMixin",
     "client.TagNetworkPayloadAccessor",
