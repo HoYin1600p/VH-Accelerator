@@ -39,6 +39,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentIronFurnacesFuelCache;
         public final ForgeConfigSpec.BooleanValue precompileIronFurnacesJeiRecipes;
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
+        public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue showLaunchTimer;
 
@@ -167,6 +168,12 @@ public final class VHAcceleratorClientConfig {
                             "Maximum main-thread time used by the smoking-list precompile per menu frame.",
                             "The default targets smooth menus while normally completing during server selection.")
                     .defineInRange("ironFurnacesPrecompileFrameBudgetMillis", 3, 1, 8);
+            optimizeIndustrialForegoingStoneWorkJeiRecipes = builder
+                    .comment(
+                            "Builds Industrial Foregoing stonework combinations incrementally",
+                            "and gives JEI only the shortest equivalent path for each output.",
+                            "Results remain based on the active server recipe manager.")
+                    .define("optimizeIndustrialForegoingStoneWorkJeiRecipes", true);
             cacheVaultTooltips = builder
                     .comment(
                             "Caches Vault Hunters tooltip lookups by item and active locale.",

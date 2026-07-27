@@ -14,6 +14,7 @@ files below in this directory before compiling:
 - `CraftTweaker-forge-1.18.2-9.1.213.jar`
 - `JustEnoughResources-1.18.2-0.14.2.206.jar`
 - `ironfurnaces-1.18.2-3.3.3.jar`
+- `industrial-foregoing-1.18.2-3.3.1.7-11.jar`
 
 The Remastered Vault jar is CurseForge project `458203`, file `8502584`.
 The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
@@ -24,5 +25,6 @@ and are not redistributed.
 JEI 10 is the Remastered target. JEI 9 is shared by the custom MVP and
 official 3.21.6 profiles. Both are compile-only and are not bundled.
 
-The Powah, JEITweaker, CraftTweaker, Just Enough Resources, and Iron Furnaces
-jars are optional compile-time compatibility targets and are never bundled.
+The Powah, JEITweaker, CraftTweaker, Just Enough Resources, Iron Furnaces,
+and Industrial Foregoing jars are optional compile-time compatibility targets
+and are never bundled.

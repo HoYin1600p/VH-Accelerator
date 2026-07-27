@@ -30,6 +30,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean jeiTweakerLoaded;
     private boolean jerLoaded;
     private boolean ironFurnacesLoaded;
+    private boolean industrialForegoingLoaded;
     private boolean physicalClient;
 
     @Override
@@ -60,6 +61,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("jeresources") != null;
                 ironFurnacesLoaded = modList != null
                         && modList.getModFileById("ironfurnaces") != null;
+                industrialForegoingLoaded = modList != null
+                        && modList.getModFileById("industrialforegoing") != null;
             }
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
@@ -70,6 +73,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             jeiTweakerLoaded = false;
             jerLoaded = false;
             ironFurnacesLoaded = false;
+            industrialForegoingLoaded = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
 
@@ -124,6 +128,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.ironfurnaces.")) {
             return jeiLoaded && ironFurnacesLoaded;
+        }
+        if (mixinClassName.contains(".compat.industrialforegoing.")) {
+            return jeiLoaded && industrialForegoingLoaded;
         }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
     }

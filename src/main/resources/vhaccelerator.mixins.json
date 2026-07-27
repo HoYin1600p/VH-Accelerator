@@ -34,6 +34,7 @@
     "compat.jeitweaker.JeiTweakerPluginMixin",
     "compat.jer.JeiConfigMixin",
     "compat.ironfurnaces.IronFurnacesJeiPluginMixin",
+    "compat.industrialforegoing.IndustrialForegoingJeiPluginMixin",
     "compat.powah.WikiMixin",
     "compat.vaulthunters.GroupUtilsMixin",
     "compat.vaulthunters.TooltipConfigMixin"

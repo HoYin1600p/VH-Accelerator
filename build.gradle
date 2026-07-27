@@ -104,6 +104,7 @@ dependencies {
     compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
     compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
     compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
+    compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
 }
 
 def compatibilityProfiles = [
@@ -177,8 +178,10 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/VanillaRecipesMixin.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jer/JerCompatibilityCache.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/ironfurnaces/IronFurnacesRecipeCache.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/industrialforegoing/IndustrialForegoingStoneWorkOptimizer.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jer/JeiConfigMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/ironfurnaces/IronFurnacesJeiPluginMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/industrialforegoing/IndustrialForegoingJeiPluginMixin.class',
                     'vhaccelerator.mixins.json'
             ]
             def missingEntries = requiredEntries.findAll {
