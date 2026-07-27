@@ -33,6 +33,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
         public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
         public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
+        public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
         public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
         public final ForgeConfigSpec.BooleanValue cacheIronFurnacesJeiRecipes;
         public final ForgeConfigSpec.BooleanValue persistentIronFurnacesFuelCache;
@@ -125,6 +126,13 @@ public final class VHAcceleratorClientConfig {
                             "Result ordering is preserved and any failure retries JEI's original",
                             "sequential validation path.")
                     .define("parallelVanillaRecipeValidation", true);
+            persistentVanillaRecipeValidationCache = builder
+                    .comment(
+                            "Persists the IDs that passed JEI's vanilla recipe validation.",
+                            "Recipe objects are always resolved from the active world; cached IDs",
+                            "are accepted only when the complete server recipe/tag fingerprint,",
+                            "server configs, local configs, and installed mod files match.")
+                    .define("persistentVanillaRecipeValidationCache", true);
             cacheJerCompatibility = builder
                     .comment(
                             "Reuses Just Enough Resources' compatibility and loot scan for later JEI rebuilds.",

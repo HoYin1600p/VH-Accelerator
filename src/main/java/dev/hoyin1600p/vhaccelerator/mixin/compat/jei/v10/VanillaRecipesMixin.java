@@ -2,7 +2,9 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,25 +51,66 @@ public abstract class VanillaRecipesMixin {
         }
         List<CraftingRecipe> recipes =
                 recipeManager.getAllRecipesFor(RecipeType.CRAFTING);
-        if (recipes.size() < VHACCELERATOR$PARALLEL_THRESHOLD) {
+        LoginStateFingerprint.Snapshot fingerprint =
+                vhaccelerator$fingerprint();
+        long started = System.nanoTime();
+        PersistentRecipeValidationCache.CraftingResult<CraftingRecipe> restored =
+                fingerprint == null
+                        ? null
+                        : PersistentRecipeValidationCache.restoreCrafting(
+                                fingerprint,
+                                recipes
+                        );
+        if (restored != null) {
+            VHAccelerator.LOGGER.info(
+                    "Restored {} JEI 10 crafting validation results from "
+                            + "the persistent cache in {} ms",
+                    restored.handled().size() + restored.unhandled().size(),
+                    (System.nanoTime() - started) / 1_000_000L
+            );
+            cir.setReturnValue(Map.of(
+                    Boolean.TRUE,
+                    restored.handled(),
+                    Boolean.FALSE,
+                    restored.unhandled()
+            ));
+            return;
+        }
+
+        boolean parallel = recipes.size() >= VHACCELERATOR$PARALLEL_THRESHOLD
+                && AdaptiveJeiWorkScheduler.currentParallelism() > 1;
+        if (!parallel && fingerprint == null) {
             return;
         }
         CategoryRecipeValidator<CraftingRecipe> validator =
                 new CategoryRecipeValidator<>(category, 9);
         try {
-            Map<Boolean, List<CraftingRecipe>> validated =
-                    AdaptiveJeiWorkScheduler.invokeParallel(() ->
+            Map<Boolean, List<CraftingRecipe>> validated = parallel
+                    ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
                                     .filter(validator::isRecipeValid)
                                     .collect(Collectors.partitioningBy(
                                             validator::isRecipeHandled
                                     ))
-                    );
-            VHAccelerator.LOGGER.info(
-                    "Validated {} JEI 10 crafting recipes with {} workers",
+                    )
+                    : recipes.stream()
+                            .filter(validator::isRecipeValid)
+                            .collect(Collectors.partitioningBy(
+                                    validator::isRecipeHandled
+                            ));
+            PersistentRecipeValidationCache.recordCrafting(
+                    fingerprint,
                     recipes.size(),
-                    AdaptiveJeiWorkScheduler.currentParallelism()
+                    validated.get(Boolean.TRUE),
+                    validated.get(Boolean.FALSE)
             );
+            if (parallel) {
+                VHAccelerator.LOGGER.info(
+                        "Validated {} JEI 10 crafting recipes with {} workers",
+                        recipes.size(),
+                        AdaptiveJeiWorkScheduler.currentParallelism()
+                );
+            }
             cir.setReturnValue(validated);
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
@@ -149,24 +192,61 @@ public abstract class VanillaRecipesMixin {
             return;
         }
         List<T> recipes = recipeManager.getAllRecipesFor(recipeType);
-        if (recipes.size() < VHACCELERATOR$PARALLEL_THRESHOLD) {
+        LoginStateFingerprint.Snapshot fingerprint =
+                vhaccelerator$fingerprint();
+        long started = System.nanoTime();
+        List<T> restored = fingerprint == null
+                ? null
+                : PersistentRecipeValidationCache.restore(
+                        fingerprint,
+                        label,
+                        recipes
+                );
+        if (restored != null) {
+            VHAccelerator.LOGGER.info(
+                    "Restored {} JEI 10 {} validation results from "
+                            + "the persistent cache in {} ms",
+                    restored.size(),
+                    label,
+                    (System.nanoTime() - started) / 1_000_000L
+            );
+            cir.setReturnValue(restored);
+            return;
+        }
+
+        boolean parallel = recipes.size() >= VHACCELERATOR$PARALLEL_THRESHOLD
+                && AdaptiveJeiWorkScheduler.currentParallelism() > 1;
+        if (!parallel && fingerprint == null) {
             return;
         }
         CategoryRecipeValidator<T> validator =
                 new CategoryRecipeValidator<>(category, maxInputs);
         try {
-            List<T> validated = AdaptiveJeiWorkScheduler.invokeParallel(() ->
-                    recipes.parallelStream()
+            List<T> validated = parallel
+                    ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
+                            recipes.parallelStream()
+                                    .filter(recipe -> validator.isRecipeValid(recipe)
+                                            && validator.isRecipeHandled(recipe))
+                                    .toList()
+                    )
+                    : recipes.stream()
                             .filter(recipe -> validator.isRecipeValid(recipe)
                                     && validator.isRecipeHandled(recipe))
-                            .toList()
-            );
-            VHAccelerator.LOGGER.info(
-                    "Validated {} JEI 10 {} recipes with {} workers",
-                    recipes.size(),
+                            .toList();
+            PersistentRecipeValidationCache.record(
+                    fingerprint,
                     label,
-                    AdaptiveJeiWorkScheduler.currentParallelism()
+                    recipes.size(),
+                    validated
             );
+            if (parallel) {
+                VHAccelerator.LOGGER.info(
+                        "Validated {} JEI 10 {} recipes with {} workers",
+                        recipes.size(),
+                        label,
+                        AdaptiveJeiWorkScheduler.currentParallelism()
+                );
+            }
             cir.setReturnValue(validated);
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
@@ -180,7 +260,18 @@ public abstract class VanillaRecipesMixin {
     @Unique
     private static boolean vhaccelerator$enabled() {
         return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
-                && VHAcceleratorClientConfig.VALUES.parallelVanillaRecipeValidation.get()
-                && AdaptiveJeiWorkScheduler.currentParallelism() > 1;
+                && VHAcceleratorClientConfig.VALUES
+                        .parallelVanillaRecipeValidation
+                        .get();
+    }
+
+    @Unique
+    private static LoginStateFingerprint.Snapshot vhaccelerator$fingerprint() {
+        if (!VHAcceleratorClientConfig.VALUES
+                .persistentVanillaRecipeValidationCache
+                .get()) {
+            return null;
+        }
+        return LoginStateFingerprint.current();
     }
 }
