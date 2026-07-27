@@ -17,9 +17,6 @@ public final class DisconnectTimer {
     }
 
     public static synchronized void beginNetworkClose() {
-        if (startedNanos >= 0L) {
-            return;
-        }
         startedNanos = System.nanoTime();
         networkCloseNanos = -1L;
         teardownStartedNanos = -1L;
@@ -98,6 +95,10 @@ public final class DisconnectTimer {
 
     public static synchronized Sample lastSample() {
         return lastSample;
+    }
+
+    public static synchronized void cancelActive() {
+        clearActive();
     }
 
     private static long nanosToMillis(long nanos) {

@@ -15,6 +15,7 @@ public final class ClientWorkSession {
     }
 
     public static synchronized long begin() {
+        DisconnectTimer.cancelActive();
         activeGeneration = ++nextGeneration;
         PostLoginWorkTimer.beginSession(activeGeneration);
         VHAccelerator.LOGGER.info(
