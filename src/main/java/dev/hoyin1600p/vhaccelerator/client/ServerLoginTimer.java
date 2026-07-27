@@ -23,11 +23,15 @@ public final class ServerLoginTimer {
         VHAccelerator.LOGGER.info(
                 "Server login timer started for attempt {} "
                         + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
+                        + "optimizeJeiIngredientFilterConstruction={}, "
                         + "stagedVaultGroupLoading={}, parallelJeiIngredientSorting={}, "
                         + "parallelJeiTweakerMatching={}]",
                 attempt,
                 VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get(),
                 VHAcceleratorClientConfig.VALUES.parallelVanillaRecipeValidation.get(),
+                VHAcceleratorClientConfig.VALUES
+                        .optimizeJeiIngredientFilterConstruction
+                        .get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()

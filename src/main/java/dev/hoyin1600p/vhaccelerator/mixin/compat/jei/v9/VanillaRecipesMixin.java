@@ -5,11 +5,11 @@ import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.VanillaRecipeValidation;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import mezz.jei.api.recipe.category.IRecipeCategory;
-import mezz.jei.plugins.vanilla.crafting.CategoryRecipeValidator;
 import mezz.jei.plugins.vanilla.crafting.VanillaRecipes;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.BlastingRecipe;
@@ -82,21 +82,24 @@ public abstract class VanillaRecipesMixin {
         if (!parallel && fingerprint == null) {
             return;
         }
-        CategoryRecipeValidator<CraftingRecipe> validator =
-                new CategoryRecipeValidator<>(category, 9);
         try {
             Map<Boolean, List<CraftingRecipe>> validated = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
-                                    .filter(validator::isRecipeValid)
+                                    .filter(recipe ->
+                                            VanillaRecipeValidation.isValid(
+                                                    recipe,
+                                                    9
+                                            ))
                                     .collect(Collectors.partitioningBy(
-                                            validator::isRecipeHandled
+                                            category::isHandled
                                     ))
                     )
                     : recipes.stream()
-                            .filter(validator::isRecipeValid)
+                            .filter(recipe ->
+                                    VanillaRecipeValidation.isValid(recipe, 9))
                             .collect(Collectors.partitioningBy(
-                                    validator::isRecipeHandled
+                                    category::isHandled
                             ));
             PersistentRecipeValidationCache.recordCrafting(
                     fingerprint,
@@ -106,9 +109,11 @@ public abstract class VanillaRecipesMixin {
             );
             if (parallel) {
                 VHAccelerator.LOGGER.info(
-                        "Validated {} JEI 9 crafting recipes with {} workers",
+                        "Validated {} JEI 9 crafting recipes with {} workers "
+                                + "in {} ms",
                         recipes.size(),
-                        AdaptiveJeiWorkScheduler.currentParallelism()
+                        AdaptiveJeiWorkScheduler.currentParallelism(),
+                        (System.nanoTime() - started) / 1_000_000L
                 );
             }
             cir.setReturnValue(validated);
@@ -219,19 +224,25 @@ public abstract class VanillaRecipesMixin {
         if (!parallel && fingerprint == null) {
             return;
         }
-        CategoryRecipeValidator<T> validator =
-                new CategoryRecipeValidator<>(category, maxInputs);
         try {
             List<T> validated = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
-                                    .filter(recipe -> validator.isRecipeValid(recipe)
-                                            && validator.isRecipeHandled(recipe))
+                                    .filter(recipe ->
+                                            VanillaRecipeValidation.isValid(
+                                                    recipe,
+                                                    maxInputs
+                                            )
+                                                    && category.isHandled(recipe))
                                     .toList()
                     )
                     : recipes.stream()
-                            .filter(recipe -> validator.isRecipeValid(recipe)
-                                    && validator.isRecipeHandled(recipe))
+                            .filter(recipe ->
+                                    VanillaRecipeValidation.isValid(
+                                            recipe,
+                                            maxInputs
+                                    )
+                                            && category.isHandled(recipe))
                             .toList();
             PersistentRecipeValidationCache.record(
                     fingerprint,
@@ -241,10 +252,11 @@ public abstract class VanillaRecipesMixin {
             );
             if (parallel) {
                 VHAccelerator.LOGGER.info(
-                        "Validated {} JEI 9 {} recipes with {} workers",
+                        "Validated {} JEI 9 {} recipes with {} workers in {} ms",
                         recipes.size(),
                         label,
-                        AdaptiveJeiWorkScheduler.currentParallelism()
+                        AdaptiveJeiWorkScheduler.currentParallelism(),
+                        (System.nanoTime() - started) / 1_000_000L
                 );
             }
             cir.setReturnValue(validated);

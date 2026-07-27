@@ -12,6 +12,7 @@ These settings are written to the VH Accelerator client configuration.
 - `parallelJeiIngredientSorting = true`
 - `asyncJeiSearchIndex = true`
 - `parallelJeiSearchPrefixes = true`
+- `optimizeJeiIngredientFilterConstruction = true`
 - `persistentVanillaIngredientCache = true`
 - `parallelVanillaRecipeValidation = true`
 - `cacheJerCompatibility = true`
@@ -64,7 +65,18 @@ if the build fails.
 
 Vanilla recipe validation uses the bounded loading pool, preserves recipe
 encounter order, and lets JEI run its original sequential method if any
-parallel validation call fails.
+parallel validation call fails. Ordinary Minecraft `Ingredient` objects are
+validated structurally without forcing their tag-backed item arrays to
+expand; JEI only checks that this array is non-null, which the base class
+guarantees. Forge custom ingredient subclasses still execute JEI's original
+array expansion and validation.
+
+Initial ingredient-filter construction batches cache invalidation into one
+call. When both JEI's API blacklist and its saved edit-mode blacklist are
+empty, initial item stacks remain at their default visible state instead of
+computing ingredient and wildcard UIDs only to query empty sets. Non-item
+ingredients, non-empty blacklists, and every runtime visibility update retain
+JEI's original checks.
 
 JEI's vanilla item ingredient list is also persisted after its original
 creative-tab enumeration and subtype-aware deduplication completes. On later

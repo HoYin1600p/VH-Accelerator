@@ -32,6 +32,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
         public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
         public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
+        public final ForgeConfigSpec.BooleanValue optimizeJeiIngredientFilterConstruction;
         public final ForgeConfigSpec.BooleanValue persistentVanillaIngredientCache;
         public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
         public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
@@ -121,6 +122,13 @@ public final class VHAcceleratorClientConfig {
                             "index is published only after all prefixes complete.",
                             "Any failure discards the private index and uses the sequential fallback.")
                     .define("parallelJeiSearchPrefixes", true);
+            optimizeJeiIngredientFilterConstruction = builder
+                    .comment(
+                            "Avoids repeated UID and cache-invalidation work while JEI constructs",
+                            "its initial ingredient filter. The UID shortcut is used only for",
+                            "item stacks when both JEI blacklist sets are empty; otherwise JEI's",
+                            "original visibility checks run unchanged.")
+                    .define("optimizeJeiIngredientFilterConstruction", true);
             persistentVanillaIngredientCache = builder
                     .comment(
                             "Persists JEI's completed vanilla item ingredient list between launches.",

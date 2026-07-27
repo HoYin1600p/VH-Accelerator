@@ -25,12 +25,16 @@ public final class ServerTransferTimer {
         VHAccelerator.LOGGER.info(
                 "Server/world transfer timer started for attempt {} from {} "
                         + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
+                        + "optimizeJeiIngredientFilterConstruction={}, "
                         + "stagedVaultGroupLoading={}, parallelJeiIngredientSorting={}, "
                         + "parallelJeiTweakerMatching={}]",
                 attempt,
                 trigger,
                 VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get(),
                 VHAcceleratorClientConfig.VALUES.parallelVanillaRecipeValidation.get(),
+                VHAcceleratorClientConfig.VALUES
+                        .optimizeJeiIngredientFilterConstruction
+                        .get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()

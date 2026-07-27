@@ -6,14 +6,17 @@ import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.DeferredIngredientMutations;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.InitialJeiVisibilityFastPath;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.ParallelJeiPrefixIndexer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import mezz.jei.gui.ingredients.IListElement;
 import mezz.jei.gui.overlay.IIngredientGridSource;
 import mezz.jei.ingredients.IListElementInfo;
 import mezz.jei.ingredients.IngredientFilter;
+import mezz.jei.ingredients.IngredientVisibility;
 import mezz.jei.search.ElementPrefixParser;
 import mezz.jei.search.ElementSearch;
 import mezz.jei.search.IElementSearch;
@@ -53,6 +56,10 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
     private List<IIngredientGridSource.SourceListChangedListener> listeners;
 
     @Shadow
+    @Final
+    private IngredientVisibility ingredientVisibility;
+
+    @Shadow
     public abstract void invalidateCache();
 
     @Unique
@@ -67,6 +74,12 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
     private List<IListElementInfo<?>> vhaccelerator$runtimeAdditions;
     @Unique
     private List<Runnable> vhaccelerator$deferredMutations;
+    @Unique
+    private boolean vhaccelerator$visibilityStateChecked;
+    @Unique
+    private boolean vhaccelerator$initialItemsVisible;
+    @Unique
+    private int vhaccelerator$skippedVisibilityChecks;
 
     @Override
     public boolean vhaccelerator$deferIngredientMutation(Runnable mutation) {
@@ -109,8 +122,82 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
         }
     }
 
+    @Redirect(
+            method = "addIngredient",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lmezz/jei/ingredients/IngredientFilter;updateHiddenState(Lmezz/jei/gui/ingredients/IListElement;)Z"
+            )
+    )
+    private boolean vhaccelerator$skipRedundantInitialVisibility(
+            IngredientFilter instance,
+            IListElement<?> element
+    ) {
+        if (vhaccelerator$constructing
+                && VHAcceleratorClientConfig.VALUES
+                        .enableClientOptimizations
+                        .get()
+                && VHAcceleratorClientConfig.VALUES
+                        .optimizeJeiIngredientFilterConstruction
+                        .get()
+                && element.getTypedIngredient().getIngredient()
+                        instanceof ItemStack
+                && vhaccelerator$initialItemsAreVisible()) {
+            vhaccelerator$skippedVisibilityChecks++;
+            return false;
+        }
+        return instance.updateHiddenState(element);
+    }
+
+    @Redirect(
+            method = "addIngredient",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lmezz/jei/ingredients/IngredientFilter;invalidateCache()V"
+            )
+    )
+    private void vhaccelerator$batchInitialInvalidation(
+            IngredientFilter instance
+    ) {
+        if (vhaccelerator$constructing
+                && VHAcceleratorClientConfig.VALUES
+                        .enableClientOptimizations
+                        .get()
+                && VHAcceleratorClientConfig.VALUES
+                        .optimizeJeiIngredientFilterConstruction
+                        .get()) {
+            return;
+        }
+        instance.invalidateCache();
+    }
+
+    @Unique
+    private boolean vhaccelerator$initialItemsAreVisible() {
+        if (!vhaccelerator$visibilityStateChecked) {
+            vhaccelerator$visibilityStateChecked = true;
+            vhaccelerator$initialItemsVisible =
+                    ingredientVisibility
+                            instanceof InitialJeiVisibilityFastPath fastPath
+                            && fastPath.vhaccelerator$hasNoHiddenIngredients();
+        }
+        return vhaccelerator$initialItemsVisible;
+    }
+
     @Inject(method = "<init>", at = @At("TAIL"))
     private void vhaccelerator$startIsolatedIndexBuild(CallbackInfo ci) {
+        if (VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+                && VHAcceleratorClientConfig.VALUES
+                        .optimizeJeiIngredientFilterConstruction
+                        .get()) {
+            invalidateCache();
+            if (vhaccelerator$skippedVisibilityChecks > 0) {
+                VHAccelerator.LOGGER.info(
+                        "Skipped {} redundant JEI 9 initial item-visibility "
+                                + "UID checks and batched filter invalidation",
+                        vhaccelerator$skippedVisibilityChecks
+                );
+            }
+        }
         vhaccelerator$constructing = false;
         if (vhaccelerator$initialIngredients == null
                 || vhaccelerator$initialIngredients.isEmpty()) {
