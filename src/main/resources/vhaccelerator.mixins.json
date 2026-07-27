@@ -17,6 +17,7 @@
     "client.ClientPacketListenerMixin",
     "client.ConnectionMixin",
     "client.ForgeConfigSyncMixin",
+    "client.ForgeLogoutTimingMixin",
     "client.LoadingOverlayMixin",
     "client.MinecraftDisconnectMixin",
     "client.MinecraftUserApiMixin",

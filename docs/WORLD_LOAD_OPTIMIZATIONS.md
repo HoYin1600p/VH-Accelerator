@@ -152,7 +152,9 @@ claiming every sample is a proxy backend switch.
 Client disconnects are measured from the start of Minecraft's synchronous
 network-channel close until the multiplayer, title, or Realms menu is opened.
 The log separates network close, client-world teardown, and final menu
-transition. The title-screen footer also retains the most recent total.
+transition. Forge logout listeners taking at least 5 ms are identified
+individually in the log. The title-screen footer also retains the most recent
+total.
 
 This split is important because vanilla waits for Netty's channel-close future
 on the render thread. A slow network close therefore looks like a frozen
