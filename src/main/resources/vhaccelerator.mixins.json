@@ -31,6 +31,7 @@
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
     "client.ModelMaterialCollectionMixin",
+    "client.ParallelBlockModelShaperMixin",
     "client.ReloadListenerProfilerMixin",
     "client.SkullBlockEntityMixin",
     "client.BlockModelMixin",

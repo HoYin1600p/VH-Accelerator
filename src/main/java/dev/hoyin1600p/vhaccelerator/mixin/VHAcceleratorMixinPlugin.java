@@ -183,6 +183,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 ".ModelMaterialCollectionMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryBlockStateMixin"
+        ) || mixinClassName.endsWith(
+                ".ParallelBlockModelShaperMixin"
         )) {
             if (!modernFixLoaded) {
                 return true;

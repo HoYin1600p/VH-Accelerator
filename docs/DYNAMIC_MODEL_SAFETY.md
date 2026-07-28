@@ -57,6 +57,12 @@ pass reuses that exact key instead of rebuilding the state-property string.
 This does not cache a baked model or alter model lookup, so Forge's model-bake
 event and dynamic baked-model replacements remain authoritative.
 
+After Forge's model-bake event completes, independent workers resolve those
+canonical keys against the finalized baked-model registry. Each worker writes
+to an exclusive array range. The client thread joins all workers, constructs a
+complete identity map, and publishes it in one assignment. A worker failure
+discards the arrays and runs Minecraft's original sequential cache rebuild.
+
 ## Persistent raw JSON safety
 
 The persistent cache stores only the resolved raw `models/*.json` text. It
