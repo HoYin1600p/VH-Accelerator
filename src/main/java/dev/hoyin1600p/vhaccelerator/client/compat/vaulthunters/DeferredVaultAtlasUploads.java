@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.Queue;
@@ -24,6 +25,18 @@ public final class DeferredVaultAtlasUploads {
             new AtomicLong(-1L);
 
     private DeferredVaultAtlasUploads() {
+    }
+
+    public static boolean validationOptimizationEnabled() {
+        return VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .optimizeVaultAtlasValidation
+                );
+    }
+
+    public static boolean validationDiagnosticsEnabled() {
+        return VHAcceleratorConfig.debugDiagnosticsEnabled();
     }
 
     public static boolean defer(

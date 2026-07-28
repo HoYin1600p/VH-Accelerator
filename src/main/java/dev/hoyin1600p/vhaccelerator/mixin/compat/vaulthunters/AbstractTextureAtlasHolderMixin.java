@@ -1,8 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtlasUpload;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtlasUploads;
 import iskallia.vault.client.atlas.AbstractTextureAtlasHolder;
@@ -77,15 +75,12 @@ public abstract class AbstractTextureAtlasHolderMixin
     private void vhaccelerator$validateTexturesInLinearTime(
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES.optimizeVaultAtlasValidation
-                )
+        if (!DeferredVaultAtlasUploads.validationOptimizationEnabled()
                 || validationSupplier == null) {
             return;
         }
 
-        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+        if (!DeferredVaultAtlasUploads.validationDiagnosticsEnabled()) {
             callback.cancel();
             return;
         }
