@@ -3,7 +3,7 @@
 This directory contains the source-of-truth text and artwork for the
 VH Accelerator CurseForge listing.
 
-- `vh-accelerator-icon.png`: square project icon
+- `vh-accelerator-icon.jpg`: square project icon
 - `DESCRIPTION.md`: project-page Markdown
 - `CHANGELOG-1.0.0.md`: first-file Markdown changelog
 - `UPLOAD-1.0.0.md`: copy/paste fields and upload checklist

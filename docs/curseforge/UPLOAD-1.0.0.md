@@ -12,11 +12,11 @@ Use this sheet when creating the project and uploading its first file.
 | License | `MIT` |
 | Description format | `Markdown` |
 | Description | `DESCRIPTION.md` |
-| Project logo | `vh-accelerator-icon.png` |
+| Project logo | `vh-accelerator-icon.jpg` |
 | Source | `https://github.com/HoYin1600p/VH-Accelerator` |
 | Issues | `https://github.com/HoYin1600p/VH-Accelerator/issues` |
 
-The optimized logo is 768 by 768 pixels, is under 100 KB, and is original
+The optimized JPEG logo is 768 by 768 pixels, is under 100 KB, and is original
 project artwork. It exceeds CurseForge's 400 by 400 pixel minimum.
 
 ## First file
