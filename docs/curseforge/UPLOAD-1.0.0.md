@@ -16,8 +16,8 @@ Use this sheet when creating the project and uploading its first file.
 | Source | `https://github.com/HoYin1600p/VH-Accelerator` |
 | Issues | `https://github.com/HoYin1600p/VH-Accelerator/issues` |
 
-The logo is 1254 by 1254 pixels and is original project artwork. It exceeds
-CurseForge's 400 by 400 pixel minimum.
+The optimized logo is 768 by 768 pixels, is under 100 KB, and is original
+project artwork. It exceeds CurseForge's 400 by 400 pixel minimum.
 
 ## First file
 
