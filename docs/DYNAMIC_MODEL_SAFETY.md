@@ -90,6 +90,10 @@ normal startup but cannot change resource-pack model JSON. This prevents
 unrelated session state from invalidating the cache on every launch without
 making the cache generally insensitive to mod configuration.
 
+Blockstate persistence likewise stores only ordered raw resource bytes plus
+their source names. Definitions are parsed fresh against the active registered
+block and its current state definition. Resource reloads bypass both caches.
+
 ## Other compatibility layers
 
 When ModernFix is present, VH Accelerator disables its complete ModelBakery

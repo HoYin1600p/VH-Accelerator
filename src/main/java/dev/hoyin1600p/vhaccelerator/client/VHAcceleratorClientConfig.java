@@ -30,6 +30,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
+        public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
@@ -106,6 +107,14 @@ public final class VHAcceleratorClientConfig {
                             "parsed models, baked models, textures, and dynamic state are never stored.",
                             "Runtime resource reloads always bypass this cache.")
                     .define("persistentModelJsonCache", true);
+            persistentBlockStateJsonCache = builder
+                    .comment(
+                            "Persists ordered raw blockstate resource stacks.",
+                            "Definitions are still parsed fresh against the active",
+                            "block registry, and custom/dynamic model loading is",
+                            "never serialized. The same asset fingerprint and",
+                            "runtime-reload bypass as the model JSON cache apply.")
+                    .define("persistentBlockStateJsonCache", true);
             asyncUserApiService = builder
                     .comment(
                             "Creates the online UserApiService asynchronously.",

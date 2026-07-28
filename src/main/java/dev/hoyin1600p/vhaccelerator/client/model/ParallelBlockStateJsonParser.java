@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,6 +55,10 @@ public final class ParallelBlockStateJsonParser {
         }
 
         long started = System.nanoTime();
+        PersistentBlockStateJsonCache.Session persistent =
+                PersistentBlockStateJsonCache.begin(
+                        resourceManager
+                );
         Collection<ResourceLocation> listed =
                 resourceManager.listResources(
                         "blockstates",
@@ -68,6 +73,7 @@ public final class ParallelBlockStateJsonParser {
         AtomicInteger buildscape = new AtomicInteger();
         AtomicInteger unknownBlocks = new AtomicInteger();
         AtomicInteger failures = new AtomicInteger();
+        AtomicInteger restoredStacks = new AtomicInteger();
 
         runBatched(locations, location -> {
             if (BUILDSCAPE_NAMESPACE.equals(
@@ -89,29 +95,30 @@ public final class ParallelBlockStateJsonParser {
                     new BlockModelDefinition.Context();
             context.setDefinition(block.getStateDefinition());
 
-            List<Resource> resources;
-            try {
-                resources = resourceManager.getResources(location);
-            } catch (IOException | RuntimeException failure) {
-                failures.incrementAndGet();
-                VHAccelerator.LOGGER.debug(
-                        "Parallel blockstate preparation deferred {}",
+            List<PersistentBlockStateJsonCache.RawResource>
+                    rawResources = persistent == null
+                    ? null
+                    : persistent.restored(location);
+            if (rawResources != null) {
+                restoredStacks.incrementAndGet();
+            } else {
+                rawResources = readRawResources(
+                        resourceManager,
                         location,
-                        failure
+                        persistent,
+                        failures
                 );
-                return;
+                if (rawResources == null) {
+                    return;
+                }
             }
-
             List<Resource> prepared =
-                    new ArrayList<>(resources.size());
+                    new ArrayList<>(rawResources.size());
             try {
-                for (Resource resource : resources) {
-                    String sourceName = resource.getSourceName();
-                    byte[] bytes;
-                    try (InputStream input =
-                                 resource.getInputStream()) {
-                        bytes = input.readAllBytes();
-                    }
+                for (PersistentBlockStateJsonCache.RawResource
+                        resource : rawResources) {
+                    String sourceName = resource.sourceName();
+                    byte[] bytes = resource.bytes();
                     String json = new String(
                             bytes,
                             StandardCharsets.UTF_8
@@ -152,30 +159,98 @@ public final class ParallelBlockStateJsonParser {
                     ));
                 }
                 cached.put(location, List.copyOf(prepared));
-            } catch (IOException | RuntimeException failure) {
+            } catch (RuntimeException failure) {
                 failures.incrementAndGet();
                 VHAccelerator.LOGGER.debug(
                         "Parallel blockstate reading deferred {}",
                         location,
                         failure
                 );
+                if (persistent != null) {
+                    persistent.markIncomplete();
+                }
             }
         });
+        PersistentBlockStateJsonCache.finish(persistent);
 
         VHAccelerator.LOGGER.info(
                 "Prepared {} blockstate resource stacks in parallel in {} ms "
                         + "[{} plain resources parsed, {} complex resources, "
-                        + "{} BuildScape, {} unknown blocks, {} failures "
-                        + "deferred]",
+                        + "{} persistent stacks, {} BuildScape, {} unknown "
+                        + "blocks, {} failures deferred]",
                 cached.size(),
                 (System.nanoTime() - started) / 1_000_000L,
                 parsed.get(),
                 complex.get(),
+                restoredStacks.get(),
                 buildscape.get(),
                 unknownBlocks.get(),
                 failures.get()
         );
         return new Session(Map.copyOf(cached));
+    }
+
+    @Nullable
+    private static List<
+            PersistentBlockStateJsonCache.RawResource>
+            readRawResources(
+                    ResourceManager resourceManager,
+                    ResourceLocation location,
+                    @Nullable
+                    PersistentBlockStateJsonCache.Session persistent,
+                    AtomicInteger failures
+            ) {
+        List<Resource> resources;
+        try {
+            resources = resourceManager.getResources(location);
+        } catch (IOException | RuntimeException failure) {
+            failures.incrementAndGet();
+            if (persistent != null) {
+                persistent.markIncomplete();
+            }
+            VHAccelerator.LOGGER.debug(
+                    "Parallel blockstate preparation deferred {}",
+                    location,
+                    failure
+            );
+            return null;
+        }
+
+        List<PersistentBlockStateJsonCache.RawResource> raw =
+                new ArrayList<>(resources.size());
+        try {
+            for (Resource resource : resources) {
+                String sourceName = resource.getSourceName();
+                byte[] bytes;
+                try (InputStream input =
+                             resource.getInputStream()) {
+                    bytes = input.readAllBytes();
+                }
+                raw.add(
+                        new PersistentBlockStateJsonCache.RawResource(
+                                sourceName,
+                                bytes
+                        )
+                );
+            }
+            List<PersistentBlockStateJsonCache.RawResource>
+                    stable = List.copyOf(raw);
+            if (persistent != null) {
+                persistent.record(location, stable);
+            }
+            return stable;
+        } catch (IOException | RuntimeException failure) {
+            failures.incrementAndGet();
+            if (persistent != null) {
+                persistent.markIncomplete();
+            }
+            VHAccelerator.LOGGER.debug(
+                    "Parallel blockstate reading deferred {}",
+                    location,
+                    failure
+            );
+            return null;
+        }
     }
 
     @Nullable
