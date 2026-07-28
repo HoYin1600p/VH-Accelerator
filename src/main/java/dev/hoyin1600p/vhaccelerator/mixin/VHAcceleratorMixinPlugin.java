@@ -181,6 +181,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 ".ModernFixCompatibleModelBakingMixin"
         ) || mixinClassName.endsWith(
                 ".ModernFixCompatibleModelJsonCacheMixin"
+        ) || mixinClassName.endsWith(
+                ".ModernFixPersistentModelMaterialMixin"
         )) {
             if (!modernFixLoaded) {
                 return false;
@@ -208,6 +210,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.endsWith(
                 ".ModelMaterialCollectionMixin"
+        ) || mixinClassName.endsWith(
+                ".ModelMaterialCacheSessionMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryBlockStateMixin"
         ) || mixinClassName.endsWith(

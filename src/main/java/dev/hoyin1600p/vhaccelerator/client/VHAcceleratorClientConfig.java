@@ -96,6 +96,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue promoteCachedTopLevelModels;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
+        public final ForgeConfigSpec.BooleanValue persistentModelMaterialCache;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
         public final ForgeConfigSpec.BooleanValue cacheBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
@@ -210,6 +211,14 @@ public final class VHAcceleratorClientConfig {
             memoizeModelMaterials = builder
                     .comment("Memoizes BlockModel material dependency walks for each model instance.")
                     .define("memoizeModelMaterials", true);
+            persistentModelMaterialCache = builder
+                    .comment(
+                            "Persists material dependency lists for ordinary JSON models.",
+                            "Entries are restored only when the complete client asset",
+                            "fingerprint matches and the live graph can safely rebind every",
+                            "parent. Custom geometry, dynamic models, missing textures,",
+                            "and runtime resource reloads always use Forge's normal path.")
+                    .define("persistentModelMaterialCache", true);
             deduplicateModelMaterialCollection = builder
                     .comment(
                             "Collects materials once for repeated safe model instances.",

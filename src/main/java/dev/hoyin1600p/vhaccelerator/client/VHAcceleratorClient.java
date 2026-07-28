@@ -8,6 +8,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecip
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
@@ -64,6 +65,7 @@ public final class VHAcceleratorClient {
         if (VHAcceleratorClientConfig.optimizationsEnabled()) {
             AdaptiveJeiWorkScheduler.initialize();
             PersistentModelJsonCache.prewarm();
+            PersistentModelMaterialCache.prewarm();
             PersistentBlockStateJsonCache.prewarm();
             PersistentVanillaIngredientCache.prewarm();
             PersistentRecipeValidationCache.prewarm();

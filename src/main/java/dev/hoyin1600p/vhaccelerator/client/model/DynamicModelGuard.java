@@ -32,6 +32,10 @@ public final class DynamicModelGuard {
         return new Scanner(modelGetter);
     }
 
+    public static PreparedGraph preparedGraph() {
+        return new PreparedGraph();
+    }
+
     public static final class Scanner {
         private final Function<ResourceLocation, UnbakedModel> modelGetter;
         private final Map<UnbakedModel, Boolean> cache = new IdentityHashMap<>();
@@ -92,6 +96,113 @@ public final class DynamicModelGuard {
             }
             return model instanceof BlockModel blockModel
                     && blockModel.customData.hasCustomGeometry();
+        }
+    }
+
+    /**
+     * Validates ordinary JSON model graphs and restores the parent bindings
+     * that vanilla's material walk normally establishes.
+     */
+    public static final class PreparedGraph {
+        private Scanner scanner;
+        private final Set<UnbakedModel> prepared =
+                Collections.newSetFromMap(new IdentityHashMap<>());
+        private final Set<UnbakedModel> preparing =
+                Collections.newSetFromMap(new IdentityHashMap<>());
+
+        private PreparedGraph() {
+        }
+
+        public boolean isSafe(
+                UnbakedModel model,
+                Function<ResourceLocation, UnbakedModel> getter
+        ) {
+            return scanner(getter).requiresSequentialBaking(model) == false;
+        }
+
+        public boolean prepare(
+                UnbakedModel model,
+                Function<ResourceLocation, UnbakedModel> getter
+        ) {
+            if (!isSafe(model, getter)) {
+                return false;
+            }
+            return bind(model, getter);
+        }
+
+        private Scanner scanner(
+                Function<ResourceLocation, UnbakedModel> getter
+        ) {
+            if (scanner == null) {
+                scanner = DynamicModelGuard.scanner(getter);
+            }
+            return scanner;
+        }
+
+        private boolean bind(
+                UnbakedModel model,
+                Function<ResourceLocation, UnbakedModel> getter
+        ) {
+            if (model == null) {
+                return false;
+            }
+            if (prepared.contains(model)) {
+                return true;
+            }
+            if (!preparing.add(model)) {
+                return false;
+            }
+
+            boolean success = true;
+            if (model instanceof BlockModel blockModel) {
+                success = bindParentChain(blockModel, getter);
+            }
+            if (success) {
+                try {
+                    for (ResourceLocation dependency :
+                            model.getDependencies()) {
+                        UnbakedModel dependencyModel =
+                                getter.apply(dependency);
+                        if (dependencyModel != model
+                                && !bind(dependencyModel, getter)) {
+                            success = false;
+                            break;
+                        }
+                    }
+                } catch (RuntimeException failure) {
+                    success = false;
+                }
+            }
+
+            preparing.remove(model);
+            if (success) {
+                prepared.add(model);
+            }
+            return success;
+        }
+
+        private static boolean bindParentChain(
+                BlockModel model,
+                Function<ResourceLocation, UnbakedModel> getter
+        ) {
+            Set<BlockModel> chain =
+                    Collections.newSetFromMap(new IdentityHashMap<>());
+            BlockModel current = model;
+            while (current.getParentLocation() != null
+                    && current.parent == null) {
+                if (!chain.add(current)) {
+                    return false;
+                }
+                UnbakedModel parent =
+                        getter.apply(current.getParentLocation());
+                if (!(parent instanceof BlockModel parentModel)
+                        || chain.contains(parentModel)) {
+                    return false;
+                }
+                current.parent = parentModel;
+                current = parentModel;
+            }
+            return true;
         }
     }
 }

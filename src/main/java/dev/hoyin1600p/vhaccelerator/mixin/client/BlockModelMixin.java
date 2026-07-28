@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
 import java.util.Collection;
 import java.util.List;
@@ -28,14 +29,28 @@ public abstract class BlockModelMixin {
             Set<Pair<String, String>> missingTextureErrors,
             CallbackInfoReturnable<Collection<Material>> callback
     ) {
-        if (!vhaccelerator$memoizationEnabled()
-                || vhaccelerator$requiresLiveMaterialLookup(modelGetter)) {
+        if (vhaccelerator$requiresLiveMaterialLookup(modelGetter)) {
             return;
         }
 
-        Collection<Material> cached = vhaccelerator$cachedMaterials;
-        if (cached != null) {
-            callback.setReturnValue(cached);
+        if (vhaccelerator$memoizationEnabled()) {
+            Collection<Material> cached =
+                    vhaccelerator$cachedMaterials;
+            if (cached != null) {
+                callback.setReturnValue(cached);
+                return;
+            }
+        }
+        Collection<Material> persistent =
+                PersistentModelMaterialCache.restore(
+                        (BlockModel) (Object) this,
+                        modelGetter
+                );
+        if (persistent != null) {
+            if (vhaccelerator$memoizationEnabled()) {
+                vhaccelerator$cachedMaterials = persistent;
+            }
+            callback.setReturnValue(persistent);
         }
     }
 
@@ -45,12 +60,18 @@ public abstract class BlockModelMixin {
             Set<Pair<String, String>> missingTextureErrors,
             CallbackInfoReturnable<Collection<Material>> callback
     ) {
-        if (vhaccelerator$memoizationEnabled()
-                && !vhaccelerator$requiresLiveMaterialLookup(modelGetter)
-                && vhaccelerator$cachedMaterials == null
+        if (!vhaccelerator$requiresLiveMaterialLookup(modelGetter)
                 && callback.getReturnValue() != null) {
-            vhaccelerator$cachedMaterials =
-                    List.copyOf(callback.getReturnValue());
+            if (vhaccelerator$memoizationEnabled()
+                    && vhaccelerator$cachedMaterials == null) {
+                vhaccelerator$cachedMaterials =
+                        List.copyOf(callback.getReturnValue());
+            }
+            PersistentModelMaterialCache.record(
+                    (BlockModel) (Object) this,
+                    modelGetter,
+                    callback.getReturnValue()
+            );
         }
     }
 
