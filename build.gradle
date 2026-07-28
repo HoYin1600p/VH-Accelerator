@@ -222,6 +222,8 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/ironfurnaces/IronFurnacesJeiPluginMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/industrialforegoing/IndustrialForegoingJeiPluginMixin.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/xaero/XaeroOnlineCheckDeferrer.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/vaulthunters/DeferredVaultAtlasUpload.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/vaulthunters/DeferredVaultAtlasUploads.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroMinimapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroWorldMapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',

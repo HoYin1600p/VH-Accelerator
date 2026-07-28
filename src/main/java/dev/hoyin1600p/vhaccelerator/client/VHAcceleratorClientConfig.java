@@ -121,6 +121,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
         public final ForgeConfigSpec.BooleanValue deferXaeroOnlineChecks;
+        public final ForgeConfigSpec.BooleanValue deferVaultAtlasUploads;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
@@ -379,6 +380,15 @@ public final class VHAcceleratorClientConfig {
                             "Update metadata is still applied on Minecraft's client thread.",
                             "Currently enabled only for the explicitly validated Xaero versions.")
                     .define("deferXaeroOnlineChecks", true);
+            deferVaultAtlasUploads = builder
+                    .comment(
+                            "Moves the initial Vault GUI texture-atlas uploads out of the",
+                            "resource-reload barrier and performs one upload per loading-overlay",
+                            "frame during Minecraft's fixed two-second fade.",
+                            "The overlay remains visible until every queued atlas is ready,",
+                            "so the title screen and first world frame never see partial atlases.",
+                            "Runtime resource reloads retain Vault's original synchronous behavior.")
+                    .define("deferVaultAtlasUploads", true);
             cacheVaultTooltips = builder
                     .comment(
                             "Caches Vault Hunters tooltip lookups by item and active locale.",

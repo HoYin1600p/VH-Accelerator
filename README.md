@@ -48,6 +48,8 @@ in the local LaunchFaster 1.0 jar. It has:
 - automatic disabling of overlapping mixins when ModernFix is present
 - optional post-launch deferral of validated Xaero Minimap and World Map
   update/Patreon network checks
+- initial Vault GUI atlas uploads scheduled across the fixed loading-overlay
+  fade, with completion guaranteed before the overlay is removed
 - automatic single-threaded handling and failure recovery for dynamic/custom
   Forge models
 - conservative defaults for behavior known to be unsafe in the original
