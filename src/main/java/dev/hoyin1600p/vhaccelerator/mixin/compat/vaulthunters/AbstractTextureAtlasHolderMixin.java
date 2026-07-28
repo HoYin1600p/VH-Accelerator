@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtlasUpload;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtlasUploads;
@@ -68,8 +69,9 @@ public abstract class AbstractTextureAtlasHolderMixin
     /**
      * Vault's original unused-texture check performs List.contains for every
      * stitched resource and can emit thousands of individual warnings. This
-     * keeps the same validation decisions while using constant-time membership
-     * checks and bounded diagnostics.
+     * skips this diagnostic-only work when debug diagnostics are disabled.
+     * When enabled, it keeps the same validation decisions while using
+     * constant-time membership checks and bounded output.
      */
     @Inject(method = "validateTextures", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$validateTexturesInLinearTime(
@@ -80,6 +82,11 @@ public abstract class AbstractTextureAtlasHolderMixin
                         VHAcceleratorClientConfig.VALUES.optimizeVaultAtlasValidation
                 )
                 || validationSupplier == null) {
+            return;
+        }
+
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            callback.cancel();
             return;
         }
 

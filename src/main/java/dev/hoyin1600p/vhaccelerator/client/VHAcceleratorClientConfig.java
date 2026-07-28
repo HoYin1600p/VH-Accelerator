@@ -440,8 +440,9 @@ public final class VHAcceleratorClientConfig {
             optimizeVaultAtlasValidation = builder
                     .comment(
                             "Validates Vault texture atlases with constant-time membership checks.",
-                            "The same missing and unused textures are counted, but warning details",
-                            "are bounded so a large mismatch cannot stall launch with log output.",
+                            "When diagnostics.debug is false, Vault's warning-only validation is",
+                            "skipped entirely. When debug is true, the same missing and unused",
+                            "textures are counted with bounded warning details.",
                             "This changes diagnostics only; atlas contents are never modified.")
                     .define("optimizeVaultAtlasValidation", true);
             builder.pop();
