@@ -92,6 +92,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
+        public final ForgeConfigSpec.BooleanValue preSizeModelCaches;
+        public final ForgeConfigSpec.BooleanValue promoteCachedTopLevelModels;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
@@ -187,6 +189,19 @@ public final class VHAcceleratorClientConfig {
                             "never serialized. The same asset fingerprint and",
                             "runtime-reload bypass as the model JSON cache apply.")
                     .define("persistentBlockStateJsonCache", true);
+            preSizeModelCaches = builder
+                    .comment(
+                            "Sizes ModelBakery's large maps from the registered block-state",
+                            "and item counts before discovery. This avoids repeated rehashing",
+                            "in packs with hundreds of thousands of generated model states.",
+                            "A map replaced by another mod is detected and left untouched.")
+                    .define("preSizeModelCaches", true);
+            promoteCachedTopLevelModels = builder
+                    .comment(
+                            "Publishes an already-loaded unbaked model directly into the",
+                            "top-level model map. Minecraft's original path redundantly",
+                            "looks up and re-inserts every cached block-state model.")
+                    .define("promoteCachedTopLevelModels", true);
             asyncUserApiService = builder
                     .comment(
                             "Creates the online UserApiService asynchronously.",

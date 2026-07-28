@@ -211,9 +211,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         ) || mixinClassName.endsWith(
                 ".ModelBakeryBlockStateMixin"
         ) || mixinClassName.endsWith(
+                ".ModelBakeryCapacityMixin"
+        ) || mixinClassName.endsWith(
+                ".ModelBakeryTopLevelCacheMixin"
+        ) || mixinClassName.endsWith(
                 ".ParallelBlockModelShaperMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryLocationPreloadMixin"
+        ) || mixinClassName.endsWith(
+                ".ModelBakeryLoadProfilerMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryPreparationStartMixin"
         ) || mixinClassName.endsWith(

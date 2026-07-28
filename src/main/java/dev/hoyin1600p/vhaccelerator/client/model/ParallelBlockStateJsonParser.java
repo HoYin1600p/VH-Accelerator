@@ -114,7 +114,9 @@ public final class ParallelBlockStateJsonParser {
         List<ResourceLocation> locations =
                 new ArrayList<>(listed);
         Map<ResourceLocation, List<Resource>> cached =
-                new ConcurrentHashMap<>();
+                new ConcurrentHashMap<>(
+                        Math.max(16, locations.size())
+                );
         AtomicInteger preparedResources = new AtomicInteger();
         AtomicInteger buildscape = new AtomicInteger();
         AtomicInteger unknownBlocks = new AtomicInteger();

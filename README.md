@@ -54,6 +54,10 @@ in the local LaunchFaster 1.0 jar. It has:
   Forge models
 - fingerprint-validated, memory-only prewarming of eligible plain models from
   the persistent JSON cache before the initial resource-reload barrier
+- registry-informed sizing for ModelBakery's large maps plus direct promotion
+  of already-loaded block-state models
+- ordered Forge launch-listener attribution that remains active in Compare
+  Mode and identifies the next mod or lifecycle bottleneck without guessing
 - conservative defaults for behavior known to be unsafe in the original
 
 See [the original behavior map](docs/ORIGINAL_BEHAVIOR.md) for the complete

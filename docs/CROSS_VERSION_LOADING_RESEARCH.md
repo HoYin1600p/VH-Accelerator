@@ -143,3 +143,24 @@ The next change should target the largest repeatable phase:
 
 This preserves a measurable path forward without turning model compatibility
 into a broad allowlist or hiding work after the first playable frame.
+
+## Official pack manifest intersection
+
+The July 2026 CurseForge releases were also compared directly:
+
+- [Vault Hunters Third Edition 3.21.6](https://www.curseforge.com/minecraft/modpacks/vault-hunters-1-18-2/files/8509165)
+- [Vault Hunters Third Edition - Remastered 2.0.4](https://www.curseforge.com/minecraft/modpacks/vault-hunters-third-edition-remastered/files/8502758)
+
+The normal manifest lists 168 projects, Remastered lists 160, and 150 project
+slugs are common to both. The common set includes BuildScape, Every Compat,
+JEI, JER, CraftTweaker, JEITweaker, Iron Furnaces, Create, Mekanism, Thermal,
+Applied Energistics, Refined Storage, Quark, Patchouli, Xaero's two maps, and
+the core Vault mods.
+
+ModernFix, Lightspeed, LazyDFU, and Embeddium occur in the normal pack but not
+the Remastered manifest. Rubidium, Oculus, Industrial Foregoing, PneumaticCraft,
+Regions Unexplored, and Sophisticated Storage occur only in Remastered.
+Consequently, generic ModelBakery work and ordered event attribution are
+preferred over a custom-instance allowlist, and every integration remains
+presence-gated. ModernFix must remain optional even when a current normal
+release happens to include it.

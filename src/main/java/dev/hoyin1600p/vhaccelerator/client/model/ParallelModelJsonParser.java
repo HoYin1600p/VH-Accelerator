@@ -39,7 +39,7 @@ public final class ParallelModelJsonParser {
         List<Map.Entry<ResourceLocation, String>> entries =
                 new ArrayList<>(resources.entrySet());
         Map<ResourceLocation, BlockModel> parsed =
-                new ConcurrentHashMap<>();
+                new ConcurrentHashMap<>(Math.max(16, entries.size()));
         AtomicInteger customLoaders = new AtomicInteger();
         AtomicInteger buildscapeModels = new AtomicInteger();
         AtomicInteger failures = new AtomicInteger();

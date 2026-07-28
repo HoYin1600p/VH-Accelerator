@@ -304,6 +304,7 @@ public abstract class ModelBakeryMixin {
                     ordinal = 0
             )
     )
+    @SuppressWarnings("unchecked")
     private Set<?> vhaccelerator$bakeTopLevelModelsInParallel(
             Map<ResourceLocation, ?> models
     ) {
@@ -316,10 +317,20 @@ public abstract class ModelBakeryMixin {
 
         vhaccelerator$findSequentialModels();
         long startedAt = System.nanoTime();
-        bakedCache = new ConcurrentHashMap<>(bakedCache);
+        Map<Object, BakedModel> previousBakedCache =
+                (Map<Object, BakedModel>) (Map<?, ?>) bakedCache;
+        Map<Object, BakedModel> replacementBakedCache =
+                new ConcurrentHashMap<>(
+                        Math.max(16, models.size())
+                );
+        replacementBakedCache.putAll(previousBakedCache);
+        bakedCache = replacementBakedCache;
         List<ResourceLocation> locations = new ArrayList<>(models.keySet());
         locations.removeAll(vhaccelerator$sequentialModels);
-        Map<ResourceLocation, BakedModel> results = new ConcurrentHashMap<>();
+        Map<ResourceLocation, BakedModel> results =
+                new ConcurrentHashMap<>(
+                        Math.max(16, locations.size())
+                );
         Set<ResourceLocation> failures = ConcurrentHashMap.newKeySet();
 
         vhaccelerator$runBatched(locations, location -> {

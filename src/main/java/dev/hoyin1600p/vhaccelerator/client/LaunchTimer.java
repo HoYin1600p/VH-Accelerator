@@ -26,6 +26,7 @@ public final class LaunchTimer {
         }
 
         long elapsedMillis = elapsedMillis();
+        LaunchEventProfiler.finish();
         VHAccelerator.LOGGER.info(
                 "Client launch completed in {} ms ({})",
                 elapsedMillis,

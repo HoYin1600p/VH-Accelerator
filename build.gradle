@@ -229,6 +229,10 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelBakingMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelJsonCacheMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/client/EventBusLaunchProfilerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/client/ModelBakeryCapacityMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/client/ModelBakeryLoadProfilerMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/client/ModelBakeryTopLevelCacheMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ReloadListenerProfilerMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/vaulthunters/AbstractTextureAtlasHolderMixin.class',
                     'vhaccelerator.mixins.json'

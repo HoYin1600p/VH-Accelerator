@@ -74,6 +74,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
                     ordinal = 0
             )
     )
+    @SuppressWarnings("unchecked")
     private Set<?> vhaccelerator$bakeTopLevelModelsBesideModernFix(
             Map<ResourceLocation, ?> models
     ) {
@@ -86,12 +87,21 @@ public abstract class ModernFixCompatibleModelBakingMixin {
 
         vhaccelerator$findSequentialModels();
         long startedAt = System.nanoTime();
-        bakedCache = new ConcurrentHashMap<>(bakedCache);
+        Map<Object, BakedModel> previousBakedCache =
+                (Map<Object, BakedModel>) (Map<?, ?>) bakedCache;
+        Map<Object, BakedModel> replacementBakedCache =
+                new ConcurrentHashMap<>(
+                        Math.max(16, models.size())
+                );
+        replacementBakedCache.putAll(previousBakedCache);
+        bakedCache = replacementBakedCache;
         List<ResourceLocation> locations =
                 new ArrayList<>(models.keySet());
         locations.removeAll(vhaccelerator$sequentialModels);
         Map<ResourceLocation, BakedModel> results =
-                new ConcurrentHashMap<>();
+                new ConcurrentHashMap<>(
+                        Math.max(16, locations.size())
+                );
         Set<ResourceLocation> failures =
                 ConcurrentHashMap.newKeySet();
 

@@ -181,7 +181,9 @@ public final class PersistentModelJsonCache {
         List<ResourceLocation> locations =
                 new ArrayList<>(listed);
         Map<ResourceLocation, String> models =
-                new ConcurrentHashMap<>();
+                new ConcurrentHashMap<>(
+                        Math.max(16, locations.size())
+                );
         AtomicBoolean complete = new AtomicBoolean(true);
         AtomicLong totalBytes = new AtomicLong();
         runBatched(locations, location -> {
