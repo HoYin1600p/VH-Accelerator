@@ -46,6 +46,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
+        public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
         public final ForgeConfigSpec.BooleanValue showLaunchTimer;
 
         private Values(ForgeConfigSpec.Builder builder) {
@@ -228,6 +229,13 @@ public final class VHAcceleratorClientConfig {
             builder.pop();
 
             builder.push("display");
+            profileClientLaunchPhases = builder
+                    .comment(
+                            "Profiles the initial client resource reload and logs prepare/apply",
+                            "timings for listeners that take at least 20 milliseconds.",
+                            "The profiler observes the existing futures and does not change",
+                            "listener order, executors, or menu precompile behavior.")
+                    .define("profileClientLaunchPhases", true);
             showLaunchTimer = builder
                     .comment(
                             "Shows measured launch time on the title screen and after joining a world.",
