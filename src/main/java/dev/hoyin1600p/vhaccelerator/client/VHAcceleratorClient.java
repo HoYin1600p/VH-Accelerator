@@ -248,64 +248,93 @@ public final class VHAcceleratorClient {
     }
 
     private static void appendPrecompileStatus(StringBuilder text) {
+        int startedTasks = 0;
+        int totalProgress = 0;
+        long elapsedMillis = 0L;
+        boolean running = false;
+        boolean completed = false;
+        boolean failed = false;
+
         if (jerLoaded
                 && VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
             JerCompatibilityCache.PreloadStatus jerStatus =
                     JerCompatibilityCache.preloadStatus();
             if (jerStatus.phase()
-                    == JerCompatibilityCache.PreloadPhase.RUNNING) {
-                text.append(String.format(
-                        " | JER prep: %d%%",
-                        jerStatus.percent()
-                ));
-            } else if (jerStatus.phase()
-                    == JerCompatibilityCache.PreloadPhase.COMPLETED) {
-                if (jerStatus.elapsedMillis() < 1000L) {
-                    text.append(String.format(
-                            " | JER prep: %dms",
-                            jerStatus.elapsedMillis()
-                    ));
+                    != JerCompatibilityCache.PreloadPhase.NOT_STARTED) {
+                startedTasks++;
+                elapsedMillis = Math.max(
+                        elapsedMillis,
+                        jerStatus.elapsedMillis()
+                );
+                if (jerStatus.phase()
+                        == JerCompatibilityCache.PreloadPhase.RUNNING) {
+                    running = true;
+                    totalProgress += jerStatus.percent();
+                } else if (jerStatus.phase()
+                        == JerCompatibilityCache.PreloadPhase.COMPLETED) {
+                    completed = true;
+                    totalProgress += 100;
                 } else {
-                    text.append(String.format(
-                            " | JER prep: %.2fs",
-                            jerStatus.elapsedMillis() / 1000.0
-                    ));
+                    failed = true;
+                    totalProgress += 100;
                 }
-            } else if (jerStatus.phase()
-                    == JerCompatibilityCache.PreloadPhase.FAILED) {
-                text.append(" | JER prep: deferred");
             }
         }
 
         if (ironFurnacesLoaded
+                && VHAcceleratorClientConfig.VALUES
+                        .cacheIronFurnacesJeiRecipes
+                        .get()
                 && VHAcceleratorClientConfig.VALUES
                         .precompileIronFurnacesJeiRecipes
                         .get()) {
             IronFurnacesRecipeCache.PrecompileStatus status =
                     IronFurnacesRecipeCache.precompileStatus();
             if (status.phase()
-                    == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
-                text.append(String.format(
-                        " | Smoking prep: %d%%",
-                        status.percent()
-                ));
-            } else if (status.phase()
-                    == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
-                if (status.elapsedMillis() < 1000L) {
-                    text.append(String.format(
-                            " | Smoking prep: %dms",
-                            status.elapsedMillis()
-                    ));
+                    != IronFurnacesRecipeCache.PrecompilePhase.NOT_STARTED) {
+                startedTasks++;
+                elapsedMillis = Math.max(
+                        elapsedMillis,
+                        status.elapsedMillis()
+                );
+                if (status.phase()
+                        == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
+                    running = true;
+                    totalProgress += status.percent();
+                } else if (status.phase()
+                        == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
+                    completed = true;
+                    totalProgress += 100;
                 } else {
-                    text.append(String.format(
-                            " | Smoking prep: %.2fs",
-                            status.elapsedMillis() / 1000.0
-                    ));
+                    failed = true;
+                    totalProgress += 100;
                 }
-            } else if (status.phase()
-                    == IronFurnacesRecipeCache.PrecompilePhase.FAILED) {
-                text.append(" | Smoking prep: deferred");
             }
+        }
+
+        if (startedTasks == 0) {
+            return;
+        }
+        if (running) {
+            int progress = Math.min(
+                    99,
+                    Math.round(totalProgress / (float) startedTasks)
+            );
+            text.append(String.format(" | Menu prep: %d%%", progress));
+        } else if (failed) {
+            text.append(completed
+                    ? " | Menu prep partially completed"
+                    : " | Menu prep deferred");
+        } else if (elapsedMillis < 1000L) {
+            text.append(String.format(
+                    " | Menu prep completed in %dms",
+                    elapsedMillis
+            ));
+        } else {
+            text.append(String.format(
+                    " | Menu prep completed in %.2fs",
+                    elapsedMillis / 1000.0
+            ));
         }
     }
 
