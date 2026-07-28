@@ -59,6 +59,12 @@ including Minecraft's synthetic definitions, bypass the cache. This does not
 cache a baked model or alter model lookup, so Forge's model-bake event and
 dynamic baked-model replacements remain authoritative.
 
+Before bakery discovery, uncached canonical keys are computed in worker-owned
+ranges with Minecraft's original key-building method. Workers only read
+immutable registry and block-state data, then publish one immutable key on the
+corresponding state. A failed key is simply left empty for Minecraft to create
+on its established discovery path.
+
 After Forge's model-bake event completes, independent workers resolve those
 canonical keys against the finalized baked-model registry. Each worker writes
 to an exclusive array range. The client thread joins all workers, constructs a

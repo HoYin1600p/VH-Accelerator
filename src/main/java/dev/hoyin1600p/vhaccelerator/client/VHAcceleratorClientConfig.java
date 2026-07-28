@@ -33,6 +33,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
         public final ForgeConfigSpec.BooleanValue cacheBlockStateModelLocations;
+        public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
@@ -118,6 +119,13 @@ public final class VHAcceleratorClientConfig {
                             "during model discovery and again for the render lookup cache.",
                             "The cached key is attached to the immutable block-state instance.")
                     .define("cacheBlockStateModelLocations", true);
+            parallelBlockStateModelLocations = builder
+                    .comment(
+                            "Precomputes uncached canonical block-state model keys",
+                            "across available processors before bakery discovery.",
+                            "Workers use Minecraft's original key builder, so property",
+                            "ordering and modded Property value names remain unchanged.")
+                    .define("parallelBlockStateModelLocations", true);
             parallelBlockModelCache = builder
                     .comment(
                             "Resolves the final BlockState-to-BakedModel render lookup",
