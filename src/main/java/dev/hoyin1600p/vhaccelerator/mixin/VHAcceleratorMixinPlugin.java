@@ -35,6 +35,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean thermalLoaded;
     private boolean ironFurnacesLoaded;
     private boolean industrialForegoingLoaded;
+    private boolean ae2Loaded;
+    private boolean elevatorLoaded;
+    private boolean extraStorageLoaded;
+    private boolean refinedStorageLoaded;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -75,6 +79,14 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("ironfurnaces") != null;
                 industrialForegoingLoaded = modList != null
                         && modList.getModFileById("industrialforegoing") != null;
+                ae2Loaded = modList != null
+                        && modList.getModFileById("ae2") != null;
+                elevatorLoaded = modList != null
+                        && modList.getModFileById("elevatorid") != null;
+                extraStorageLoaded = modList != null
+                        && modList.getModFileById("extrastorage") != null;
+                refinedStorageLoaded = modList != null
+                        && modList.getModFileById("refinedstorage") != null;
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -98,6 +110,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             thermalLoaded = false;
             ironFurnacesLoaded = false;
             industrialForegoingLoaded = false;
+            ae2Loaded = false;
+            elevatorLoaded = false;
+            extraStorageLoaded = false;
+            refinedStorageLoaded = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -170,6 +186,25 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.industrialforegoing.")) {
             return jeiLoaded && industrialForegoingLoaded;
+        }
+        if (mixinClassName.endsWith(".Ae2ModelBakeMixin")) {
+            return ae2Loaded;
+        }
+        if (mixinClassName.endsWith(".ElevatorModelBakeMixin")) {
+            return elevatorLoaded;
+        }
+        if (mixinClassName.endsWith(".ExtraStorageModelBakeMixin")) {
+            return extraStorageLoaded;
+        }
+        if (mixinClassName.endsWith(
+                ".IndustrialForegoingModelBakeMixin"
+        )) {
+            return industrialForegoingLoaded;
+        }
+        if (mixinClassName.endsWith(
+                ".RefinedStorageModelBakeMixin"
+        )) {
+            return refinedStorageLoaded;
         }
         if (mixinClassName.endsWith(".XaeroMinimapOnlineChecksMixin")) {
             return xaeroMinimapCompatible;

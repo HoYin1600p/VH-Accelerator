@@ -102,6 +102,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
+        public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -257,6 +258,13 @@ public final class VHAcceleratorClientConfig {
                             "Also retries every model sequentially if a parallel bake fails.",
                             "Keep this enabled unless diagnosing the compatibility guard itself.")
                     .define("protectDynamicModels", true);
+            indexModelBakeRegistries = builder
+                    .comment(
+                            "Indexes the baked-model registry by namespace once",
+                            "for compatible Forge callbacks that otherwise rescan",
+                            "the complete registry. Listener order and model-map",
+                            "mutations remain on the render thread.")
+                    .define("indexModelBakeRegistries", true);
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",

@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeRegistryIndex;
 import java.util.Map;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.texture.AtlasSet;
@@ -105,12 +106,17 @@ public abstract class ModelManagerApplyProfilerMixin {
             Map<ResourceLocation, BakedModel> models,
             ForgeModelBakery bakery
     ) {
+        ModelBakeRegistryIndex.begin(models);
         if (!vhaccelerator$profileApply) {
-            ForgeHooksClient.onModelBake(
-                    manager,
-                    models,
-                    bakery
-            );
+            try {
+                ForgeHooksClient.onModelBake(
+                        manager,
+                        models,
+                        bakery
+                );
+            } finally {
+                ModelBakeRegistryIndex.finish();
+            }
             return;
         }
         long started = System.nanoTime();
@@ -121,6 +127,7 @@ public abstract class ModelManagerApplyProfilerMixin {
                     bakery
             );
         } finally {
+            ModelBakeRegistryIndex.finish();
             vhaccelerator$forgeModelBakeNanos +=
                     System.nanoTime() - started;
         }
