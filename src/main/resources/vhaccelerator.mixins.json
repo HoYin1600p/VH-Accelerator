@@ -72,6 +72,8 @@
     "compat.thermal.ThermalRecipeManagersMixin",
     "compat.ironfurnaces.IronFurnacesJeiPluginMixin",
     "compat.industrialforegoing.IndustrialForegoingJeiPluginMixin",
+    "compat.xaero.XaeroMinimapOnlineChecksMixin",
+    "compat.xaero.XaeroWorldMapOnlineChecksMixin",
     "compat.powah.WikiMixin",
     "compat.vaulthunters.AbstractTextureAtlasHolderMixin",
     "compat.vaulthunters.GroupUtilsMixin",

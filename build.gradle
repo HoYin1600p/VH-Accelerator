@@ -106,6 +106,8 @@ dependencies {
     compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
     compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
     compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
+    compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
+    compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
 }
 
 def compatibilityProfiles = [
@@ -219,6 +221,9 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/thermal/StirlingFuelManagerMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/ironfurnaces/IronFurnacesJeiPluginMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/industrialforegoing/IndustrialForegoingJeiPluginMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/xaero/XaeroOnlineCheckDeferrer.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroMinimapOnlineChecksMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroWorldMapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelBakingMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelJsonCacheMixin.class',
@@ -278,7 +283,8 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                 it.name.startsWith('mezz/jei/') ||
                         it.name.startsWith('iskallia/vault/') ||
                         it.name.startsWith('cofh/thermal/') ||
-                        it.name.startsWith('com/blamejared/crafttweaker/')
+                        it.name.startsWith('com/blamejared/crafttweaker/') ||
+                        it.name.startsWith('xaero/')
             }
             if (!bundledDependencies.isEmpty()) {
                 throw new GradleException(

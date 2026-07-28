@@ -14,6 +14,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidation
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -120,6 +121,7 @@ public final class VHAcceleratorClient {
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
+        releaseDeferredOnlineChecksFromMenu(event);
         runMenuPrecompile(event);
         if (!(event.getScreen() instanceof TitleScreen)
                 || !LaunchTimer.isFinished()
@@ -181,6 +183,20 @@ public final class VHAcceleratorClient {
                 0x55FF55
         );
         event.getPoseStack().popPose();
+    }
+
+    private static void releaseDeferredOnlineChecksFromMenu(
+            ScreenEvent.DrawScreenEvent.Post event
+    ) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!LaunchTimer.isFinished()
+                || minecraft.level != null
+                || minecraft.getConnection() != null
+                || event.getScreen() instanceof ConnectScreen
+                || event.getScreen() instanceof ReceivingLevelScreen) {
+            return;
+        }
+        XaeroOnlineCheckDeferrer.releaseAfterUsableFrame();
     }
 
     private static void runMenuPrecompile(ScreenEvent.DrawScreenEvent.Post event) {
@@ -320,6 +336,7 @@ public final class VHAcceleratorClient {
             return;
         }
 
+        XaeroOnlineCheckDeferrer.releaseAfterUsableFrame();
         if (VHAcceleratorClientConfig.optimizationsEnabled()) {
             AdaptiveJeiWorkScheduler.markGameplayActive();
         }

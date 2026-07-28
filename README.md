@@ -46,6 +46,8 @@ in the local LaunchFaster 1.0 jar. It has:
 - a guarded JEI startup worker with stale-connection rejection and
   main-thread publication
 - automatic disabling of overlapping mixins when ModernFix is present
+- optional post-launch deferral of validated Xaero Minimap and World Map
+  update/Patreon network checks
 - automatic single-threaded handling and failure recovery for dynamic/custom
   Forge models
 - conservative defaults for behavior known to be unsafe in the original

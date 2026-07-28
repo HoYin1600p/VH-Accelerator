@@ -120,6 +120,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue precompileIronFurnacesJeiRecipes;
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
+        public final ForgeConfigSpec.BooleanValue deferXaeroOnlineChecks;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
@@ -370,6 +371,14 @@ public final class VHAcceleratorClientConfig {
                             "and gives JEI only the shortest equivalent path for each output.",
                             "Results remain based on the active server recipe manager.")
                     .define("optimizeIndustrialForegoingStoneWorkJeiRecipes", true);
+            deferXaeroOnlineChecks = builder
+                    .comment(
+                            "Moves Xaero's Minimap and World Map update/Patreon network checks",
+                            "off Forge's client-setup barrier and starts them on one low-priority",
+                            "worker after the first usable menu frame.",
+                            "Update metadata is still applied on Minecraft's client thread.",
+                            "Currently enabled only for the explicitly validated Xaero versions.")
+                    .define("deferXaeroOnlineChecks", true);
             cacheVaultTooltips = builder
                     .comment(
                             "Caches Vault Hunters tooltip lookups by item and active locale.",

@@ -35,6 +35,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean thermalLoaded;
     private boolean ironFurnacesLoaded;
     private boolean industrialForegoingLoaded;
+    private boolean xaeroMinimapCompatible;
+    private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
     private Boolean modernFixDynamicResourcesEnabled;
     private boolean reportedModernFixBakeDecision;
@@ -73,6 +75,16 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("ironfurnaces") != null;
                 industrialForegoingLoaded = modList != null
                         && modList.getModFileById("industrialforegoing") != null;
+                xaeroMinimapCompatible = hasVersion(
+                        modList,
+                        "xaerominimap",
+                        "25.2.10"
+                );
+                xaeroWorldMapCompatible = hasVersion(
+                        modList,
+                        "xaeroworldmap",
+                        "1.39.12"
+                );
             }
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
@@ -86,6 +98,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             thermalLoaded = false;
             ironFurnacesLoaded = false;
             industrialForegoingLoaded = false;
+            xaeroMinimapCompatible = false;
+            xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
 
@@ -99,6 +113,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         } else if (jeiGeneration != 0) {
             LOGGER.info("Detected JEI {} compatibility generation", jeiGeneration);
+        }
+        if (xaeroMinimapCompatible || xaeroWorldMapCompatible) {
+            LOGGER.info(
+                    "Validated Xaero startup compatibility: minimap={}, worldmap={}",
+                    xaeroMinimapCompatible,
+                    xaeroWorldMapCompatible
+            );
         }
     }
 
@@ -150,6 +171,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains(".compat.industrialforegoing.")) {
             return jeiLoaded && industrialForegoingLoaded;
         }
+        if (mixinClassName.endsWith(".XaeroMinimapOnlineChecksMixin")) {
+            return xaeroMinimapCompatible;
+        }
+        if (mixinClassName.endsWith(".XaeroWorldMapOnlineChecksMixin")) {
+            return xaeroWorldMapCompatible;
+        }
         if (mixinClassName.endsWith(
                 ".ModernFixCompatibleModelBakingMixin"
         ) || mixinClassName.endsWith(
@@ -198,6 +225,21 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return !modernFixDynamicResourcesEnabled();
         }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
+    }
+
+    private static boolean hasVersion(
+            LoadingModList modList,
+            String modId,
+            String expectedVersion
+    ) {
+        if (modList == null || modList.getModFileById(modId) == null) {
+            return false;
+        }
+        return modList.getMods().stream()
+                .filter(mod -> modId.equals(mod.getModId()))
+                .anyMatch(mod -> expectedVersion.equals(
+                        mod.getVersion().toString()
+                ));
     }
 
     private boolean modernFixDynamicResourcesEnabled() {
