@@ -10,15 +10,19 @@ VH Accelerator records:
 
 | Metric | Start | End |
 | --- | --- | --- |
-| Client launch | Minecraft client entry point | Initial loading overlay completes |
+| Client launch | JVM process start | Initial loading overlay completes |
 | Server login | Connect screen begins connection | First playable world frame |
 | Server/world transfer | Respawn/receiving-level transfer signal | First playable world frame |
 | Post-login work | Login work session begins | All tracked post-login work completes |
 | Disconnect | Synchronous disconnect begins | Multiplayer, title, or Realms menu opens |
-| Dedicated-server launch | Dedicated server entry point | Server startup completion |
+| Dedicated-server launch | JVM process start | Server startup completion |
 
 The login timer intentionally includes time until a playable frame. Moving
 heavy work after that frame is not considered a valid gain.
+
+Beginning with 1.0.2, launch measurements include ModLauncher and early JVM
+bootstrap time. The timer attaches at Minecraft's entry point and reconstructs
+the earlier process start from monotonic JVM uptime.
 
 ## Baseline with Compare Mode
 

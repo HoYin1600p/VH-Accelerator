@@ -21,6 +21,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Removed
 
+## [1.0.2] - 2026-07-28
+
+### Fixed
+
+- Client launch timing now begins at JVM process start instead of Minecraft's
+  later client entry point, including ModLauncher and early bootstrap time.
+- Dedicated-server launch timing now uses the same full-process measurement.
+- Timer attachment logs report how much startup time elapsed before the
+  Minecraft entry-point mixin became available.
+
 ## [1.0.1] - 2026-07-28
 
 ### Fixed
@@ -66,6 +76,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/HoYin1600p/VH-Accelerator/releases/tag/v1.0.0

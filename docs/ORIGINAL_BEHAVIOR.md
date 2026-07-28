@@ -12,7 +12,7 @@ It is an implementation guide, not tracked decompiler output.
 
 | Feature | Side | Original mechanism | VH Accelerator status | Risk and findings |
 |---|---|---|---|---|
-| Client launch timer | Client | Starts at `client.main.Main.main`; ends when the initial `LoadingOverlay` reload reports done | Implemented with monotonic time | Measurement only |
+| Client launch timer | Client | Starts at `client.main.Main.main`; ends when the initial `LoadingOverlay` reload reports done | Implemented from JVM process start with monotonic uptime | Measurement only |
 | Launch time in logs | Client | Logs elapsed launch time when the loading overlay finishes | Implemented | Measurement only |
 | Launch time on title screen | Client | Draws a green line above Forge branding | Implemented through Forge's post-screen render event | Remains visible when menu mods replace or cancel vanilla `TitleScreen.render` |
 | Launch time in chat | Client | Shows once after the first world/server join | Implemented | Measurement only |
