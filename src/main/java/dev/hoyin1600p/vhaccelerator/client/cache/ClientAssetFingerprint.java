@@ -24,7 +24,7 @@ import net.minecraftforge.forgespi.language.IModInfo;
  * Identifies inputs that can affect the initial client model resource view.
  */
 public final class ClientAssetFingerprint {
-    private static final int SCHEMA_VERSION = 3;
+    private static final int SCHEMA_VERSION = 4;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
     private static volatile CompletableFuture<BaseFingerprint>
             baseFingerprint;
@@ -32,13 +32,7 @@ public final class ClientAssetFingerprint {
     private ClientAssetFingerprint() {
     }
 
-    /**
-     * Starts the filesystem portion only after Forge has constructed the
-     * initial resource reload. Starting this during mod construction can
-     * snapshot configuration files before Forge finishes creating and
-     * normalizing them, causing a false cache miss on every launch.
-     */
-    public static void prepareStable() {
+    private static void startStableScan() {
         if (baseFingerprint != null) {
             return;
         }
@@ -60,7 +54,7 @@ public final class ClientAssetFingerprint {
     }
 
     public static String current(ResourceManager resourceManager) {
-        prepareStable();
+        startStableScan();
         try {
             BaseFingerprint base = baseFingerprint.join();
             List<String> activePacks = new ArrayList<>();
@@ -135,6 +129,7 @@ public final class ClientAssetFingerprint {
     }
 
     private static BaseFingerprint buildBaseFingerprint() {
+        long started = System.nanoTime();
         List<String> installation = new ArrayList<>();
         installation.add(
                 "minecraft="
@@ -172,11 +167,16 @@ public final class ClientAssetFingerprint {
                 resourceFiles,
                 gameDirectory.resolve("resourcepacks")
         );
-        return new BaseFingerprint(
+        BaseFingerprint fingerprint = new BaseFingerprint(
                 digestStrings(installation),
                 digestStrings(configs),
                 digestStrings(resourceFiles)
         );
+        VHAccelerator.LOGGER.info(
+                "Prepared stable client asset fingerprint in {} ms",
+                (System.nanoTime() - started) / 1_000_000L
+        );
+        return fingerprint;
     }
 
     private static String encode(
@@ -242,48 +242,79 @@ public final class ClientAssetFingerprint {
             inputs.add(label + "-directory-missing");
             return;
         }
-        try (Stream<Path> paths = Files.walk(directory)) {
-            paths.filter(Files::isRegularFile)
+
+        List<ConfigFileStamp> before =
+                snapshotConfigFiles(directory);
+        for (ConfigFileStamp stamp : before) {
+            Path path = directory.resolve(stamp.relative);
+            if (stamp.size <= MAX_CONFIG_HASH_BYTES) {
+                inputs.add(
+                        label
+                                + "="
+                                + stamp.relative
+                                + ":"
+                                + digestFile(path)
+                );
+            } else {
+                inputs.add(
+                        label
+                                + "="
+                                + stamp.relative
+                                + ":"
+                                + stamp.size
+                                + ":"
+                                + stamp.modifiedMillis
+                );
+            }
+        }
+
+        List<ConfigFileStamp> after =
+                snapshotConfigFiles(directory);
+        if (!before.equals(after)) {
+            throw new UnstableFingerprintInputException(
+                    "Asset-affecting configuration changed while "
+                            + "it was being fingerprinted"
+            );
+        }
+    }
+
+    private static List<ConfigFileStamp> snapshotConfigFiles(
+            Path directory
+    ) {
+        List<Path> paths;
+        try (Stream<Path> stream = Files.walk(directory)) {
+            paths = stream.filter(Files::isRegularFile)
                     .sorted(Comparator.comparing(path ->
                             normalizeRelative(directory, path)))
-                    .forEach(path -> {
-                        try {
-                            long size = Files.size(path);
-                            String relative =
-                                    normalizeRelative(directory, path);
-                            if (isVolatileNonAssetConfig(relative)) {
-                                return;
-                            }
-                            if (size <= MAX_CONFIG_HASH_BYTES) {
-                                inputs.add(
-                                        label
-                                                + "="
-                                                + relative
-                                                + ":"
-                                                + digestFile(path)
-                                );
-                            } else {
-                                appendMetadata(
-                                        inputs,
-                                        directory,
-                                        path,
-                                        label
-                                );
-                            }
-                        } catch (IOException exception) {
-                            inputs.add(
-                                    label
-                                            + "-read-failed="
-                                            + normalizeRelative(
-                                            directory,
-                                            path
-                                    )
-                            );
-                        }
-                    });
+                    .toList();
         } catch (IOException exception) {
-            inputs.add(label + "-directory-read-failed");
+            throw new UnstableFingerprintInputException(
+                    "Could not enumerate asset-affecting configuration",
+                    exception
+            );
         }
+
+        List<ConfigFileStamp> stamps =
+                new ArrayList<>(paths.size());
+        for (Path path : paths) {
+            String relative = normalizeRelative(directory, path);
+            if (isVolatileNonAssetConfig(relative)) {
+                continue;
+            }
+            try {
+                stamps.add(new ConfigFileStamp(
+                        relative,
+                        Files.size(path),
+                        Files.getLastModifiedTime(path).toMillis()
+                ));
+            } catch (IOException exception) {
+                throw new UnstableFingerprintInputException(
+                        "Could not inspect asset-affecting configuration",
+                        exception
+                );
+            }
+        }
+        return List.copyOf(stamps);
     }
 
     /**
@@ -378,7 +409,10 @@ public final class ClientAssetFingerprint {
                     digest.digest()
             );
         } catch (IOException exception) {
-            return "read-failed";
+            throw new UnstableFingerprintInputException(
+                    "Could not read asset-affecting configuration",
+                    exception
+            );
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(
                     "SHA-256 is unavailable",
@@ -424,5 +458,26 @@ public final class ClientAssetFingerprint {
             String resourceFiles,
             String activePacks
     ) {
+    }
+
+    private record ConfigFileStamp(
+            String relative,
+            long size,
+            long modifiedMillis
+    ) {
+    }
+
+    private static final class UnstableFingerprintInputException
+            extends RuntimeException {
+        private UnstableFingerprintInputException(String message) {
+            super(message);
+        }
+
+        private UnstableFingerprintInputException(
+                String message,
+                Throwable cause
+        ) {
+            super(message, cause);
+        }
     }
 }

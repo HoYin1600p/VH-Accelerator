@@ -227,7 +227,6 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroMinimapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroWorldMapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
-                    'dev/hoyin1600p/vhaccelerator/mixin/client/ClientAssetFingerprintLifecycleMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelBakingMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelJsonCacheMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ClientModLoaderProfilerMixin.class',
