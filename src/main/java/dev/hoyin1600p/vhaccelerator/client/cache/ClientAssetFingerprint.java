@@ -37,6 +37,10 @@ public final class ClientAssetFingerprint {
     private static final int SCHEMA_VERSION = 5;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
     private static final int MAX_STABILITY_ATTEMPTS = 3;
+    private static final long CONFIG_EVENT_QUIET_MILLIS = 30L;
+    private static final long MAX_CONFIG_EVENT_WAIT_MILLIS = 750L;
+    private static final long POST_VALIDATION_QUIET_MILLIS = 10L;
+    private static final long MAX_POST_VALIDATION_WAIT_MILLIS = 100L;
     private static final int MAX_MANIFEST_ENTRIES = 100_000;
     private static final long MAX_MANIFEST_BYTES = 16L * 1024L * 1024L;
     private static final int CHANGE_REPORT_LIMIT = 24;
@@ -283,6 +287,10 @@ public final class ClientAssetFingerprint {
         }
         try (Stream<Path> paths = Files.list(directory)) {
             paths.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName()
+                            .toString()
+                            .toLowerCase(java.util.Locale.ROOT)
+                            .endsWith(".jar"))
                     .sorted(Comparator.comparing(path ->
                             path.getFileName().toString()))
                     .forEach(path -> appendMetadata(
@@ -299,6 +307,8 @@ public final class ClientAssetFingerprint {
     private static EarlyConfigSnapshot captureEarlyConfigSnapshot() {
         Map<String, EarlyConfigFile> files = new HashMap<>();
         TreeSet<String> missingDirectories = new TreeSet<>();
+        TreeSet<ConfigFingerprintMonitor.ChangedPath>
+                requiredValidation = new TreeSet<>();
         Map<String, Path> roots = new TreeMap<>();
         roots.put(
                 "config",
@@ -324,17 +334,20 @@ public final class ClientAssetFingerprint {
         }
         complete &= captureEarlyConfigDirectory(
                 files,
+                requiredValidation,
                 roots.get("config"),
                 "config"
         );
         complete &= captureEarlyConfigDirectory(
                 files,
+                requiredValidation,
                 roots.get("default-config"),
                 "default-config"
         );
         return new EarlyConfigSnapshot(
                 Map.copyOf(files),
                 Set.copyOf(missingDirectories),
+                Set.copyOf(requiredValidation),
                 monitor,
                 complete
         );
@@ -342,6 +355,8 @@ public final class ClientAssetFingerprint {
 
     private static boolean captureEarlyConfigDirectory(
             Map<String, EarlyConfigFile> output,
+            Set<ConfigFingerprintMonitor.ChangedPath>
+                    requiredValidation,
             Path directory,
             String label
     ) {
@@ -358,7 +373,6 @@ public final class ClientAssetFingerprint {
         } catch (UnstableFingerprintInputException ignored) {
             return false;
         }
-        boolean complete = true;
         for (ConfigFileStamp stamp : files) {
             if (stamp.size > MAX_CONFIG_HASH_BYTES) {
                 output.put(
@@ -387,13 +401,23 @@ public final class ClientAssetFingerprint {
                             )
                     );
                 } else {
-                    complete = false;
+                    requiredValidation.add(
+                            new ConfigFingerprintMonitor.ChangedPath(
+                                    label,
+                                    stamp.relative
+                            )
+                    );
                 }
             } catch (UnstableFingerprintInputException ignored) {
-                complete = false;
+                requiredValidation.add(
+                        new ConfigFingerprintMonitor.ChangedPath(
+                                label,
+                                stamp.relative
+                        )
+                );
             }
         }
-        return complete;
+        return true;
     }
 
     private static StableConfigResult resolveStableConfigContents(
@@ -422,6 +446,8 @@ public final class ClientAssetFingerprint {
                 new TreeSet<>();
         TreeSet<ConfigFingerprintMonitor.ChangedPath> observed =
                 new TreeSet<>();
+        pending.addAll(earlyConfigs.requiredValidation);
+        observed.addAll(earlyConfigs.requiredValidation);
         UnstableFingerprintInputException lastFailure = null;
         try {
             for (int attempt = 1;
@@ -449,6 +475,20 @@ public final class ClientAssetFingerprint {
                     );
                 }
 
+                ConfigFingerprintMonitor.ChangeSet settled =
+                        monitor.awaitQuietChanges(
+                                CONFIG_EVENT_QUIET_MILLIS,
+                                MAX_CONFIG_EVENT_WAIT_MILLIS
+                        );
+                if (settled.fullRescan()) {
+                    throw new UnstableFingerprintInputException(
+                            "Configuration filesystem events overflowed "
+                                    + "or could not be tracked safely"
+                    );
+                }
+                pending.addAll(settled.paths());
+                observed.addAll(settled.paths());
+
                 Map<String, String> candidate =
                         new TreeMap<>(manifest);
                 TreeSet<String> candidateLaunchChanges =
@@ -470,7 +510,10 @@ public final class ClientAssetFingerprint {
                 }
 
                 ConfigFingerprintMonitor.ChangeSet after =
-                        monitor.drain();
+                        monitor.awaitQuietChanges(
+                                POST_VALIDATION_QUIET_MILLIS,
+                                MAX_POST_VALIDATION_WAIT_MILLIS
+                        );
                 if (after.fullRescan()) {
                     throw new UnstableFingerprintInputException(
                             "Configuration filesystem events overflowed "
@@ -1023,7 +1066,8 @@ public final class ClientAssetFingerprint {
 
     /**
      * Excludes files that are rewritten with client session/UI state and
-     * cannot alter the resolved model JSON supplied by resource packs.
+     * files whose settings cannot alter resolved model JSON supplied by
+     * resource packs.
      *
      * <p>All other configuration remains fingerprinted. This avoids making
      * the cache globally insensitive to mod configuration while preventing
@@ -1037,6 +1081,7 @@ public final class ClientAssetFingerprint {
                 || normalized.equals("embeddium-options.json")
                 || normalized.equals("forge-client.toml")
                 || normalized.equals("oculus.properties")
+                || normalized.equals("powah.json5")
                 || normalized.equals("vaultlootbeams.json")
                 || normalized.startsWith("xaerominimap")
                 || normalized.startsWith("xaeroworldmap")
@@ -1195,6 +1240,8 @@ public final class ClientAssetFingerprint {
     private record EarlyConfigSnapshot(
             Map<String, EarlyConfigFile> files,
             Set<String> missingDirectories,
+            Set<ConfigFingerprintMonitor.ChangedPath>
+                    requiredValidation,
             ConfigFingerprintMonitor monitor,
             boolean complete
     ) {

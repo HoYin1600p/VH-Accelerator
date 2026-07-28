@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -84,71 +85,121 @@ final class ConfigFingerprintMonitor implements AutoCloseable {
         }
 
         boolean fullRescan = false;
-        Set<ChangedPath> changed = new TreeSet<>();
+        TreeSet<ChangedPath> changed = new TreeSet<>();
         WatchKey key;
         while ((key = watcher.poll()) != null) {
-            WatchedDirectory watched = directories.get(key);
-            if (watched == null) {
-                fullRescan = true;
-                key.reset();
-                continue;
-            }
+            fullRescan |= consume(key, changed);
+        }
+        return new ChangeSet(fullRescan, Set.copyOf(changed));
+    }
 
-            for (WatchEvent<?> event : key.pollEvents()) {
-                WatchEvent.Kind<?> kind = event.kind();
-                if (kind == StandardWatchEventKinds.OVERFLOW) {
-                    fullRescan = true;
-                    continue;
-                }
-                Object context = event.context();
-                if (!(context instanceof Path relativeName)) {
-                    fullRescan = true;
-                    continue;
-                }
+    ChangeSet awaitQuietChanges(
+            long quietMillis,
+            long maximumWaitMillis
+    ) {
+        if (closed) {
+            return ChangeSet.full();
+        }
 
-                Path absolute =
-                        watched.directory.resolve(relativeName);
-                if (watched.missingRootObserver) {
-                    if (absolute.equals(watched.root)) {
-                        fullRescan = true;
-                    }
-                    continue;
-                }
-                if (kind == StandardWatchEventKinds.ENTRY_CREATE
-                        && Files.isDirectory(absolute)) {
-                    fullRescan = true;
-                    try {
-                        registerTree(
-                                absolute,
-                                watched.root,
-                                watched.label
-                        );
-                    } catch (IOException | RuntimeException failure) {
-                        fullRescan = true;
-                    }
-                    continue;
-                }
-                if (kind == StandardWatchEventKinds.ENTRY_DELETE
-                        && removedDirectory(absolute)) {
-                    fullRescan = true;
-                    continue;
-                }
-
-                String relative = normalizeRelative(
-                        watched.root,
-                        absolute
+        long deadline = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(maximumWaitMillis);
+        boolean fullRescan = false;
+        TreeSet<ChangedPath> changed = new TreeSet<>();
+        while (System.nanoTime() < deadline) {
+            long remaining = deadline - System.nanoTime();
+            long quietNanos = Math.min(
+                    TimeUnit.MILLISECONDS.toNanos(quietMillis),
+                    Math.max(1L, remaining)
+            );
+            WatchKey key;
+            try {
+                key = watcher.poll(
+                        quietNanos,
+                        TimeUnit.NANOSECONDS
                 );
-                changed.add(new ChangedPath(
-                        watched.label,
-                        relative
-                ));
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return ChangeSet.full();
             }
-            if (!key.reset()) {
-                directories.remove(key);
-                fullRescan = true;
+            if (key == null) {
+                break;
+            }
+            fullRescan |= consume(key, changed);
+            while ((key = watcher.poll()) != null) {
+                fullRescan |= consume(key, changed);
+            }
+            if (fullRescan) {
+                break;
             }
         }
         return new ChangeSet(fullRescan, Set.copyOf(changed));
+    }
+
+    private boolean consume(
+            WatchKey key,
+            Set<ChangedPath> changed
+    ) {
+        boolean fullRescan = false;
+        WatchedDirectory watched = directories.get(key);
+        if (watched == null) {
+            key.reset();
+            return true;
+        }
+
+        for (WatchEvent<?> event : key.pollEvents()) {
+            WatchEvent.Kind<?> kind = event.kind();
+            if (kind == StandardWatchEventKinds.OVERFLOW) {
+                fullRescan = true;
+                continue;
+            }
+            Object context = event.context();
+            if (!(context instanceof Path relativeName)) {
+                fullRescan = true;
+                continue;
+            }
+
+            Path absolute =
+                    watched.directory.resolve(relativeName);
+            if (watched.missingRootObserver) {
+                if (absolute.equals(watched.root)) {
+                    fullRescan = true;
+                }
+                continue;
+            }
+            if (kind == StandardWatchEventKinds.ENTRY_CREATE
+                    && Files.isDirectory(absolute)) {
+                fullRescan = true;
+                try {
+                    registerTree(
+                            absolute,
+                            watched.root,
+                            watched.label
+                    );
+                } catch (IOException | RuntimeException failure) {
+                    fullRescan = true;
+                }
+                continue;
+            }
+            if (kind == StandardWatchEventKinds.ENTRY_DELETE
+                    && removedDirectory(absolute)) {
+                fullRescan = true;
+                continue;
+            }
+
+            String relative = normalizeRelative(
+                    watched.root,
+                    absolute
+            );
+            changed.add(new ChangedPath(
+                    watched.label,
+                    relative
+            ));
+        }
+        if (!key.reset()) {
+            directories.remove(key);
+            fullRescan = true;
+        }
+        return fullRescan;
     }
 
     private boolean removedDirectory(Path removed) {
