@@ -4,6 +4,7 @@ import com.mojang.realmsclient.RealmsMainScreen;
 import dev.hoyin1600p.vhaccelerator.CompareModeCommand;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
@@ -70,6 +71,7 @@ public final class VHAcceleratorClient {
             PersistentVanillaIngredientCache.prewarm();
             PersistentRecipeValidationCache.prewarm();
             PersistentJeiRecipeIndexCache.prewarm();
+            ClientAssetFingerprint.prewarm();
             if (thermalLoaded) {
                 PersistentStirlingFuelCache.prewarm();
             }

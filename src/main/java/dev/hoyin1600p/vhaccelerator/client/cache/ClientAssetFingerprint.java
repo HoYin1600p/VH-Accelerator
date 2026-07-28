@@ -10,7 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import net.minecraft.SharedConstants;
@@ -24,33 +26,67 @@ import net.minecraftforge.forgespi.language.IModInfo;
  * Identifies inputs that can affect the initial client model resource view.
  */
 public final class ClientAssetFingerprint {
-    private static final int SCHEMA_VERSION = 4;
+    private static final int SCHEMA_VERSION = 5;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
+    private static final int MAX_STABILITY_ATTEMPTS = 3;
+    private static volatile CompletableFuture<EarlyConfigSnapshot>
+            earlyConfigSnapshot;
     private static volatile CompletableFuture<BaseFingerprint>
             baseFingerprint;
 
     private ClientAssetFingerprint() {
     }
 
+    /**
+     * Hashes the launch-start config view off the critical model-loading path.
+     * Files rewritten later by Forge are detected by their metadata and read
+     * again after config loading; unchanged files retain this early digest.
+     */
+    public static void prewarm() {
+        if (earlyConfigSnapshot != null) {
+            return;
+        }
+        synchronized (ClientAssetFingerprint.class) {
+            if (earlyConfigSnapshot == null) {
+                earlyConfigSnapshot = CompletableFuture.supplyAsync(
+                        ClientAssetFingerprint
+                                ::captureEarlyConfigSnapshot,
+                        runnable -> startDaemon(
+                                runnable,
+                                "VH Accelerator early config fingerprint"
+                        )
+                );
+            }
+        }
+    }
+
     private static void startStableScan() {
+        prewarm();
         if (baseFingerprint != null) {
             return;
         }
         synchronized (ClientAssetFingerprint.class) {
             if (baseFingerprint == null) {
-                baseFingerprint = CompletableFuture.supplyAsync(
+                baseFingerprint = earlyConfigSnapshot.thenApplyAsync(
                         ClientAssetFingerprint::buildBaseFingerprint,
                         runnable -> {
-                            Thread thread = new Thread(
+                            startDaemon(
                                     runnable,
                                     "VH Accelerator asset fingerprint"
                             );
-                            thread.setDaemon(true);
-                            thread.start();
                         }
                 );
             }
         }
+    }
+
+    private static void startDaemon(
+            Runnable runnable,
+            String name
+    ) {
+        Thread thread = new Thread(runnable, name);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public static String current(ResourceManager resourceManager) {
@@ -128,7 +164,9 @@ public final class ClientAssetFingerprint {
         );
     }
 
-    private static BaseFingerprint buildBaseFingerprint() {
+    private static BaseFingerprint buildBaseFingerprint(
+            EarlyConfigSnapshot earlyConfigs
+    ) {
         long started = System.nanoTime();
         List<String> installation = new ArrayList<>();
         installation.add(
@@ -151,15 +189,17 @@ public final class ClientAssetFingerprint {
         );
 
         List<String> configs = new ArrayList<>();
-        appendConfigContents(
+        appendStableConfigContents(
                 configs,
                 FMLPaths.CONFIGDIR.get(),
-                "config"
+                "config",
+                earlyConfigs
         );
-        appendConfigContents(
+        appendStableConfigContents(
                 configs,
                 gameDirectory.resolve("defaultconfigs"),
-                "default-config"
+                "default-config",
+                earlyConfigs
         );
 
         List<String> resourceFiles = new ArrayList<>();
@@ -233,47 +273,165 @@ public final class ClientAssetFingerprint {
         }
     }
 
-    private static void appendConfigContents(
-            List<String> inputs,
+    private static EarlyConfigSnapshot captureEarlyConfigSnapshot() {
+        Map<String, EarlyConfigFile> files = new HashMap<>();
+        captureEarlyConfigDirectory(
+                files,
+                FMLPaths.CONFIGDIR.get(),
+                "config"
+        );
+        captureEarlyConfigDirectory(
+                files,
+                FMLPaths.GAMEDIR.get().resolve("defaultconfigs"),
+                "default-config"
+        );
+        return new EarlyConfigSnapshot(Map.copyOf(files));
+    }
+
+    private static void captureEarlyConfigDirectory(
+            Map<String, EarlyConfigFile> output,
             Path directory,
             String label
+    ) {
+        if (!Files.isDirectory(directory)) {
+            return;
+        }
+
+        List<ConfigFileStamp> files;
+        try {
+            files = snapshotConfigFiles(directory);
+        } catch (UnstableFingerprintInputException ignored) {
+            return;
+        }
+        for (ConfigFileStamp stamp : files) {
+            if (stamp.size > MAX_CONFIG_HASH_BYTES) {
+                continue;
+            }
+            Path path = directory.resolve(stamp.relative);
+            try {
+                String digest = digestFile(path);
+                if (stamp.equals(inspectConfigFile(
+                        directory,
+                        path
+                ))) {
+                    output.put(
+                            configKey(label, stamp.relative),
+                            new EarlyConfigFile(
+                                    stamp.size,
+                                    stamp.modifiedMillis,
+                                    digest
+                            )
+                    );
+                }
+            } catch (UnstableFingerprintInputException ignored) {
+                // The stable pass rereads files that moved during prewarm.
+            }
+        }
+    }
+
+    private static void appendStableConfigContents(
+            List<String> inputs,
+            Path directory,
+            String label,
+            EarlyConfigSnapshot earlyConfigs
     ) {
         if (!Files.isDirectory(directory)) {
             inputs.add(label + "-directory-missing");
             return;
         }
 
-        List<ConfigFileStamp> before =
-                snapshotConfigFiles(directory);
-        for (ConfigFileStamp stamp : before) {
-            Path path = directory.resolve(stamp.relative);
-            if (stamp.size <= MAX_CONFIG_HASH_BYTES) {
-                inputs.add(
-                        label
-                                + "="
-                                + stamp.relative
-                                + ":"
-                                + digestFile(path)
-                );
-            } else {
-                inputs.add(
-                        label
-                                + "="
-                                + stamp.relative
-                                + ":"
-                                + stamp.size
-                                + ":"
-                                + stamp.modifiedMillis
-                );
+        UnstableFingerprintInputException lastFailure = null;
+        for (int attempt = 1;
+                attempt <= MAX_STABILITY_ATTEMPTS;
+                attempt++) {
+            try {
+                List<ConfigFileStamp> before =
+                        snapshotConfigFiles(directory);
+                List<String> stableInputs =
+                        new ArrayList<>(before.size());
+                for (ConfigFileStamp stamp : before) {
+                    Path path = directory.resolve(stamp.relative);
+                    if (stamp.size <= MAX_CONFIG_HASH_BYTES) {
+                        EarlyConfigFile early = earlyConfigs.files.get(
+                                configKey(label, stamp.relative)
+                        );
+                        String digest = early != null
+                                && early.matches(stamp)
+                                ? early.digest
+                                : digestFile(path);
+                        if (!stamp.equals(inspectConfigFile(
+                                directory,
+                                path
+                        ))) {
+                            throw new UnstableFingerprintInputException(
+                                    "Asset-affecting configuration changed "
+                                            + "while it was read"
+                            );
+                        }
+                        stableInputs.add(
+                                label
+                                        + "="
+                                        + stamp.relative
+                                        + ":"
+                                        + digest
+                        );
+                    } else {
+                        stableInputs.add(
+                                label
+                                        + "="
+                                        + stamp.relative
+                                        + ":"
+                                        + stamp.size
+                                        + ":"
+                                        + stamp.modifiedMillis
+                        );
+                    }
+                }
+
+                List<ConfigFileStamp> after =
+                        snapshotConfigFiles(directory);
+                if (!before.equals(after)) {
+                    throw new UnstableFingerprintInputException(
+                            "Asset-affecting configuration changed while "
+                                    + "it was being fingerprinted"
+                    );
+                }
+                inputs.addAll(stableInputs);
+                return;
+            } catch (UnstableFingerprintInputException failure) {
+                lastFailure = failure;
             }
         }
 
-        List<ConfigFileStamp> after =
-                snapshotConfigFiles(directory);
-        if (!before.equals(after)) {
+        throw new UnstableFingerprintInputException(
+                "Asset-affecting configuration did not stabilize after "
+                        + MAX_STABILITY_ATTEMPTS
+                        + " validation attempts",
+                lastFailure
+        );
+    }
+
+    private static String configKey(
+            String label,
+            String relative
+    ) {
+        return label + '\u0000' + relative;
+    }
+
+    private static ConfigFileStamp inspectConfigFile(
+            Path directory,
+            Path path
+    ) {
+        try {
+            return new ConfigFileStamp(
+                    normalizeRelative(directory, path),
+                    Files.size(path),
+                    Files.getLastModifiedTime(path).toMillis()
+            );
+        } catch (IOException exception) {
             throw new UnstableFingerprintInputException(
-                    "Asset-affecting configuration changed while "
-                            + "it was being fingerprinted"
+                    "Could not inspect asset-affecting configuration",
+                    exception
             );
         }
     }
@@ -301,18 +459,7 @@ public final class ClientAssetFingerprint {
             if (isVolatileNonAssetConfig(relative)) {
                 continue;
             }
-            try {
-                stamps.add(new ConfigFileStamp(
-                        relative,
-                        Files.size(path),
-                        Files.getLastModifiedTime(path).toMillis()
-                ));
-            } catch (IOException exception) {
-                throw new UnstableFingerprintInputException(
-                        "Could not inspect asset-affecting configuration",
-                        exception
-                );
-            }
+            stamps.add(inspectConfigFile(directory, path));
         }
         return List.copyOf(stamps);
     }
@@ -464,6 +611,22 @@ public final class ClientAssetFingerprint {
             String relative,
             long size,
             long modifiedMillis
+    ) {
+    }
+
+    private record EarlyConfigFile(
+            long size,
+            long modifiedMillis,
+            String digest
+    ) {
+        private boolean matches(ConfigFileStamp current) {
+            return size == current.size
+                    && modifiedMillis == current.modifiedMillis;
+        }
+    }
+
+    private record EarlyConfigSnapshot(
+            Map<String, EarlyConfigFile> files
     ) {
     }
 
