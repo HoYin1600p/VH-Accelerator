@@ -102,6 +102,7 @@ dependencies {
     compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
     compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
     compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
+    compileOnly files(localCompileDependency('thermal_foundation-1.18.2-9.2.2.58.jar'))
     compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
     compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
     compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
@@ -174,6 +175,7 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/ParallelJeiPrefixIndexer.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/PersistentVanillaIngredientCache.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/VanillaRecipeValidation.class',
+                    'dev/hoyin1600p/vhaccelerator/client/PacketDecodeProfiler.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientFilterMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientBlacklistInternalMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientManagerMixin.class',
@@ -189,11 +191,16 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/VanillaRecipesMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v10/VanillaRecipesMixin.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jer/JerCompatibilityCache.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/crafttweaker/ParallelCraftTweakerTagBinding.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/thermal/ParallelThermalRecipeRefresh.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/ironfurnaces/IronFurnacesRecipeCache.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/industrialforegoing/IndustrialForegoingStoneWorkOptimizer.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jer/JeiConfigMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/crafttweaker/CraftTweakerTagRegistryMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/thermal/ThermalRecipeManagersMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/ironfurnaces/IronFurnacesJeiPluginMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/industrialforegoing/IndustrialForegoingJeiPluginMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
                     'vhaccelerator.mixins.json'
             ]
             def missingEntries = requiredEntries.findAll {
@@ -246,11 +253,13 @@ tasks.register('verifyUnifiedCompatibilityJar') {
 
             def bundledDependencies = archive.entries().toList().findAll {
                 it.name.startsWith('mezz/jei/') ||
-                        it.name.startsWith('iskallia/vault/')
+                        it.name.startsWith('iskallia/vault/') ||
+                        it.name.startsWith('cofh/thermal/') ||
+                        it.name.startsWith('com/blamejared/crafttweaker/')
             }
             if (!bundledDependencies.isEmpty()) {
                 throw new GradleException(
-                        'The output jar must not bundle Vault or JEI classes.'
+                        'The output jar must not bundle optional mod classes.'
                 )
             }
         } finally {

@@ -70,7 +70,7 @@ public abstract class ClientPacketListenerMixin {
         long fingerprintStarted = ClientConnectionProfiler.startStage();
         LoginStateFingerprint.captureRecipePacket(packet);
         ClientConnectionProfiler.finishStage(
-                "canonical recipe fingerprint",
+                "structural recipe fingerprint",
                 fingerprintStarted
         );
     }

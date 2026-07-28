@@ -29,6 +29,8 @@ import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagNetworkSerialization;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ConfigTracker;
@@ -45,7 +47,7 @@ public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 2;
+    private static final int RECIPE_SCHEMA_VERSION = 3;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -104,15 +106,71 @@ public final class LoginStateFingerprint {
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
-        List<Recipe<?>> canonicalRecipes =
-                packet.getRecipes().stream()
-                        .sorted(Comparator.comparing(
-                                recipe -> recipe.getId().toString()
-                        ))
-                        .toList();
-        ClientboundUpdateRecipesPacket canonicalPacket =
-                new ClientboundUpdateRecipesPacket(canonicalRecipes);
-        recipePayloadHash = digestPacket(canonicalPacket::write);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            List<Recipe<?>> recipes = new ArrayList<>(packet.getRecipes());
+            recipes.sort(Comparator.comparing(
+                    recipe -> recipe.getId().toString()
+            ));
+            updateDigest(digest, "recipe-count=" + recipes.size());
+            for (Recipe<?> recipe : recipes) {
+                updateDigest(digest, "id=" + recipe.getId());
+                updateDigest(
+                        digest,
+                        "serializer=" + Registry.RECIPE_SERIALIZER.getKey(
+                                recipe.getSerializer()
+                        )
+                );
+                updateDigest(digest, "class=" + recipe.getClass().getName());
+                updateDigest(digest, "special=" + recipe.isSpecial());
+
+                ItemStack result = recipe.getResultItem();
+                if (result == null) {
+                    updateDigest(digest, "result=null");
+                } else {
+                    updateDigest(
+                            digest,
+                            "result=" + Registry.ITEM.getKey(result.getItem())
+                    );
+                    updateDigest(
+                            digest,
+                            "result-count=" + result.getCount()
+                    );
+                }
+
+                List<Ingredient> ingredients = recipe.getIngredients();
+                if (ingredients == null) {
+                    updateDigest(digest, "ingredients=null");
+                    continue;
+                }
+                updateDigest(
+                        digest,
+                        "ingredient-count=" + ingredients.size()
+                );
+                for (Ingredient ingredient : ingredients) {
+                    updateDigest(
+                            digest,
+                            "ingredient-class="
+                                    + (ingredient == null
+                                    ? "null"
+                                    : ingredient.getClass().getName())
+                    );
+                }
+            }
+            recipePayloadHash = toHex(digest.digest());
+        } catch (RuntimeException exception) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not build the structural synchronized recipe "
+                            + "fingerprint; falling back to packet serialization",
+                    exception
+            );
+            recipePayloadHash = digestPacket(packet::write);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(
+                    "SHA-256 is unavailable",
+                    exception
+            );
+        }
     }
 
     public static void captureTagPacket(ClientboundUpdateTagsPacket packet) {
@@ -301,17 +359,24 @@ public final class LoginStateFingerprint {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             for (String value : values) {
-                byte[] encoded = value.getBytes(StandardCharsets.UTF_8);
-                digest.update((byte) (encoded.length >>> 24));
-                digest.update((byte) (encoded.length >>> 16));
-                digest.update((byte) (encoded.length >>> 8));
-                digest.update((byte) encoded.length);
-                digest.update(encoded);
+                updateDigest(digest, value);
             }
             return toHex(digest.digest());
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
+    }
+
+    private static void updateDigest(
+            MessageDigest digest,
+            String value
+    ) {
+        byte[] encoded = value.getBytes(StandardCharsets.UTF_8);
+        digest.update((byte) (encoded.length >>> 24));
+        digest.update((byte) (encoded.length >>> 16));
+        digest.update((byte) (encoded.length >>> 8));
+        digest.update((byte) encoded.length);
+        digest.update(encoded);
     }
 
     private static String digestCodeEnvironment(List<String> baseInputs) {

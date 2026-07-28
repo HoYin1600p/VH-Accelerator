@@ -12,6 +12,7 @@ files below in this directory before compiling:
 - `Powah-3.0.8.jar`
 - `JEITweaker-1.18.2-3.0.0.9.jar`
 - `CraftTweaker-forge-1.18.2-9.1.213.jar`
+- `thermal_foundation-1.18.2-9.2.2.58.jar`
 - `JustEnoughResources-1.18.2-0.14.2.206.jar`
 - `ironfurnaces-1.18.2-3.3.3.jar`
 - `industrial-foregoing-1.18.2-3.3.1.7-11.jar`
@@ -25,6 +26,6 @@ and are not redistributed.
 JEI 10 is the Remastered target. JEI 9 is shared by the custom MVP and
 official 3.21.6 profiles. Both are compile-only and are not bundled.
 
-The Powah, JEITweaker, CraftTweaker, Just Enough Resources, Iron Furnaces,
-and Industrial Foregoing jars are optional compile-time compatibility targets
-and are never bundled.
+The Powah, JEITweaker, CraftTweaker, Thermal Foundation, Just Enough
+Resources, Iron Furnaces, and Industrial Foregoing jars are optional
+compile-time compatibility targets and are never bundled.

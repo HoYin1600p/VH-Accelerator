@@ -29,6 +29,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean powahLoaded;
     private boolean jeiTweakerLoaded;
     private boolean jerLoaded;
+    private boolean craftTweakerLoaded;
+    private boolean thermalLoaded;
     private boolean ironFurnacesLoaded;
     private boolean industrialForegoingLoaded;
     private boolean physicalClient;
@@ -59,6 +61,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         modList != null && modList.getModFileById("jeitweaker") != null;
                 jerLoaded = modList != null
                         && modList.getModFileById("jeresources") != null;
+                craftTweakerLoaded = modList != null
+                        && modList.getModFileById("crafttweaker") != null;
+                thermalLoaded = modList != null
+                        && modList.getModFileById("thermal") != null;
                 ironFurnacesLoaded = modList != null
                         && modList.getModFileById("ironfurnaces") != null;
                 industrialForegoingLoaded = modList != null
@@ -72,6 +78,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             powahLoaded = false;
             jeiTweakerLoaded = false;
             jerLoaded = false;
+            craftTweakerLoaded = false;
+            thermalLoaded = false;
             ironFurnacesLoaded = false;
             industrialForegoingLoaded = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -125,6 +133,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.jer.")) {
             return jeiLoaded && jerLoaded;
+        }
+        if (mixinClassName.contains(".compat.crafttweaker.")) {
+            return craftTweakerLoaded;
+        }
+        if (mixinClassName.contains(".compat.thermal.")) {
+            return thermalLoaded;
         }
         if (mixinClassName.contains(".compat.ironfurnaces.")) {
             return jeiLoaded && ironFurnacesLoaded;

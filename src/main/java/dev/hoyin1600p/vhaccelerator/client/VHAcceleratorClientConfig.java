@@ -37,6 +37,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
         public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
         public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
+        public final ForgeConfigSpec.BooleanValue parallelCraftTweakerTagBinding;
+        public final ForgeConfigSpec.BooleanValue parallelThermalRecipeRefresh;
         public final ForgeConfigSpec.BooleanValue cacheIronFurnacesJeiRecipes;
         public final ForgeConfigSpec.BooleanValue persistentIronFurnacesFuelCache;
         public final ForgeConfigSpec.BooleanValue precompileIronFurnacesJeiRecipes;
@@ -161,6 +163,18 @@ public final class VHAcceleratorClientConfig {
                             "Connecting before the preload finishes safely waits for the remaining work.",
                             "JER data is local to the installed pack, so cluster transfers do not rebuild it.")
                     .define("cacheJerCompatibility", true);
+            parallelCraftTweakerTagBinding = builder
+                    .comment(
+                            "Decodes CraftTweaker's independent synchronized tag view in parallel.",
+                            "Each registry is built in worker-owned memory, all workers are joined",
+                            "before publication, and a failure retries CraftTweaker's original path.")
+                    .define("parallelCraftTweakerTagBinding", true);
+            parallelThermalRecipeRefresh = builder
+                    .comment(
+                            "Refreshes independent Thermal machine recipe managers concurrently.",
+                            "The Forge recipe/tag event remains blocked until every manager finishes,",
+                            "so no incomplete Thermal recipe state reaches the first world frame.")
+                    .define("parallelThermalRecipeRefresh", true);
             cacheIronFurnacesJeiRecipes = builder
                     .comment(
                             "Builds Iron Furnaces' fuel and smoking JEI lists in one main-thread pass",

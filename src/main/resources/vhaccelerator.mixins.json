@@ -15,6 +15,7 @@
   "client": [
     "client.ClientMainMixin",
     "client.ClientPacketListenerMixin",
+    "client.ConnectionProtocolMixin",
     "client.ConnectionMixin",
     "client.ForgeConfigSyncMixin",
     "client.ForgeLogoutTimingMixin",
@@ -44,6 +45,8 @@
     "compat.jei.v10.VanillaRecipesMixin",
     "compat.jeitweaker.JeiTweakerPluginMixin",
     "compat.jer.JeiConfigMixin",
+    "compat.crafttweaker.CraftTweakerTagRegistryMixin",
+    "compat.thermal.ThermalRecipeManagersMixin",
     "compat.ironfurnaces.IronFurnacesJeiPluginMixin",
     "compat.industrialforegoing.IndustrialForegoingJeiPluginMixin",
     "compat.powah.WikiMixin",
