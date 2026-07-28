@@ -54,6 +54,7 @@ public final class LoginStateFingerprint {
             new ConcurrentHashMap<>();
 
     private static volatile String recipePayloadHash;
+    private static volatile boolean recipePayloadExact;
     private static volatile CompletableFuture<String> tagPayloadHash;
     private static volatile CompletableFuture<String> localCodeHash;
     private static volatile CompletableFuture<String> localConfigHash;
@@ -63,6 +64,7 @@ public final class LoginStateFingerprint {
 
     public static void beginConnection() {
         recipePayloadHash = null;
+        recipePayloadExact = false;
         tagPayloadHash = null;
         SERVER_CONFIGS.clear();
     }
@@ -97,6 +99,19 @@ public final class LoginStateFingerprint {
 
     public static void captureRecipePayload(ByteBuf buffer) {
         recipePayloadHash = digestReadableBytes(buffer);
+        recipePayloadExact = recipePayloadHash != null;
+    }
+
+    public static void captureRecipePayloadHash(String payloadHash) {
+        if (payloadHash == null) {
+            return;
+        }
+        recipePayloadHash = payloadHash;
+        recipePayloadExact = true;
+    }
+
+    public static String fingerprintPayload(ByteBuf buffer) {
+        return digestReadableBytes(buffer);
     }
 
     public static void captureTagPayload(ByteBuf buffer) {
@@ -108,6 +123,15 @@ public final class LoginStateFingerprint {
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
+        if (recipePayloadExact && recipePayloadHash != null) {
+            return;
+        }
+        String serialized = digestPacket(packet::write);
+        if (serialized != null) {
+            recipePayloadHash = serialized;
+            recipePayloadExact = true;
+            return;
+        }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             List<Recipe<?>> recipes = new ArrayList<>(packet.getRecipes());
@@ -160,6 +184,7 @@ public final class LoginStateFingerprint {
                 }
             }
             recipePayloadHash = toHex(digest.digest());
+            recipePayloadExact = false;
         } catch (RuntimeException exception) {
             VHAccelerator.LOGGER.warn(
                     "Could not build the structural synchronized recipe "
@@ -167,6 +192,7 @@ public final class LoginStateFingerprint {
                     exception
             );
             recipePayloadHash = digestPacket(packet::write);
+            recipePayloadExact = recipePayloadHash != null;
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(
                     "SHA-256 is unavailable",

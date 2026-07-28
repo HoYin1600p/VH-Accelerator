@@ -73,9 +73,12 @@ public abstract class ClientPacketListenerMixin {
         if (!VHAcceleratorClientConfig.VALUES
                 .enableClientOptimizations
                 .get()
-                || !VHAcceleratorClientConfig.VALUES
-                        .persistentVanillaRecipeValidationCache
-                        .get()) {
+                || (!VHAcceleratorClientConfig.VALUES
+                                .persistentVanillaRecipeValidationCache
+                                .get()
+                        && !VHAcceleratorClientConfig.VALUES
+                                .persistentJeiRecipeIndexCache
+                                .get())) {
             return;
         }
         long fingerprintStarted = ClientConnectionProfiler.startStage();

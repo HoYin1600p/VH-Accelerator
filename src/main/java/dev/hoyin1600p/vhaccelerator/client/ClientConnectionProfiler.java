@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -8,6 +10,7 @@ import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -284,6 +287,10 @@ public final class ClientConnectionProfiler {
     }
 
     private static String describe(IEventListener listener) {
+        Class<?> target = targetClass(listener);
+        if (target != listener.getClass()) {
+            return target.getName() + " via " + listener.listenerName();
+        }
         String readable = String.valueOf(listener);
         if (readable.startsWith(listener.getClass().getName() + "@")) {
             return listener.listenerName();
@@ -316,7 +323,80 @@ public final class ClientConnectionProfiler {
                 // Fall through to the generated listener class.
             }
         }
+        Object captured = findCapturedTarget(
+                listener,
+                0,
+                java.util.Collections.newSetFromMap(
+                        new IdentityHashMap<>()
+                )
+        );
+        if (captured != null) {
+            return captured.getClass();
+        }
         return listener.getClass();
+    }
+
+    private static Object findCapturedTarget(
+            Object value,
+            int depth,
+            java.util.Set<Object> visited
+    ) {
+        if (value == null || depth > 4 || !visited.add(value)) {
+            return null;
+        }
+        Class<?> type = value.getClass();
+        if (depth > 0) {
+            if (!isEventBusInfrastructure(type)) {
+                return value;
+            }
+            if (!type.isSynthetic()
+                    && !type.getName().contains("$$Lambda$")) {
+                return null;
+            }
+        }
+
+        for (Field field : type.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())
+                    || field.getType().isPrimitive()
+                    || field.getType() == Class.class
+                    || ClassLoader.class.isAssignableFrom(
+                            field.getType()
+                    )) {
+                continue;
+            }
+            try {
+                if (!field.trySetAccessible()) {
+                    continue;
+                }
+                Object captured = field.get(value);
+                Object target = findCapturedTarget(
+                        captured,
+                        depth + 1,
+                        visited
+                );
+                if (target != null) {
+                    return target;
+                }
+            } catch (IllegalAccessException
+                     | RuntimeException ignored) {
+                // Continue through any other captured lambda arguments.
+            }
+        }
+        return null;
+    }
+
+    private static boolean isEventBusInfrastructure(Class<?> type) {
+        String name = type.getName();
+        if (name.startsWith("java.")
+                || name.startsWith("jdk.")
+                || name.startsWith("sun.")
+                || name.startsWith("net.minecraftforge.eventbus.")) {
+            return true;
+        }
+        String source = codeSource(type);
+        return source != null
+                && source.toLowerCase(Locale.ROOT)
+                        .startsWith("eventbus-");
     }
 
     private static String codeSource(Class<?> type) {

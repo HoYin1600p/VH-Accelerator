@@ -37,6 +37,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentVanillaIngredientCache;
         public final ForgeConfigSpec.BooleanValue parallelVanillaRecipeValidation;
         public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
+        public final ForgeConfigSpec.BooleanValue persistentJeiRecipeIndexCache;
         public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
         public final ForgeConfigSpec.BooleanValue parallelCraftTweakerTagBinding;
         public final ForgeConfigSpec.BooleanValue compactCraftTweakerClientReplayLogging;
@@ -171,6 +172,14 @@ public final class VHAcceleratorClientConfig {
                             "Volatile UI and per-world client settings are intentionally excluded",
                             "because they do not define the server-synchronized recipe set.")
                     .define("persistentVanillaRecipeValidationCache", false);
+            persistentJeiRecipeIndexCache = builder
+                    .comment(
+                            "Persists JEI's deterministic vanilla recipe-to-ingredient index.",
+                            "Cached string plans are restored only when the exact recipe payload,",
+                            "item tags, server and local configs, installed mod files, server,",
+                            "and JEI generation match. Recipe objects always come from the active world.",
+                            "A miss builds JEI's original layouts before recording the result.")
+                    .define("persistentJeiRecipeIndexCache", true);
             cacheJerCompatibility = builder
                     .comment(
                             "Preloads Just Enough Resources' local loot tables asynchronously in menus,",

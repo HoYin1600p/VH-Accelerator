@@ -8,6 +8,7 @@ import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import net.minecraft.ChatFormatting;
@@ -55,6 +56,7 @@ public final class VHAcceleratorClient {
         PersistentModelJsonCache.prewarm();
         PersistentVanillaIngredientCache.prewarm();
         PersistentRecipeValidationCache.prewarm();
+        PersistentJeiRecipeIndexCache.prewarm();
         if (thermalLoaded) {
             PersistentStirlingFuelCache.prewarm();
         }
@@ -67,6 +69,7 @@ public final class VHAcceleratorClient {
             IronFurnacesRecipeCache.beginConnection();
             PersistentVanillaIngredientCache.beginConnection();
             PersistentRecipeValidationCache.beginConnection();
+            PersistentJeiRecipeIndexCache.beginConnection();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.cancelActiveAttempt();
             ServerLoginTimer.markStart();
@@ -76,6 +79,7 @@ public final class VHAcceleratorClient {
             ClientWorkSession.begin();
             PersistentVanillaIngredientCache.beginConnection();
             PersistentRecipeValidationCache.beginConnection();
+            PersistentJeiRecipeIndexCache.beginConnection();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.markStart("receiving-level screen");
         }
