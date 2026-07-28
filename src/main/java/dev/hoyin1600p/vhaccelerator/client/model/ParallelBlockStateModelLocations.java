@@ -5,6 +5,9 @@ import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.Util;
 import net.minecraft.client.renderer.block.BlockModelShaper;
@@ -50,6 +53,19 @@ public final class ParallelBlockStateModelLocations {
                 (uncached.size() + workers - 1) / workers
         );
         AtomicInteger failures = new AtomicInteger();
+        Executor executor = Util.backgroundExecutor();
+        if (!canSubmitWithoutBlocking(executor)) {
+            for (BlockState state : uncached) {
+                prepareState(state, failures);
+            }
+            report(
+                    uncached.size(),
+                    failures.get(),
+                    1,
+                    started
+            );
+            return;
+        }
         List<CompletableFuture<Void>> tasks =
                 new ArrayList<>(workers);
         for (int start = 0;
@@ -62,35 +78,63 @@ public final class ParallelBlockStateModelLocations {
             );
             tasks.add(CompletableFuture.runAsync(() -> {
                 for (int index = from; index < to; index++) {
-                    BlockState state = uncached.get(index);
-                    try {
-                        BlockModelShaper
-                                .stateToModelLocation(state);
-                    } catch (RuntimeException | LinkageError failure) {
-                        failures.incrementAndGet();
-                        VHAccelerator.LOGGER.debug(
-                                "Canonical model location for {} "
-                                        + "will use Minecraft's "
-                                        + "discovery path",
-                                state,
-                                failure
-                        );
-                    }
+                    prepareState(uncached.get(index), failures);
                 }
-            }, Util.backgroundExecutor()));
+            }, executor));
         }
         CompletableFuture.allOf(
                 tasks.toArray(CompletableFuture[]::new)
         ).join();
 
+        report(
+                uncached.size(),
+                failures.get(),
+                tasks.size(),
+                started
+        );
+    }
+
+    private static void prepareState(
+            BlockState state,
+            AtomicInteger failures
+    ) {
+        try {
+            BlockModelShaper.stateToModelLocation(state);
+        } catch (RuntimeException | LinkageError failure) {
+            failures.incrementAndGet();
+            VHAccelerator.LOGGER.debug(
+                    "Canonical model location for {} "
+                            + "will use Minecraft's discovery path",
+                    state,
+                    failure
+            );
+        }
+    }
+
+    private static void report(
+            int stateCount,
+            int failureCount,
+            int workers,
+            long started
+    ) {
         VHAccelerator.LOGGER.info(
                 "Prepared {} canonical block-state model locations "
                         + "with {} workers in {} ms [{} deferred]",
-                uncached.size() - failures.get(),
-                tasks.size(),
+                stateCount - failureCount,
+                workers,
                 (System.nanoTime() - started) / 1_000_000L,
-                failures.get()
+                failureCount
         );
+    }
+
+    private static boolean canSubmitWithoutBlocking(Executor executor) {
+        if (!(executor instanceof ForkJoinPool pool)
+                || !(Thread.currentThread()
+                instanceof ForkJoinWorkerThread worker)
+                || worker.getPool() != pool) {
+            return true;
+        }
+        return pool.getParallelism() > 1;
     }
 
     private static int workerCount(int stateCount) {

@@ -231,6 +231,11 @@ public final class PersistentBlockStateJsonCache {
                 }
                 resources.put(location, List.copyOf(stack));
             }
+            if (input.read() != -1) {
+                throw new IOException(
+                        "Blockstate cache contains trailing data"
+                );
+            }
             VHAccelerator.LOGGER.info(
                     "Preloaded {} persistent blockstate resource "
                             + "stacks in {} ms",

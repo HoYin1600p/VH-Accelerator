@@ -69,7 +69,11 @@ Canonical-key and blockstate preparation start together before model JSON
 preparation. All three independent pipelines join before the original bakery
 begins discovery. This mirrors the separated asynchronous model/blockstate
 pipeline in newer Minecraft without allowing partially prepared data into
-Forge model loading.
+Forge model loading. The two high-level coordinators use dedicated daemon
+threads rather than occupying the Minecraft worker pool whose child tasks they
+await. If Minecraft exposes fewer than two background workers, preparation
+falls back to the sequential path, and a single-worker caller performs its
+batch inline instead of waiting on itself.
 
 After Forge's model-bake event completes, independent workers resolve those
 canonical keys against the finalized baked-model registry. Each worker writes
@@ -95,11 +99,19 @@ their source names. Definitions are parsed fresh by Minecraft and Forge
 against the active registered block and its current state definition.
 Resource reloads bypass both caches.
 
+Material persistence stores only atlas and texture resource identifiers for
+ordinary JSON model graphs. A restored result is accepted only after the live
+graph passes the dynamic-model guard and every parent link can be rebound.
+Models that produced a missing texture are not recorded, so Forge's normal
+missing-texture diagnostics remain authoritative.
+
 ## Other compatibility layers
 
-When ModernFix is present, VH Accelerator disables its complete ModelBakery
-and model-material mixins because those transformations overlap. In that case,
-ModernFix owns the model-loading path and this guard does not need to run.
+When ModernFix dynamic resources are active or cannot be verified as disabled,
+VH Accelerator leaves ModelBakery to ModernFix. When that feature is
+explicitly disabled, guarded baking and JSON/material caches use their
+ModernFix-compatible hooks; ModernFix retains its own in-memory material
+memoization.
 
 The guard is based on model behavior rather than a namespace denylist. It
 therefore covers Sophisticated Storage and other dynamic/custom Forge models

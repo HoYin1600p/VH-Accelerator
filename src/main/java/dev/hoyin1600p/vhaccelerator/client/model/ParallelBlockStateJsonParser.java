@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
@@ -288,6 +291,11 @@ public final class ParallelBlockStateJsonParser {
         if (values.isEmpty()) {
             return;
         }
+        Executor executor = Util.backgroundExecutor();
+        if (!canSubmitWithoutBlocking(executor)) {
+            values.forEach(action);
+            return;
+        }
         int parallelism = Math.max(
                 1,
                 Math.min(
@@ -308,11 +316,21 @@ public final class ParallelBlockStateJsonParser {
                 for (int index = from; index < to; index++) {
                     action.accept(values.get(index));
                 }
-            }, Util.backgroundExecutor()));
+            }, executor));
         }
         CompletableFuture.allOf(
                 tasks.toArray(CompletableFuture[]::new)
         ).join();
+    }
+
+    private static boolean canSubmitWithoutBlocking(Executor executor) {
+        if (!(executor instanceof ForkJoinPool pool)
+                || !(Thread.currentThread()
+                instanceof ForkJoinWorkerThread worker)
+                || worker.getPool() != pool) {
+            return true;
+        }
+        return pool.getParallelism() > 1;
     }
 
     public record Session(
