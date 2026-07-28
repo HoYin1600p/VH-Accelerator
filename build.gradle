@@ -181,6 +181,7 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/v9/RecipeMapIndexAccess.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/v10/RecipeMapIndexAccess.class',
                     'dev/hoyin1600p/vhaccelerator/client/cache/ClientAssetFingerprint.class',
+                    'dev/hoyin1600p/vhaccelerator/client/cache/ConfigFingerprintMonitor.class',
                     'dev/hoyin1600p/vhaccelerator/client/cache/PersistentModelJsonCache.class',
                     'dev/hoyin1600p/vhaccelerator/client/PacketDecodeProfiler.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientFilterMixin.class',
