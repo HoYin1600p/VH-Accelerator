@@ -53,9 +53,9 @@ public abstract class ModelBakeryPreparationStartMixin
     ) {
         vhaccelerator$overlappedPreparation =
                 VHAcceleratorClientConfig.optimizationsEnabled()
-                        && VHAcceleratorClientConfig.VALUES
-                                .overlapModelPreparation
-                                .get();
+                        && VHAcceleratorClientConfig.launchValue(
+                                VHAcceleratorClientConfig.VALUES.overlapModelPreparation
+                        );
         if (!vhaccelerator$overlappedPreparation) {
             return;
         }

@@ -37,9 +37,9 @@ public final class ParallelBlockStateJsonParser {
     @Nullable
     public static Session prepare(ResourceManager resourceManager) {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .parallelBlockStateLoading
-                        .get()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelBlockStateLoading
+                )
                 || LaunchTimer.isFinished()) {
             return null;
         }

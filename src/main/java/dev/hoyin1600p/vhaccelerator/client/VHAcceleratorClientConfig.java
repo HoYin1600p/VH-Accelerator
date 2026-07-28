@@ -1,12 +1,26 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class VHAcceleratorClientConfig {
     public static final ForgeConfigSpec SPEC;
     public static final Values VALUES;
+    private static volatile Map<List<String>, Boolean> launchBooleanSnapshot =
+            Map.of();
+    private static volatile boolean launchSnapshotCaptured;
 
     static {
         Pair<Values, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Values::new);
@@ -17,9 +31,55 @@ public final class VHAcceleratorClientConfig {
     private VHAcceleratorClientConfig() {
     }
 
+    public static synchronized void captureLaunchSnapshot() {
+        Path configPath = FMLPaths.CONFIGDIR.get()
+                .resolve(ConfigMigration.CLIENT_CONFIG);
+        Map<List<String>, Boolean> snapshot = new HashMap<>();
+
+        if (Files.isRegularFile(configPath)) {
+            try (CommentedFileConfig config = CommentedFileConfig.of(configPath)) {
+                config.load();
+                for (Field field : Values.class.getFields()) {
+                    Object value = field.get(VALUES);
+                    if (!(value instanceof ForgeConfigSpec.BooleanValue booleanValue)) {
+                        continue;
+                    }
+
+                    Object configured = config.get(booleanValue.getPath());
+                    if (configured instanceof Boolean enabled) {
+                        snapshot.put(List.copyOf(booleanValue.getPath()), enabled);
+                    }
+                }
+            } catch (Exception exception) {
+                VHAccelerator.LOGGER.warn(
+                        "Could not capture the initial client configuration from {}",
+                        configPath,
+                        exception
+                );
+            }
+        }
+
+        launchBooleanSnapshot = Map.copyOf(snapshot);
+        launchSnapshotCaptured = true;
+        VHAccelerator.LOGGER.info(
+                "Captured {} client launch configuration values before the initial resource reload",
+                launchBooleanSnapshot.size()
+        );
+    }
+
+    public static boolean launchValue(ForgeConfigSpec.BooleanValue value) {
+        if (!LaunchTimer.isFinished() && launchSnapshotCaptured) {
+            Boolean configured = launchBooleanSnapshot.get(value.getPath());
+            if (configured != null) {
+                return configured;
+            }
+        }
+        return value.get();
+    }
+
     public static boolean optimizationsEnabled() {
         return !VHAcceleratorConfig.compareModeEnabled()
-                && VALUES.enableClientOptimizations.get();
+                && launchValue(VALUES.enableClientOptimizations);
     }
 
     public static final class Values {

@@ -78,9 +78,9 @@ public abstract class ModernFixCompatibleModelBakingMixin {
             Map<ResourceLocation, ?> models
     ) {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .parallelModelBaking
-                        .get()) {
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelBaking
+                )) {
             return models.keySet();
         }
 
@@ -150,9 +150,9 @@ public abstract class ModernFixCompatibleModelBakingMixin {
         Set<ResourceLocation> sequential = new LinkedHashSet<>();
         DynamicModelGuard.Scanner scanner =
                 DynamicModelGuard.scanner(this::getModel);
-        boolean protectDynamic = VHAcceleratorClientConfig.VALUES
-                .protectDynamicModels
-                .get();
+        boolean protectDynamic = VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.protectDynamicModels
+        );
         topLevelModels.forEach((location, model) -> {
             if (BUILDSCAPE_NAMESPACE.equals(location.getNamespace())
                     || protectDynamic

@@ -41,9 +41,10 @@ public abstract class ModelMaterialCollectionMixin {
     ) {
         Collection<?> values = topLevelModels.values();
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .deduplicateModelMaterialCollection
-                        .get()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .deduplicateModelMaterialCollection
+                )
                 || values.size() < 2) {
             return values;
         }

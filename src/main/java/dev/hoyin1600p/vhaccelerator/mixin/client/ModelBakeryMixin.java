@@ -109,7 +109,9 @@ public abstract class ModelBakeryMixin {
             return;
         }
         if (!vhaccelerator$clientOption(
-                VHAcceleratorClientConfig.VALUES.parallelModelLoading.get())) {
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelLoading
+                ))) {
             return;
         }
 
@@ -212,9 +214,9 @@ public abstract class ModelBakeryMixin {
     @Unique
     private void vhaccelerator$prepareParsedModels() {
         if (!vhaccelerator$clientOption(
-                VHAcceleratorClientConfig.VALUES
-                        .parallelModelLoading
-                        .get()
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelLoading
+                )
         )) {
             return;
         }
@@ -236,7 +238,9 @@ public abstract class ModelBakeryMixin {
     )
     private Set<?> vhaccelerator$prepareAtlasesInParallel(Map<?, ?> groupedMaterials) {
         if (!vhaccelerator$clientOption(
-                VHAcceleratorClientConfig.VALUES.parallelAtlasStitching.get())) {
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelAtlasStitching
+                ))) {
             return groupedMaterials.entrySet();
         }
         vhaccelerator$findSequentialModels();
@@ -293,7 +297,9 @@ public abstract class ModelBakeryMixin {
             Map<ResourceLocation, ?> models
     ) {
         if (!vhaccelerator$clientOption(
-                VHAcceleratorClientConfig.VALUES.parallelModelBaking.get())) {
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelBaking
+                ))) {
             return models.keySet();
         }
 
@@ -373,7 +379,9 @@ public abstract class ModelBakeryMixin {
 
     @Unique
     private static boolean vhaccelerator$dynamicModelProtectionEnabled() {
-        return VHAcceleratorClientConfig.VALUES.protectDynamicModels.get();
+        return VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.protectDynamicModels
+        );
     }
 
     @Unique

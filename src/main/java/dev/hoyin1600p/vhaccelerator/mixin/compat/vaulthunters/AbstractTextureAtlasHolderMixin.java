@@ -44,9 +44,9 @@ public abstract class AbstractTextureAtlasHolderMixin {
             CallbackInfo callback
     ) {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .optimizeVaultAtlasValidation
-                        .get()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.optimizeVaultAtlasValidation
+                )
                 || validationSupplier == null) {
             return;
         }

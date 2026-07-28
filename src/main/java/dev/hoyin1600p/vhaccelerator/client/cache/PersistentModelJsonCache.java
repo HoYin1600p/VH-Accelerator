@@ -399,9 +399,9 @@ public final class PersistentModelJsonCache {
 
     private static boolean enabled() {
         return VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.VALUES
-                        .persistentModelJsonCache
-                        .get();
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.persistentModelJsonCache
+                );
     }
 
     private static <T> void runBatched(

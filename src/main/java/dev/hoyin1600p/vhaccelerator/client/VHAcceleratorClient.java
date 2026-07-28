@@ -43,6 +43,7 @@ public final class VHAcceleratorClient {
 
     public static void initialize() {
         ConfigMigration.migrateClient();
+        VHAcceleratorClientConfig.captureLaunchSnapshot();
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.CLIENT,
                 VHAcceleratorClientConfig.SPEC,

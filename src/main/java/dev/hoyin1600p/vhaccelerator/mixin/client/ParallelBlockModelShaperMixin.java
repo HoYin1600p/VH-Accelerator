@@ -44,9 +44,9 @@ public abstract class ParallelBlockModelShaperMixin {
             CallbackInfo callback
     ) {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .parallelBlockModelCache
-                        .get()) {
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelBlockModelCache
+                )) {
             return;
         }
 

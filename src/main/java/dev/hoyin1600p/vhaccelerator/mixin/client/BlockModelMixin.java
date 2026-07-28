@@ -58,7 +58,9 @@ public abstract class BlockModelMixin {
     private boolean vhaccelerator$requiresLiveMaterialLookup(
             Function<ResourceLocation, UnbakedModel> modelGetter
     ) {
-        return VHAcceleratorClientConfig.VALUES.protectDynamicModels.get()
+        return VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.protectDynamicModels
+        )
                 && DynamicModelGuard.requiresSequentialBaking(
                         (UnbakedModel) (Object) this,
                         modelGetter
@@ -68,6 +70,8 @@ public abstract class BlockModelMixin {
     @Unique
     private static boolean vhaccelerator$memoizationEnabled() {
         return VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.VALUES.memoizeModelMaterials.get();
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.memoizeModelMaterials
+                );
     }
 }

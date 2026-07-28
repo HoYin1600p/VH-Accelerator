@@ -325,9 +325,9 @@ public final class PersistentBlockStateJsonCache {
 
     private static boolean enabled() {
         return VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.VALUES
-                        .persistentBlockStateJsonCache
-                        .get();
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.persistentBlockStateJsonCache
+                );
     }
 
     public record RawResource(

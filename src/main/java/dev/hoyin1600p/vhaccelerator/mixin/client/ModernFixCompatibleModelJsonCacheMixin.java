@@ -48,9 +48,9 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
                 PersistentModelJsonCache.prepare(resourceManager);
         if (vhaccelerator$modelCacheSession != null
                 && VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.VALUES
-                        .parallelModelLoading
-                        .get()) {
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelLoading
+                )) {
             vhaccelerator$parsedModelCache =
                     ParallelModelJsonParser.parse(
                             vhaccelerator$modelCacheSession.models()

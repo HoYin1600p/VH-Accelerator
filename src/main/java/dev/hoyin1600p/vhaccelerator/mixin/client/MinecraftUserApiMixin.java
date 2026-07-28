@@ -23,7 +23,9 @@ public abstract class MinecraftUserApiMixin {
             CallbackInfoReturnable<UserApiService> callback
     ) {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES.asyncUserApiService.get()) {
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.asyncUserApiService
+                )) {
             return;
         }
 

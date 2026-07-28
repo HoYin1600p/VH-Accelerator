@@ -20,12 +20,12 @@ public final class ParallelBlockStateModelLocations {
 
     public static void prepare() {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.VALUES
-                        .cacheBlockStateModelLocations
-                        .get()
-                || !VHAcceleratorClientConfig.VALUES
-                        .parallelBlockStateModelLocations
-                        .get()) {
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.cacheBlockStateModelLocations
+                )
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelBlockStateModelLocations
+                )) {
             return;
         }
 

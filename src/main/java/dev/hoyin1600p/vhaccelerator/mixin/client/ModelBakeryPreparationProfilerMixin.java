@@ -32,9 +32,9 @@ public abstract class ModelBakeryPreparationProfilerMixin {
             CallbackInfo callback
     ) {
         vhaccelerator$profilePreparation =
-                VHAcceleratorClientConfig.VALUES
-                        .profileClientLaunchPhases
-                        .get();
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.profileClientLaunchPhases
+                );
         if (!vhaccelerator$profilePreparation) {
             return;
         }

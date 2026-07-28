@@ -176,9 +176,9 @@ public abstract class BlockModelShaperLocationMixin {
     @Unique
     private static boolean vhaccelerator$locationCacheEnabled() {
         return VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.VALUES
-                        .cacheBlockStateModelLocations
-                        .get();
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.cacheBlockStateModelLocations
+                );
     }
 
     @Unique
