@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -75,6 +76,10 @@ public abstract class ModelBakeryMixin {
     private Map<ResourceLocation, String> vhaccelerator$modelJsonCache;
 
     @Unique
+    private Map<ResourceLocation, BlockModel>
+            vhaccelerator$parsedModelCache;
+
+    @Unique
     private PersistentModelJsonCache.Session
             vhaccelerator$persistentModelCacheSession;
 
@@ -100,6 +105,7 @@ public abstract class ModelBakeryMixin {
         if (vhaccelerator$persistentModelCacheSession != null) {
             vhaccelerator$modelJsonCache =
                     vhaccelerator$persistentModelCacheSession.models();
+            vhaccelerator$prepareParsedModels();
             return;
         }
         if (!vhaccelerator$clientOption(
@@ -129,6 +135,7 @@ public abstract class ModelBakeryMixin {
         });
 
         vhaccelerator$modelJsonCache = cache;
+        vhaccelerator$prepareParsedModels();
         VHAccelerator.LOGGER.info(
                 "Preloaded {} model JSON files in {} ms",
                 cache.size(),
@@ -141,6 +148,19 @@ public abstract class ModelBakeryMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
+        if ("buildscape".equals(location.getNamespace())) {
+            return;
+        }
+        Map<ResourceLocation, BlockModel> parsed =
+                vhaccelerator$parsedModelCache;
+        if (parsed != null) {
+            BlockModel model = parsed.get(location);
+            if (model != null) {
+                callback.setReturnValue(model);
+                return;
+            }
+        }
+
         Map<ResourceLocation, String> cache = vhaccelerator$modelJsonCache;
         if (cache == null || location.getPath().startsWith("builtin/")) {
             return;
@@ -186,6 +206,22 @@ public abstract class ModelBakeryMixin {
         );
         vhaccelerator$persistentModelCacheSession = null;
         vhaccelerator$modelJsonCache = null;
+        vhaccelerator$parsedModelCache = null;
+    }
+
+    @Unique
+    private void vhaccelerator$prepareParsedModels() {
+        if (!vhaccelerator$clientOption(
+                VHAcceleratorClientConfig.VALUES
+                        .parallelModelLoading
+                        .get()
+        )) {
+            return;
+        }
+        vhaccelerator$parsedModelCache =
+                ParallelModelJsonParser.parse(
+                        vhaccelerator$modelJsonCache
+                );
     }
 
     @Redirect(

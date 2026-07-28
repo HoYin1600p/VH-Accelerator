@@ -1,7 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
 import java.io.StringReader;
 import java.util.Map;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -32,6 +34,10 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
     private PersistentModelJsonCache.Session
             vhaccelerator$modelCacheSession;
 
+    @Unique
+    private Map<ResourceLocation, BlockModel>
+            vhaccelerator$parsedModelCache;
+
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void vhaccelerator$openPersistentModelCache(
             ProfilerFiller profiler,
@@ -40,6 +46,18 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
     ) {
         vhaccelerator$modelCacheSession =
                 PersistentModelJsonCache.prepare(resourceManager);
+        if (vhaccelerator$modelCacheSession != null
+                && VHAcceleratorClientConfig.VALUES
+                        .enableClientOptimizations
+                        .get()
+                && VHAcceleratorClientConfig.VALUES
+                        .parallelModelLoading
+                        .get()) {
+            vhaccelerator$parsedModelCache =
+                    ParallelModelJsonParser.parse(
+                            vhaccelerator$modelCacheSession.models()
+                    );
+        }
     }
 
     @Inject(method = "loadBlockModel", at = @At("HEAD"), cancellable = true)
@@ -47,6 +65,19 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
+        if ("buildscape".equals(location.getNamespace())) {
+            return;
+        }
+        Map<ResourceLocation, BlockModel> parsed =
+                vhaccelerator$parsedModelCache;
+        if (parsed != null) {
+            BlockModel model = parsed.get(location);
+            if (model != null) {
+                callback.setReturnValue(model);
+                return;
+            }
+        }
+
         PersistentModelJsonCache.Session session =
                 vhaccelerator$modelCacheSession;
         if (session == null
@@ -89,5 +120,6 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
                 vhaccelerator$modelCacheSession
         );
         vhaccelerator$modelCacheSession = null;
+        vhaccelerator$parsedModelCache = null;
     }
 }
