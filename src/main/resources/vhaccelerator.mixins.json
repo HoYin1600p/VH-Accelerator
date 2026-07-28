@@ -29,6 +29,7 @@
     "client.MinecraftUserApiMixin",
     "client.ModelBakeryBlockStateMixin",
     "client.ModelBakeryLocationPreloadMixin",
+    "client.ModelBakeryPreparationProfilerMixin",
     "client.ModelBakeryPreparationStartMixin",
     "client.ModelManagerApplyProfilerMixin",
     "client.ModernFixCompatibleModelBakingMixin",
