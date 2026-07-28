@@ -64,6 +64,8 @@ Dedicated-server class-loading boundaries, defaults, and optimization
 ownership are documented in [the server safety audit](docs/SERVER_SAFETY.md).
 Dynamic model exclusions and Sophisticated Storage compatibility are
 documented in [the dynamic model safety guide](docs/DYNAMIC_MODEL_SAFETY.md).
+The implemented and rejected ideas from newer loading systems are recorded in
+[the cross-version loading research](docs/CROSS_VERSION_LOADING_RESEARCH.md).
 
 ## Compare Mode
 
