@@ -25,6 +25,7 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockStateInit;
         public final ForgeConfigSpec.BooleanValue lazyBlockStateCache;
         public final ForgeConfigSpec.BooleanValue cacheResourceListing;
+        public final ForgeConfigSpec.BooleanValue indexImmutableModResources;
 
         private Common(ForgeConfigSpec.Builder builder) {
             builder.push("diagnostics");
@@ -77,6 +78,13 @@ public final class VHAcceleratorConfig {
             cacheResourceListing = builder
                     .comment("Caches repeated ResourceManager.listResources calls until the next reload.")
                     .define("cacheResourceListing", true);
+            indexImmutableModResources = builder
+                    .comment(
+                            "Indexes each immutable jar-backed mod resource namespace once.",
+                            "Repeated model, blockstate, texture, and existence queries",
+                            "reuse the index. Folder packs, live generated packs, empty-prefix",
+                            "queries, failed scans, and ModernFix always keep their original path.")
+                    .define("indexImmutableModResources", true);
             builder.pop();
         }
     }

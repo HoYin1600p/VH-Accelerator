@@ -35,6 +35,8 @@ in the local LaunchFaster 1.0 jar. It has:
   the final block render lookup
 - model loading, atlas preparation, model baking, resource-list, reload, and
   BlockState optimization paths
+- immutable jar-backed resource indexes with automatic fallback for folder,
+  generated, failed, or ModernFix-owned packs
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
   group construction for faster world entry
 - parallel Thermal manager refresh with a tag/config-validated persistent

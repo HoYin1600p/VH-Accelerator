@@ -20,6 +20,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             "dev.hoyin1600p.vhaccelerator.mixin.ForgeRegistryMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.BlockStateMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.ReloadableResourceManagerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.PathResourcePackIndexMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.BlockModelMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryMixin"
     );

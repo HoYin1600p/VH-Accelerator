@@ -26,6 +26,7 @@ failure.
 | --- | --- | --- |
 | Dedicated-server launch timer | Active | Active |
 | Resource-list result cache | Active | Disabled in favor of ModernFix |
+| Immutable jar resource index | Active | Disabled in favor of ModernFix |
 | Instrumented reload replacement | Disabled | Disabled in favor of ModernFix |
 | Registry validation skipping | Disabled | Disabled in favor of ModernFix |
 | Registry dump skipping | Disabled | Disabled in favor of ModernFix |
@@ -50,6 +51,8 @@ VH Accelerator yields overlapping transformations to ModernFix. This keeps
 the primary build deliberately conservative: it measures total
 dedicated-server startup and does not stack another implementation over the
 pack's existing registry, resource, reload, or BlockState optimizations.
+The immutable resource index is shared code, but it accepts only jar/union
+filesystems. Mutable folders and generated packs always use Forge's live path.
 
 The next useful server work should be driven by timings from the real cluster.
 Likely investigation points are Vault configuration loading and individual

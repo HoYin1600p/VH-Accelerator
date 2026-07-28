@@ -12,11 +12,11 @@ implemented only after phase timing identifies a real bottleneck.
      compared instead of relying only on a total.
 
 2. **Resource-pack index**
-   - Build one immutable namespace/path index per pack and reuse it for
-     `listResources` and existence checks.
-   - Invalidate by pack identity when a reload begins.
-   - Do not enable alongside ModernFix unless its resource indexing is proven
-     not to overlap.
+   - Implemented for immutable `jar` and Forge `union` filesystems.
+   - Each pack instance builds a namespace/path index on first non-empty-prefix
+     listing and reuses it for later listings and existence checks.
+   - Folder, in-memory, live/generated, failed, oversized, and ModernFix-owned
+     packs retain Forge's original behavior.
 
 3. **Server data-pack preparation**
    - Profile recipes, tags, loot tables, advancements, predicates, and
@@ -63,4 +63,3 @@ implemented only after phase timing identifies a real bottleneck.
 - Reusing caches without pack/mod fingerprints and invalidation
 - Globally increasing thread counts
 - Disabling DataFixerUpper without understanding the affected save-data paths
-

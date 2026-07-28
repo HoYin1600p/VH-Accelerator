@@ -10,7 +10,8 @@
     "SimpleReloadInstanceMixin",
     "ForgeRegistryMixin",
     "BlockStateMixin",
-    "ReloadableResourceManagerMixin"
+    "ReloadableResourceManagerMixin",
+    "PathResourcePackIndexMixin"
   ],
   "client": [
     "client.ClientMainMixin",
