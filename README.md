@@ -98,9 +98,9 @@ multiplayer and is also available from a dedicated-server console.
 
 ## Instrumentation controls
 
-Timer displays, chat notices, and routine timing summaries are disabled by
-default. Detailed profiling and diagnostic attribution are also disabled by
-default. They can be enabled independently:
+Timer displays, chat notices, and routine timing summaries are enabled by
+default. Detailed profiling and diagnostic attribution remain disabled by
+default. They can be controlled independently:
 
 ```text
 /vha timers on

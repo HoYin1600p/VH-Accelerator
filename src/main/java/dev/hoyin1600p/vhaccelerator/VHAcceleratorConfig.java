@@ -46,7 +46,7 @@ public final class VHAcceleratorConfig {
                             "to the log. The /vha timers command changes this setting.",
                             "Internal lifecycle timestamps required for safe optimizations",
                             "remain available when this display setting is disabled.")
-                    .define("timers", false);
+                    .define("timers", true);
             debug = builder
                     .comment(
                             "Enables detailed launch, reload, model, connection, packet,",
