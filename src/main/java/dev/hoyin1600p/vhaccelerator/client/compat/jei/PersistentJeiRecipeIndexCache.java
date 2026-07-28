@@ -627,9 +627,7 @@ public final class PersistentJeiRecipeIndexCache {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations
-                .get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .persistentJeiRecipeIndexCache
                         .get();

@@ -378,7 +378,8 @@ public abstract class ModelBakeryMixin {
 
     @Unique
     private static boolean vhaccelerator$clientOption(boolean option) {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get() && option;
+        return VHAcceleratorClientConfig.optimizationsEnabled()
+                && option;
     }
 
     @Unique

@@ -30,8 +30,7 @@ public abstract class CraftTweakerTagRegistryMixin {
             CraftTweakerTagRegistry.BindContext context,
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                 .parallelCraftTweakerTagBinding.get()) {
             return;

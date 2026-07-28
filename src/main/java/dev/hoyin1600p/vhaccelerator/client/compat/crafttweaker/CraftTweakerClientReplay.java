@@ -122,8 +122,7 @@ public final class CraftTweakerClientReplay {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations.get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .compactCraftTweakerClientReplayLogging.get();
     }

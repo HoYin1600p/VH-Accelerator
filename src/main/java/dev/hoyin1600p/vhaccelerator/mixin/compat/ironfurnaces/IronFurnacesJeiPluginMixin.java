@@ -18,7 +18,7 @@ public abstract class IronFurnacesJeiPluginMixin {
             IRecipeRegistration registration,
             CallbackInfo callback
     ) {
-        if (VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES.cacheIronFurnacesJeiRecipes.get()
                 && Config.enableJeiPlugin.get()
                 && IronFurnacesRecipeCache.registerRecipes(registration)) {

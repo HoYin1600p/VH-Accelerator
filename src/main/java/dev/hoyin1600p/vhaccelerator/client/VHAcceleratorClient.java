@@ -1,7 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import com.mojang.realmsclient.RealmsMainScreen;
+import dev.hoyin1600p.vhaccelerator.CompareModeCommand;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
@@ -20,6 +22,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.client.event.ScreenOpenEvent;
@@ -49,24 +52,37 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedOut);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onLevelRendered);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenDrawn);
+        MinecraftForge.EVENT_BUS.addListener(
+                VHAcceleratorClient::onRegisterClientCommands
+        );
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");
-        AdaptiveJeiWorkScheduler.initialize();
-        PersistentModelJsonCache.prewarm();
-        PersistentVanillaIngredientCache.prewarm();
-        PersistentRecipeValidationCache.prewarm();
-        PersistentJeiRecipeIndexCache.prewarm();
-        if (thermalLoaded) {
-            PersistentStirlingFuelCache.prewarm();
+        if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+            AdaptiveJeiWorkScheduler.initialize();
+            PersistentModelJsonCache.prewarm();
+            PersistentVanillaIngredientCache.prewarm();
+            PersistentRecipeValidationCache.prewarm();
+            PersistentJeiRecipeIndexCache.prewarm();
+            if (thermalLoaded) {
+                PersistentStirlingFuelCache.prewarm();
+            }
         }
+    }
+
+    private static void onRegisterClientCommands(
+            RegisterClientCommandsEvent event
+    ) {
+        CompareModeCommand.register(event.getDispatcher(), false);
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
             ClientWorkSession.begin();
             beginServerStateRefresh();
-            AdaptiveJeiWorkScheduler.markLoading();
+            if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+                AdaptiveJeiWorkScheduler.markLoading();
+            }
             ServerTransferTimer.cancelActiveAttempt();
             ServerLoginTimer.markStart();
         } else if (event.getScreen() instanceof ReceivingLevelScreen
@@ -74,7 +90,9 @@ public final class VHAcceleratorClient {
                 && !ServerTransferTimer.isActive()) {
             ClientWorkSession.begin();
             beginServerStateRefresh();
-            AdaptiveJeiWorkScheduler.markLoading();
+            if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+                AdaptiveJeiWorkScheduler.markLoading();
+            }
             ServerTransferTimer.markStart("receiving-level screen");
         }
 
@@ -88,6 +106,9 @@ public final class VHAcceleratorClient {
     }
 
     public static void beginServerStateRefresh() {
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()) {
+            return;
+        }
         LoginStateFingerprint.beginConnection();
         IronFurnacesRecipeCache.beginConnection();
         PersistentVanillaIngredientCache.beginConnection();
@@ -114,7 +135,10 @@ public final class VHAcceleratorClient {
         PostLoginWorkTimer.Sample lastPostLogin = PostLoginWorkTimer.lastSample();
         DisconnectTimer.Sample lastDisconnect = DisconnectTimer.lastSample();
         StringBuilder launchText = new StringBuilder(String.format(
-                "VH Accelerator: Launch %.2fs",
+                "VH Accelerator%s: Launch %.2fs",
+                VHAcceleratorConfig.compareModeEnabled()
+                        ? " [COMPARE]"
+                        : "",
                 LaunchTimer.elapsedMillis() / 1000.0
         ));
         appendPrecompileStatus(launchText);
@@ -159,7 +183,7 @@ public final class VHAcceleratorClient {
     private static void runMenuPrecompile(ScreenEvent.DrawScreenEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (!LaunchTimer.isFinished()
-                || !VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
                 || minecraft.level != null
                 || minecraft.getConnection() != null
                 || event.getScreen() instanceof ConnectScreen
@@ -293,7 +317,9 @@ public final class VHAcceleratorClient {
             return;
         }
 
-        AdaptiveJeiWorkScheduler.markGameplayActive();
+        if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+            AdaptiveJeiWorkScheduler.markGameplayActive();
+        }
         PostLoginWorkTimer.markFirstPlayableFrame();
         ServerLoginTimer.Sample loginSample = ServerLoginTimer.markFirstPlayableFrame();
         ServerTransferTimer.Sample transferSample =
@@ -306,7 +332,10 @@ public final class VHAcceleratorClient {
 
         if (loginSample != null) {
             StringBuilder text = new StringBuilder(String.format(
-                    "[VH Accelerator] Launch: %.2fs | Server login: %.2fs",
+                    "[VH Accelerator%s] Launch: %.2fs | Server login: %.2fs",
+                    VHAcceleratorConfig.compareModeEnabled()
+                            ? " Compare"
+                            : "",
                     LaunchTimer.elapsedMillis() / 1000.0,
                     loginSample.totalMillis() / 1000.0
             ));
@@ -336,7 +365,10 @@ public final class VHAcceleratorClient {
         }
 
         StringBuilder text = new StringBuilder(String.format(
-                "[VH Accelerator] Launch: %.2fs",
+                "[VH Accelerator%s] Launch: %.2fs",
+                VHAcceleratorConfig.compareModeEnabled()
+                        ? " Compare"
+                        : "",
                 LaunchTimer.elapsedMillis() / 1000.0
         ));
         appendPostLoginStatus(text, null);

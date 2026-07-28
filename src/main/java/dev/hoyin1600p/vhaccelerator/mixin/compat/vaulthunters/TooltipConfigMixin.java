@@ -58,7 +58,7 @@ public abstract class TooltipConfigMixin {
 
     @Unique
     private static boolean vhaccelerator$cachingEnabled() {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES.cacheVaultTooltips.get();
     }
 }

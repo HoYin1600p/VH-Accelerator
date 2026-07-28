@@ -43,9 +43,7 @@ public abstract class AbstractTextureAtlasHolderMixin {
     private void vhaccelerator$validateTexturesInLinearTime(
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations
-                .get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                         .optimizeVaultAtlasValidation
                         .get()

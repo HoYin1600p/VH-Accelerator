@@ -219,7 +219,7 @@ public final class PersistentVanillaIngredientCache {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .persistentVanillaIngredientCache
                         .get();

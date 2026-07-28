@@ -28,7 +28,7 @@ public abstract class SimpleReloadInstanceMixin {
             CallbackInfoReturnable<ReloadInstance> callback
     ) {
         if (!profiled
-                && VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+                && VHAcceleratorConfig.commonOptimizationsEnabled()
                 && VHAcceleratorConfig.COMMON.parallelReloadPreparation.get()) {
             callback.setReturnValue(new ParallelReloadInstance(
                     resourceManager,
@@ -40,4 +40,3 @@ public abstract class SimpleReloadInstanceMixin {
         }
     }
 }
-

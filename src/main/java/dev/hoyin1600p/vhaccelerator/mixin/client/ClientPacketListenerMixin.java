@@ -71,9 +71,7 @@ public abstract class ClientPacketListenerMixin {
         vhaccelerator$recipePacketStarted =
                 ClientConnectionProfiler.startStage();
         ThermalRefreshPhase.beginRecipes();
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations
-                .get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || (!VHAcceleratorClientConfig.VALUES
                                 .persistentVanillaRecipeValidationCache
                                 .get()

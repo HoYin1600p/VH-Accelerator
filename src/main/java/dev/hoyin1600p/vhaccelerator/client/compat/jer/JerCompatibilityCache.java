@@ -46,7 +46,7 @@ public final class JerCompatibilityCache {
 
     public static void beginMenuPreload() {
         if (preloadAttempted
-                || !VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
             return;
         }
@@ -133,7 +133,7 @@ public final class JerCompatibilityCache {
     }
 
     public static void ensureInitialized(CommonProxy proxy) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
             proxy.initCompatibility();
             return;

@@ -22,7 +22,7 @@ public abstract class MinecraftUserApiMixin {
             GameConfig gameConfig,
             CallbackInfoReturnable<UserApiService> callback
     ) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.asyncUserApiService.get()) {
             return;
         }
@@ -48,4 +48,3 @@ public abstract class MinecraftUserApiMixin {
         callback.setReturnValue(new DeferredUserApiService(serviceFuture));
     }
 }
-

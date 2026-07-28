@@ -271,7 +271,7 @@ public abstract class VanillaRecipesMixin {
 
     @Unique
     private static boolean vhaccelerator$enabled() {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .parallelVanillaRecipeValidation
                         .get();

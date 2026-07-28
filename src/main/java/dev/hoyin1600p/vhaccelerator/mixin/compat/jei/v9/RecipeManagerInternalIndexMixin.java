@@ -145,9 +145,7 @@ public abstract class RecipeManagerInternalIndexMixin {
             RecipeTypeData<T> recipeTypeData,
             Collection<T> recipes
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations
-                .get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                         .persistentJeiRecipeIndexCache
                         .get()

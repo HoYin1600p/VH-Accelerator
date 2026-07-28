@@ -28,7 +28,7 @@ public abstract class JeiTweakerPluginMixin {
             IngredientType<T, U> type,
             CallbackInfo ci
     ) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()) {
             return;
         }

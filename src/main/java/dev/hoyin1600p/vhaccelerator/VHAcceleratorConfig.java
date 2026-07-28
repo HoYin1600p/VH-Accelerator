@@ -17,6 +17,7 @@ public final class VHAcceleratorConfig {
     }
 
     public static final class Common {
+        public final ForgeConfigSpec.BooleanValue compareMode;
         public final ForgeConfigSpec.BooleanValue enableCommonOptimizations;
         public final ForgeConfigSpec.BooleanValue parallelReloadPreparation;
         public final ForgeConfigSpec.BooleanValue skipRedundantRegistryValidation;
@@ -26,6 +27,17 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue cacheResourceListing;
 
         private Common(ForgeConfigSpec.Builder builder) {
+            builder.push("diagnostics");
+            compareMode = builder
+                    .comment(
+                            "Disables every VH Accelerator optimization while retaining",
+                            "launch, reload, connection, transfer, post-login, and disconnect",
+                            "timers and profilers for an unmodified baseline.",
+                            "The /vha compare command changes and saves this setting.",
+                            "Restart after changing it before comparing client or server launch time.")
+                    .define("compareMode", false);
+            builder.pop();
+
             builder.push("optimizations");
             enableCommonOptimizations = builder
                     .comment("Master switch for optimizations that are safe on both client and dedicated server.")
@@ -67,5 +79,23 @@ public final class VHAcceleratorConfig {
                     .define("cacheResourceListing", true);
             builder.pop();
         }
+    }
+
+    public static boolean commonOptimizationsEnabled() {
+        return !compareModeEnabled()
+                && COMMON.enableCommonOptimizations.get();
+    }
+
+    public static boolean compareModeEnabled() {
+        return COMMON.compareMode.get();
+    }
+
+    public static void setCompareMode(boolean enabled) {
+        COMMON.compareMode.set(enabled);
+        COMMON.compareMode.save();
+        VHAccelerator.LOGGER.info(
+                "Compare Mode {} and saved",
+                enabled ? "enabled" : "disabled"
+        );
     }
 }

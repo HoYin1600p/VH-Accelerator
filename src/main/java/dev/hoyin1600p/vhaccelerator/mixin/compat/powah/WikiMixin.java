@@ -40,7 +40,7 @@ public abstract class WikiMixin {
 
     @Inject(method = "lambda$static$5", at = @At("HEAD"), cancellable = true)
     private static void vhaccelerator$indexWikiRecipes(RecipeManager recipeManager, CallbackInfo ci) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.indexPowahWikiRecipes.get()) {
             return;
         }

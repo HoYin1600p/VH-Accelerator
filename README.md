@@ -28,6 +28,8 @@ in the local LaunchFaster 1.0 jar. It has:
 - client and dedicated-server launch timing, repeatable multiplayer
   connect-to-first-playable-frame timing, and packet-to-playable-frame
   server/world transfer timing
+- persistent Compare Mode for disabling every optimization while retaining
+  launch, reload, connection, transfer, post-login, and disconnect diagnostics
 - model loading, atlas preparation, model baking, resource-list, reload, and
   BlockState optimization paths
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
@@ -59,6 +61,22 @@ Dedicated-server class-loading boundaries, defaults, and optimization
 ownership are documented in [the server safety audit](docs/SERVER_SAFETY.md).
 Dynamic model exclusions and Sophisticated Storage compatibility are
 documented in [the dynamic model safety guide](docs/DYNAMIC_MODEL_SAFETY.md).
+
+## Compare Mode
+
+Set `diagnostics.compareMode = true` in
+`config/vhaccelerator-common.toml`, or run:
+
+```text
+/vha compare on
+```
+
+The command saves the setting. Restart before collecting a launch baseline.
+Use `/vha compare off` to restore optimizations and `/vha compare status` to
+inspect the current state. Compare Mode leaves all timers and profilers active,
+adds `[COMPARE]` to the main-menu timer, and prevents cache prewarming or other
+VH Accelerator optimization work. The command is client-side in multiplayer
+and is also available from a dedicated-server console.
 
 ## Reference material
 

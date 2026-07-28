@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -14,6 +15,11 @@ public final class VHAcceleratorClientConfig {
     }
 
     private VHAcceleratorClientConfig() {
+    }
+
+    public static boolean optimizationsEnabled() {
+        return !VHAcceleratorConfig.compareModeEnabled()
+                && VALUES.enableClientOptimizations.get();
     }
 
     public static final class Values {

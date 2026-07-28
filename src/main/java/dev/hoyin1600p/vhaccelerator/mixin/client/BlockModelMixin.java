@@ -67,7 +67,7 @@ public abstract class BlockModelMixin {
 
     @Unique
     private static boolean vhaccelerator$memoizationEnabled() {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES.memoizeModelMaterials.get();
     }
 }

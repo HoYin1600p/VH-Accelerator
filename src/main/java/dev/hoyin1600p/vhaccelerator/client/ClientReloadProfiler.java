@@ -56,8 +56,7 @@ public final class ClientReloadProfiler {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
-                && VHAcceleratorClientConfig.VALUES
+        return VHAcceleratorClientConfig.VALUES
                         .profileClientLaunchPhases
                         .get();
     }

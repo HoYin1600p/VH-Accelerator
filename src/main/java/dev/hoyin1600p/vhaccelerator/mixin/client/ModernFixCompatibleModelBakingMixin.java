@@ -77,9 +77,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
     private Set<?> vhaccelerator$bakeTopLevelModelsBesideModernFix(
             Map<ResourceLocation, ?> models
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations
-                .get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                         .parallelModelBaking
                         .get()) {

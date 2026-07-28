@@ -31,8 +31,7 @@ public abstract class ThermalRecipeManagersMixin {
     private void vhaccelerator$parallelClientRefresh(
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                 .parallelThermalRecipeRefresh.get()) {
             return;

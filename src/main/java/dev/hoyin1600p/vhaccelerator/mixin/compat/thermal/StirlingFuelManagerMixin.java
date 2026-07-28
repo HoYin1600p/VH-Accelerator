@@ -41,8 +41,7 @@ public abstract class StirlingFuelManagerMixin {
             RecipeManager recipeManager,
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorClientConfig.VALUES
-                .enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                         .parallelThermalRecipeRefresh.get()) {
             return;

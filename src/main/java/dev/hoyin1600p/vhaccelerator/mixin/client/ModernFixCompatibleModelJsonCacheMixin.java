@@ -47,9 +47,7 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
         vhaccelerator$modelCacheSession =
                 PersistentModelJsonCache.prepare(resourceManager);
         if (vhaccelerator$modelCacheSession != null
-                && VHAcceleratorClientConfig.VALUES
-                        .enableClientOptimizations
-                        .get()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .parallelModelLoading
                         .get()) {

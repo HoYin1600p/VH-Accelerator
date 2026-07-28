@@ -83,8 +83,7 @@ public abstract class ReloadableResourceManagerMixin {
 
     @Unique
     private static boolean vhaccelerator$cacheEnabled() {
-        return VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+        return VHAcceleratorConfig.commonOptimizationsEnabled()
                 && VHAcceleratorConfig.COMMON.cacheResourceListing.get();
     }
 }
-

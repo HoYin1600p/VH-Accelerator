@@ -28,9 +28,7 @@ public abstract class IndustrialForegoingJeiPluginMixin {
             CallbackInfoReturnable<List<StoneWorkCategory.Wrapper>> callback
     ) {
         if (usedActions.isEmpty()
-                && VHAcceleratorClientConfig.VALUES
-                        .enableClientOptimizations
-                        .get()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeIndustrialForegoingStoneWorkJeiRecipes
                         .get()) {

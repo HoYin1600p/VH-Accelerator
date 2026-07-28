@@ -104,7 +104,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IListElementInfo<?> info
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get()
                 && ignoredReceiver instanceof ElementSearch) {
             if (vhaccelerator$initialIngredients == null) {
@@ -134,9 +134,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IListElement<?> element
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.VALUES
-                        .enableClientOptimizations
-                        .get()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()
@@ -160,9 +158,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IngredientFilter instance
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.VALUES
-                        .enableClientOptimizations
-                        .get()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()) {
@@ -185,7 +181,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void vhaccelerator$startIsolatedIndexBuild(CallbackInfo ci) {
-        if (VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()) {
@@ -397,7 +393,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             Comparator<IListElementInfo<?>> comparator,
             CallbackInfoReturnable<List<IListElementInfo<?>>> cir
     ) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get()
                 || vhaccelerator$indexing) {
             return;

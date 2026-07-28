@@ -28,7 +28,7 @@ public abstract class ForgeRegistryMixin {
             ResourceLocation registryName,
             CallbackInfo callback
     ) {
-        if (!VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+        if (!VHAcceleratorConfig.commonOptimizationsEnabled()
                 || !VHAcceleratorConfig.COMMON.skipRedundantRegistryValidation.get()) {
             return;
         }
@@ -46,7 +46,7 @@ public abstract class ForgeRegistryMixin {
             ResourceLocation registryName,
             CallbackInfo callback
     ) {
-        if (VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+        if (VHAcceleratorConfig.commonOptimizationsEnabled()
                 && VHAcceleratorConfig.COMMON.skipRegistryDump.get()) {
             callback.cancel();
         }
@@ -54,7 +54,7 @@ public abstract class ForgeRegistryMixin {
 
     @Inject(method = "bake", at = @At("HEAD"))
     private void vhaccelerator$beginBlockStateCollection(CallbackInfo callback) {
-        if (!VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+        if (!VHAcceleratorConfig.commonOptimizationsEnabled()
                 || !LAUNCHFASTERTOO$BLOCK_REGISTRY.equals(name)) {
             return;
         }
@@ -73,7 +73,7 @@ public abstract class ForgeRegistryMixin {
 
         if (VHAcceleratorConfig.COMMON.lazyBlockStateCache.get()) {
             ParallelBlockStateInitializer.discardCollectedStates();
-        } else if (VHAcceleratorConfig.COMMON.enableCommonOptimizations.get()
+        } else if (VHAcceleratorConfig.commonOptimizationsEnabled()
                 && VHAcceleratorConfig.COMMON.parallelBlockStateInit.get()) {
             ParallelBlockStateInitializer.flushParallel();
         } else {

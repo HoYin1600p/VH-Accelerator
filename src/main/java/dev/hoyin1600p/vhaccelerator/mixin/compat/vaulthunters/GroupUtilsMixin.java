@@ -49,7 +49,7 @@ public abstract class GroupUtilsMixin {
             TickEvent.ClientTickEvent event,
             CallbackInfo ci
     ) {
-        if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get()) {
             vhaccelerator$cancelBuild();
             return;
