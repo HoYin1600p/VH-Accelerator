@@ -72,14 +72,16 @@ public abstract class ModelBakeryLoadProfilerMixin {
             ResourceLocation location,
             CallbackInfo callback
     ) {
+        Map<String, long[]> timings = vhaccelerator$loadTimings;
         if (!vhaccelerator$profileLoads
+                || timings == null
                 || vhaccelerator$currentLoad == null
                 || vhaccelerator$loadStarted == 0L) {
             return;
         }
         long elapsed = System.nanoTime()
                 - vhaccelerator$loadStarted;
-        long[] timing = vhaccelerator$loadTimings.computeIfAbsent(
+        long[] timing = timings.computeIfAbsent(
                 vhaccelerator$currentLoad,
                 ignored -> new long[3]
         );
@@ -96,15 +98,19 @@ public abstract class ModelBakeryLoadProfilerMixin {
             int mipLevel,
             CallbackInfo callback
     ) {
-        if (!vhaccelerator$profileLoads
-                || vhaccelerator$loadTimings == null
-                || vhaccelerator$loadTimings.isEmpty()) {
+        Map<String, long[]> timings = vhaccelerator$loadTimings;
+        vhaccelerator$profileLoads = false;
+        vhaccelerator$loadTimings = null;
+        vhaccelerator$currentLoad = null;
+        vhaccelerator$loadStarted = 0L;
+
+        if (timings == null || timings.isEmpty()) {
             return;
         }
 
         List<Map.Entry<String, long[]>> entries =
                 new ArrayList<>(
-                        vhaccelerator$loadTimings.entrySet()
+                        timings.entrySet()
                 );
         entries.sort(Comparator.comparingLong(
                 (Map.Entry<String, long[]> entry) ->
@@ -149,9 +155,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
             );
         }
 
-        vhaccelerator$loadTimings = null;
-        vhaccelerator$currentLoad = null;
-        vhaccelerator$loadStarted = 0L;
     }
 
     @Unique
