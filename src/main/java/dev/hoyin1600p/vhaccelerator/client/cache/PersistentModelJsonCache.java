@@ -70,7 +70,6 @@ public final class PersistentModelJsonCache {
     }
 
     public static synchronized void prewarm() {
-        ClientAssetFingerprint.prewarm();
         if (preloadStarted) {
             return;
         }
@@ -118,6 +117,13 @@ public final class PersistentModelJsonCache {
                     cached.plainModels,
                     true,
                     true
+            );
+        }
+        if (cached != null) {
+            ClientAssetFingerprint.reportMismatch(
+                    "Model JSON",
+                    cached.fingerprint,
+                    fingerprint
             );
         }
 

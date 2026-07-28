@@ -67,7 +67,6 @@ public final class PersistentBlockStateJsonCache {
         if (!enabled()) {
             return;
         }
-        ClientAssetFingerprint.prewarm();
         if (preloadStarted) {
             return;
         }
@@ -116,6 +115,13 @@ public final class PersistentBlockStateJsonCache {
                     fingerprint,
                     cached.resources,
                     true
+            );
+        }
+        if (cached != null) {
+            ClientAssetFingerprint.reportMismatch(
+                    "Blockstate JSON",
+                    cached.fingerprint,
+                    fingerprint
             );
         }
         return new Session(

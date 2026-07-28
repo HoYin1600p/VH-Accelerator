@@ -15,6 +15,7 @@
   ],
   "client": [
     "client.ClientMainMixin",
+    "client.ClientAssetFingerprintLifecycleMixin",
     "client.BlockModelShaperLocationMixin",
     "client.BlockStateModelLocationMixin",
     "client.ClientPacketListenerMixin",

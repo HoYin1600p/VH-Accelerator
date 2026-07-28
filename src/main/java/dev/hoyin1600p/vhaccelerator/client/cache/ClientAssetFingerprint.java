@@ -24,14 +24,21 @@ import net.minecraftforge.forgespi.language.IModInfo;
  * Identifies inputs that can affect the initial client model resource view.
  */
 public final class ClientAssetFingerprint {
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
-    private static volatile CompletableFuture<String> baseFingerprint;
+    private static volatile CompletableFuture<BaseFingerprint>
+            baseFingerprint;
 
     private ClientAssetFingerprint() {
     }
 
-    public static void prewarm() {
+    /**
+     * Starts the filesystem portion only after Forge has constructed the
+     * initial resource reload. Starting this during mod construction can
+     * snapshot configuration files before Forge finishes creating and
+     * normalizing them, causing a false cache miss on every launch.
+     */
+    public static void prepareStable() {
         if (baseFingerprint != null) {
             return;
         }
@@ -53,15 +60,14 @@ public final class ClientAssetFingerprint {
     }
 
     public static String current(ResourceManager resourceManager) {
-        prewarm();
+        prepareStable();
         try {
-            List<String> inputs = new ArrayList<>();
-            inputs.add("schema=" + SCHEMA_VERSION);
-            inputs.add("base=" + baseFingerprint.join());
+            BaseFingerprint base = baseFingerprint.join();
+            List<String> activePacks = new ArrayList<>();
             int[] index = {0};
             try (Stream<PackResources> packs =
                          resourceManager.listPacks()) {
-                packs.forEachOrdered(pack -> inputs.add(
+                packs.forEachOrdered(pack -> activePacks.add(
                         "pack="
                                 + index[0]++
                                 + ":"
@@ -70,7 +76,10 @@ public final class ClientAssetFingerprint {
                                 + pack.getName()
                 ));
             }
-            return digestStrings(inputs);
+            return encode(
+                    base,
+                    digestStrings(activePacks)
+            );
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
                     "Could not fingerprint the initial client asset packs; "
@@ -81,10 +90,53 @@ public final class ClientAssetFingerprint {
         }
     }
 
-    private static String buildBaseFingerprint() {
-        List<String> inputs = new ArrayList<>();
-        inputs.add("schema=" + SCHEMA_VERSION);
-        inputs.add(
+    public static void reportMismatch(
+            String cacheName,
+            String cachedFingerprint,
+            String currentFingerprint
+    ) {
+        if (cachedFingerprint == null
+                || currentFingerprint == null
+                || cachedFingerprint.equals(currentFingerprint)) {
+            return;
+        }
+
+        ParsedFingerprint cached = parse(cachedFingerprint);
+        ParsedFingerprint current = parse(currentFingerprint);
+        if (cached == null || current == null) {
+            VHAccelerator.LOGGER.info(
+                    "{} cache fingerprint used an older schema; "
+                            + "rebuilding it once",
+                    cacheName
+            );
+            return;
+        }
+
+        List<String> changed = new ArrayList<>();
+        if (!cached.installation.equals(current.installation)) {
+            changed.add("installed mods");
+        }
+        if (!cached.configs.equals(current.configs)) {
+            changed.add("asset-affecting configuration");
+        }
+        if (!cached.resourceFiles.equals(current.resourceFiles)) {
+            changed.add("resource-pack files");
+        }
+        if (!cached.activePacks.equals(current.activePacks)) {
+            changed.add("active resource-pack order");
+        }
+        VHAccelerator.LOGGER.info(
+                "{} cache fingerprint changed ({}); rebuilding safely",
+                cacheName,
+                changed.isEmpty()
+                        ? "fingerprint format"
+                        : String.join(", ", changed)
+        );
+    }
+
+    private static BaseFingerprint buildBaseFingerprint() {
+        List<String> installation = new ArrayList<>();
+        installation.add(
                 "minecraft="
                         + SharedConstants.getCurrentVersion().getName()
         );
@@ -94,29 +146,67 @@ public final class ClientAssetFingerprint {
                         + mod.getModId()
                         + "@"
                         + mod.getVersion())
-                .forEach(inputs::add);
+                .forEach(installation::add);
 
         Path gameDirectory = FMLPaths.GAMEDIR.get();
         appendFlatMetadata(
-                inputs,
+                installation,
                 gameDirectory.resolve("mods"),
                 "mod-file"
         );
+
+        List<String> configs = new ArrayList<>();
         appendConfigContents(
-                inputs,
+                configs,
                 FMLPaths.CONFIGDIR.get(),
                 "config"
         );
         appendConfigContents(
-                inputs,
+                configs,
                 gameDirectory.resolve("defaultconfigs"),
                 "default-config"
         );
+
+        List<String> resourceFiles = new ArrayList<>();
         appendResourcePackMetadata(
-                inputs,
+                resourceFiles,
                 gameDirectory.resolve("resourcepacks")
         );
-        return digestStrings(inputs);
+        return new BaseFingerprint(
+                digestStrings(installation),
+                digestStrings(configs),
+                digestStrings(resourceFiles)
+        );
+    }
+
+    private static String encode(
+            BaseFingerprint base,
+            String activePacks
+    ) {
+        return "v"
+                + SCHEMA_VERSION
+                + "|"
+                + base.installation
+                + "|"
+                + base.configs
+                + "|"
+                + base.resourceFiles
+                + "|"
+                + activePacks;
+    }
+
+    private static ParsedFingerprint parse(String encoded) {
+        String[] components = encoded.split("\\|", -1);
+        if (components.length != 5
+                || !components[0].equals("v" + SCHEMA_VERSION)) {
+            return null;
+        }
+        return new ParsedFingerprint(
+                components[1],
+                components[2],
+                components[3],
+                components[4]
+        );
     }
 
     private static void appendFlatMetadata(
@@ -319,5 +409,20 @@ public final class ClientAssetFingerprint {
                     exception
             );
         }
+    }
+
+    private record BaseFingerprint(
+            String installation,
+            String configs,
+            String resourceFiles
+    ) {
+    }
+
+    private record ParsedFingerprint(
+            String installation,
+            String configs,
+            String resourceFiles,
+            String activePacks
+    ) {
     }
 }

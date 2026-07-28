@@ -71,7 +71,6 @@ public final class PersistentModelMaterialCache {
     }
 
     public static synchronized void prewarm() {
-        ClientAssetFingerprint.prewarm();
         if (preloadStarted) {
             return;
         }
@@ -108,6 +107,13 @@ public final class PersistentModelMaterialCache {
         }
         boolean restored = cached != null
                 && cached.fingerprint.equals(fingerprint);
+        if (cached != null && !restored) {
+            ClientAssetFingerprint.reportMismatch(
+                    "Model material",
+                    cached.fingerprint,
+                    fingerprint
+            );
+        }
         Map<ResourceLocation, List<Material>> materials =
                 restored ? new HashMap<>(cached.materials) : new HashMap<>();
         Session session = new Session(
