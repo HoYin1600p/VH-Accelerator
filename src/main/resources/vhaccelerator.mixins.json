@@ -28,6 +28,7 @@
     "client.LoadingOverlayMixin",
     "client.MinecraftDisconnectMixin",
     "client.MinecraftUserApiMixin",
+    "client.ModLoadingStateProfilerMixin",
     "client.ModelBakeryBlockStateMixin",
     "client.ModelBakeryCapacityMixin",
     "client.ModelBakeryLocationPreloadMixin",

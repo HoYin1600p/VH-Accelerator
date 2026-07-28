@@ -30,6 +30,8 @@ public final class LaunchEventProfiler {
             Pattern.compile("@[0-9a-fA-F]+");
     private static final Map<SampleKey, Timing> TIMINGS =
             new ConcurrentHashMap<>();
+    private static final Map<String, Timing> STAGE_TIMINGS =
+            new ConcurrentHashMap<>();
     private static final Map<IEventListener, String> LISTENER_NAMES =
             Collections.synchronizedMap(new IdentityHashMap<>());
     private static final AtomicBoolean FINISHED =
@@ -67,8 +69,72 @@ public final class LaunchEventProfiler {
     }
 
     public static void finish() {
-        if (!FINISHED.compareAndSet(false, true)
-                || TIMINGS.isEmpty()) {
+        if (!FINISHED.compareAndSet(false, true)) {
+            return;
+        }
+
+        reportStages();
+        reportListeners();
+        STAGE_TIMINGS.clear();
+        TIMINGS.clear();
+        LISTENER_NAMES.clear();
+    }
+
+    public static void recordStage(
+            String stage,
+            long elapsedNanos
+    ) {
+        if (elapsedNanos <= 0L || FINISHED.get()) {
+            return;
+        }
+        STAGE_TIMINGS.computeIfAbsent(
+                stage,
+                ignored -> new Timing()
+        ).add(elapsedNanos);
+    }
+
+    public static boolean enabled() {
+        return !FINISHED.get()
+                && !LaunchTimer.isFinished()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .profileClientLaunchPhases
+                );
+    }
+
+    private static void reportStages() {
+        if (STAGE_TIMINGS.isEmpty()) {
+            VHAccelerator.LOGGER.warn(
+                    "Forge mod-loading state profiler observed no launch stages"
+            );
+            return;
+        }
+
+        List<Map.Entry<String, Timing>> stages =
+                new ArrayList<>(STAGE_TIMINGS.entrySet());
+        stages.sort(Comparator.comparingLong(
+                (Map.Entry<String, Timing> entry) ->
+                        entry.getValue().nanos.sum()
+        ).reversed());
+        for (int index = 0; index < stages.size(); index++) {
+            Map.Entry<String, Timing> entry = stages.get(index);
+            Timing timing = entry.getValue();
+            VHAccelerator.LOGGER.info(
+                    "Forge mod-loading stage [{}] {}: {} ms total "
+                            + "across {} transition(s)",
+                    index + 1,
+                    entry.getKey(),
+                    millis(timing.nanos.sum()),
+                    timing.calls.sum()
+            );
+        }
+    }
+
+    private static void reportListeners() {
+        if (TIMINGS.isEmpty()) {
+            VHAccelerator.LOGGER.warn(
+                    "Forge launch-listener profiler observed no listeners"
+            );
             return;
         }
 
@@ -108,17 +174,6 @@ public final class LaunchEventProfiler {
                     millis(timing.maximumNanos)
             );
         }
-        TIMINGS.clear();
-        LISTENER_NAMES.clear();
-    }
-
-    private static boolean enabled() {
-        return !FINISHED.get()
-                && !LaunchTimer.isFinished()
-                && VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES
-                                .profileClientLaunchPhases
-                );
     }
 
     private static String listenerName(IEventListener listener) {
