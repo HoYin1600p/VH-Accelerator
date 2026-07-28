@@ -51,6 +51,12 @@ definitions, Forge/custom markers, BuildScape resources, unknown blocks, and
 parse failures are returned to the original sequential parser. Cached resource
 stacks preserve resource-pack order and source names.
 
+The canonical `ModelResourceLocation` is cached directly on each immutable
+block-state instance after Minecraft first computes it. The later render-cache
+pass reuses that exact key instead of rebuilding the state-property string.
+This does not cache a baked model or alter model lookup, so Forge's model-bake
+event and dynamic baked-model replacements remain authoritative.
+
 ## Persistent raw JSON safety
 
 The persistent cache stores only the resolved raw `models/*.json` text. It

@@ -14,6 +14,8 @@
   ],
   "client": [
     "client.ClientMainMixin",
+    "client.BlockModelShaperLocationMixin",
+    "client.BlockStateModelLocationMixin",
     "client.ClientPacketListenerMixin",
     "client.ConnectionProtocolMixin",
     "client.ConnectionMixin",

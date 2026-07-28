@@ -32,6 +32,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
+        public final ForgeConfigSpec.BooleanValue cacheBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
@@ -109,6 +110,13 @@ public final class VHAcceleratorClientConfig {
                             "This is especially useful in packs that map many block states",
                             "to the same underlying unbaked model.")
                     .define("deduplicateModelMaterialCollection", true);
+            cacheBlockStateModelLocations = builder
+                    .comment(
+                            "Reuses each block state's canonical model location.",
+                            "Minecraft 1.18.2 otherwise rebuilds the same property string",
+                            "during model discovery and again for the render lookup cache.",
+                            "The cached key is attached to the immutable block-state instance.")
+                    .define("cacheBlockStateModelLocations", true);
             builder.pop();
 
             builder.push("compatibility");
