@@ -174,22 +174,26 @@ public final class ClientReloadProfiler {
 
                 int reported = 0;
                 for (ListenerTiming entry : snapshot) {
-                    if (entry.totalNanos() < REPORT_THRESHOLD_NANOS) {
+                    if (entry.measuredWorkNanos()
+                            < REPORT_THRESHOLD_NANOS) {
                         continue;
                     }
                     VHAccelerator.LOGGER.info(
                             "Client reload listener {}: prepare {} ms, "
-                                    + "apply {} ms, completion {} ms",
+                                    + "apply {} ms, measured work {} ms, "
+                                    + "completion {} ms",
                             entry.name,
                             formatMillis(entry.preparationNanos()),
                             formatMillis(entry.applicationNanos()),
+                            formatMillis(entry.measuredWorkNanos()),
                             formatMillis(entry.totalNanos())
                     );
                     reported++;
                 }
                 VHAccelerator.LOGGER.info(
                         "Initial client resource reload completed in {} ms; "
-                                + "{} of {} listeners exceeded 20 ms",
+                                + "{} of {} listeners performed at least "
+                                + "20 ms of measured work",
                         formatMillis(System.nanoTime() - startedNanos),
                         reported,
                         expected
@@ -238,6 +242,10 @@ public final class ClientReloadProfiler {
             return finished == 0L
                     ? 0L
                     : Math.max(0L, finished - startedNanos);
+        }
+
+        private long measuredWorkNanos() {
+            return preparationNanos() + applicationNanos();
         }
     }
 
