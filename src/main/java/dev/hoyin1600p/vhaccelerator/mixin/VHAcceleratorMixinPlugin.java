@@ -179,6 +179,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             }
             return !dynamicResources;
         }
+        if (mixinClassName.endsWith(
+                ".ModelMaterialCollectionMixin"
+        ) && modernFixLoaded) {
+            return !modernFixDynamicResourcesEnabled();
+        }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
     }
 

@@ -27,6 +27,7 @@
     "client.MinecraftUserApiMixin",
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
+    "client.ModelMaterialCollectionMixin",
     "client.ReloadListenerProfilerMixin",
     "client.SkullBlockEntityMixin",
     "client.BlockModelMixin",

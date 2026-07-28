@@ -30,6 +30,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
+        public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
@@ -92,6 +93,13 @@ public final class VHAcceleratorClientConfig {
             memoizeModelMaterials = builder
                     .comment("Memoizes BlockModel material dependency walks for each model instance.")
                     .define("memoizeModelMaterials", true);
+            deduplicateModelMaterialCollection = builder
+                    .comment(
+                            "Collects materials once for repeated safe model instances.",
+                            "Custom and dynamic model graphs retain their original call count.",
+                            "This is especially useful in packs that map many block states",
+                            "to the same underlying unbaked model.")
+                    .define("deduplicateModelMaterialCollection", true);
             builder.pop();
 
             builder.push("compatibility");

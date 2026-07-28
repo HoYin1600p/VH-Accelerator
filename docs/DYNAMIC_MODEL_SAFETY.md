@@ -41,6 +41,10 @@ A failed model is never silently omitted.
 Material dependency memoization also bypasses protected graphs so custom
 loaders can perform their normal live material lookup.
 
+The top-level material collection also collapses repeated references to the
+same unbaked model only when the complete dependency graph passes this guard.
+Repeated custom or dynamic references retain their original call count.
+
 ## Persistent raw JSON safety
 
 The persistent cache stores only the resolved raw `models/*.json` text. It
