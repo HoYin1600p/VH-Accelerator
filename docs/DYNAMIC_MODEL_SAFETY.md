@@ -53,9 +53,11 @@ stacks preserve resource-pack order and source names.
 
 The canonical `ModelResourceLocation` is cached directly on each immutable
 block-state instance after Minecraft first computes it. The later render-cache
-pass reuses that exact key instead of rebuilding the state-property string.
-This does not cache a baked model or alter model lookup, so Forge's model-bake
-event and dynamic baked-model replacements remain authoritative.
+pass and the bakery's explicit canonical-location pass reuse that exact key
+instead of rebuilding the state-property string. Explicit alternate locations,
+including Minecraft's synthetic definitions, bypass the cache. This does not
+cache a baked model or alter model lookup, so Forge's model-bake event and
+dynamic baked-model replacements remain authoritative.
 
 After Forge's model-bake event completes, independent workers resolve those
 canonical keys against the finalized baked-model registry. Each worker writes

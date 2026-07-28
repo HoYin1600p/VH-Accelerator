@@ -6,6 +6,8 @@ import dev.hoyin1600p.vhaccelerator.client.model.BlockStateModelLocationHolder;
 import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -78,6 +80,61 @@ public abstract class BlockModelShaperLocationMixin {
         }
     }
 
+    @Inject(
+            method = "stateToModelLocation("
+                    + "Lnet/minecraft/resources/ResourceLocation;"
+                    + "Lnet/minecraft/world/level/block/state/BlockState;)"
+                    + "Lnet/minecraft/client/resources/model/"
+                    + "ModelResourceLocation;",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private static void vhaccelerator$reuseCanonicalModelLocation(
+            ResourceLocation location,
+            BlockState state,
+            CallbackInfoReturnable<ModelResourceLocation> callback
+    ) {
+        if (!vhaccelerator$locationCacheEnabled()
+                || !vhaccelerator$isCanonical(location, state)) {
+            return;
+        }
+        ModelResourceLocation cached =
+                ((BlockStateModelLocationHolder) state)
+                        .vhaccelerator$getModelLocation();
+        if (cached != null) {
+            VHACCELERATOR$LOCATION_HITS.incrementAndGet();
+            callback.setReturnValue(cached);
+        } else {
+            VHACCELERATOR$LOCATION_MISSES.incrementAndGet();
+        }
+    }
+
+    @Inject(
+            method = "stateToModelLocation("
+                    + "Lnet/minecraft/resources/ResourceLocation;"
+                    + "Lnet/minecraft/world/level/block/state/BlockState;)"
+                    + "Lnet/minecraft/client/resources/model/"
+                    + "ModelResourceLocation;",
+            at = @At("RETURN")
+    )
+    private static void vhaccelerator$rememberCanonicalModelLocation(
+            ResourceLocation location,
+            BlockState state,
+            CallbackInfoReturnable<ModelResourceLocation> callback
+    ) {
+        if (!vhaccelerator$locationCacheEnabled()
+                || !vhaccelerator$isCanonical(location, state)) {
+            return;
+        }
+        BlockStateModelLocationHolder holder =
+                (BlockStateModelLocationHolder) state;
+        if (holder.vhaccelerator$getModelLocation() == null) {
+            holder.vhaccelerator$setModelLocation(
+                    callback.getReturnValue()
+            );
+        }
+    }
+
     @Inject(method = "rebuildCache", at = @At("HEAD"))
     private void vhaccelerator$beginLocationMeasurement(
             CallbackInfo callback
@@ -122,5 +179,15 @@ public abstract class BlockModelShaperLocationMixin {
                 && VHAcceleratorClientConfig.VALUES
                         .cacheBlockStateModelLocations
                         .get();
+    }
+
+    @Unique
+    private static boolean vhaccelerator$isCanonical(
+            ResourceLocation location,
+            BlockState state
+    ) {
+        return location.equals(
+                Registry.BLOCK.getKey(state.getBlock())
+        );
     }
 }
