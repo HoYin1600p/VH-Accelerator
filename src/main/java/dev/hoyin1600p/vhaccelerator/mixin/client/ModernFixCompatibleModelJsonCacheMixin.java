@@ -51,10 +51,21 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
                 && VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.parallelModelLoading
                 )) {
-            vhaccelerator$parsedModelCache =
-                    ParallelModelJsonParser.parse(
-                            vhaccelerator$modelCacheSession.models()
-                    );
+            Map<ResourceLocation, BlockModel> prewarmed =
+                    vhaccelerator$modelCacheSession.plainModels();
+            if (!prewarmed.isEmpty()) {
+                vhaccelerator$parsedModelCache = prewarmed;
+                VHAccelerator.LOGGER.info(
+                        "Reused {} plain models prewarmed before the "
+                                + "resource-reload barrier beside ModernFix",
+                        prewarmed.size()
+                );
+            } else {
+                vhaccelerator$parsedModelCache =
+                        ParallelModelJsonParser.parse(
+                                vhaccelerator$modelCacheSession.models()
+                        );
+            }
         }
     }
 

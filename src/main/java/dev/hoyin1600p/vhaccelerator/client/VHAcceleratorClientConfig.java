@@ -90,6 +90,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
+        public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
@@ -170,6 +171,14 @@ public final class VHAcceleratorClientConfig {
                             "parsed models, baked models, textures, and dynamic state are never stored.",
                             "Runtime resource reloads always bypass this cache.")
                     .define("persistentModelJsonCache", true);
+            prewarmPersistentPlainModels = builder
+                    .comment(
+                            "Parses eligible plain models from the validated persistent JSON",
+                            "cache before Minecraft reaches its initial resource-reload barrier.",
+                            "The prewarmed objects remain memory-only and are used only when",
+                            "the live asset fingerprint matches the cache. Forge custom loaders,",
+                            "BuildScape models, and failures keep their established loading path.")
+                    .define("prewarmPersistentPlainModels", true);
             persistentBlockStateJsonCache = builder
                     .comment(
                             "Persists ordered raw blockstate resource stacks.",

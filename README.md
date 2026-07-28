@@ -52,6 +52,8 @@ in the local LaunchFaster 1.0 jar. It has:
   fade, with completion guaranteed before the overlay is removed
 - automatic single-threaded handling and failure recovery for dynamic/custom
   Forge models
+- fingerprint-validated, memory-only prewarming of eligible plain models from
+  the persistent JSON cache before the initial resource-reload barrier
 - conservative defaults for behavior known to be unsafe in the original
 
 See [the original behavior map](docs/ORIGINAL_BEHAVIOR.md) for the complete

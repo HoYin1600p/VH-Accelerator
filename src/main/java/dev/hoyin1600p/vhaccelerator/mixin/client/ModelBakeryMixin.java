@@ -220,6 +220,17 @@ public abstract class ModelBakeryMixin {
         )) {
             return;
         }
+        PersistentModelJsonCache.Session session =
+                vhaccelerator$persistentModelCacheSession;
+        if (session != null && !session.plainModels().isEmpty()) {
+            vhaccelerator$parsedModelCache = session.plainModels();
+            VHAccelerator.LOGGER.info(
+                    "Reused {} plain models prewarmed before the "
+                            + "resource-reload barrier",
+                    vhaccelerator$parsedModelCache.size()
+            );
+            return;
+        }
         vhaccelerator$parsedModelCache =
                 ParallelModelJsonParser.parse(
                         vhaccelerator$modelJsonCache

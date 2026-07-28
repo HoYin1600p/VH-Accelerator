@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -28,6 +29,7 @@ import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import net.minecraft.Util;
+import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -113,6 +115,7 @@ public final class PersistentModelJsonCache {
             return new Session(
                     fingerprint,
                     cached.models,
+                    cached.plainModels,
                     true,
                     true
             );
@@ -140,7 +143,8 @@ public final class PersistentModelJsonCache {
 
         CachedFile cached = new CachedFile(
                 session.fingerprint,
-                session.models
+                session.models,
+                Map.of()
         );
         CompletableFuture.runAsync(() -> write(cached), WRITER);
     }
@@ -227,6 +231,7 @@ public final class PersistentModelJsonCache {
         return new Session(
                 fingerprint,
                 stable,
+                Map.of(),
                 false,
                 complete.get()
         );
@@ -298,9 +303,23 @@ public final class PersistentModelJsonCache {
                     models.size(),
                     (System.nanoTime() - started) / 1_000_000L
             );
+            Map<ResourceLocation, String> stableModels =
+                    Map.copyOf(models);
+            Map<ResourceLocation, BlockModel> plainModels =
+                    prewarmPlainModelsEnabled()
+                            ? ParallelModelJsonParser.parse(stableModels)
+                            : Map.of();
+            if (!plainModels.isEmpty()) {
+                VHAccelerator.LOGGER.info(
+                        "Prewarmed {} persistent plain models before the "
+                                + "resource-reload barrier",
+                        plainModels.size()
+                );
+            }
             return new CachedFile(
                     fingerprint,
-                    Map.copyOf(models)
+                    stableModels,
+                    plainModels
             );
         } catch (IOException | RuntimeException failure) {
             VHAccelerator.LOGGER.warn(
@@ -404,6 +423,18 @@ public final class PersistentModelJsonCache {
                 );
     }
 
+    private static boolean prewarmPlainModelsEnabled() {
+        return enabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .parallelModelLoading
+                )
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .prewarmPersistentPlainModels
+                );
+    }
+
     private static <T> void runBatched(
             List<T> values,
             java.util.function.Consumer<T> action
@@ -438,6 +469,7 @@ public final class PersistentModelJsonCache {
     public static final class Session {
         private final String fingerprint;
         private final Map<ResourceLocation, String> models;
+        private final Map<ResourceLocation, BlockModel> plainModels;
         private final boolean restored;
         private final boolean complete;
         private final AtomicBoolean valid = new AtomicBoolean(true);
@@ -445,17 +477,23 @@ public final class PersistentModelJsonCache {
         private Session(
                 String fingerprint,
                 Map<ResourceLocation, String> models,
+                Map<ResourceLocation, BlockModel> plainModels,
                 boolean restored,
                 boolean complete
         ) {
             this.fingerprint = fingerprint;
             this.models = models;
+            this.plainModels = plainModels;
             this.restored = restored;
             this.complete = complete;
         }
 
         public Map<ResourceLocation, String> models() {
             return models;
+        }
+
+        public Map<ResourceLocation, BlockModel> plainModels() {
+            return plainModels;
         }
 
         public void invalidate() {
@@ -465,7 +503,8 @@ public final class PersistentModelJsonCache {
 
     private record CachedFile(
             String fingerprint,
-            Map<ResourceLocation, String> models
+            Map<ResourceLocation, String> models,
+            Map<ResourceLocation, BlockModel> plainModels
     ) {
     }
 }
