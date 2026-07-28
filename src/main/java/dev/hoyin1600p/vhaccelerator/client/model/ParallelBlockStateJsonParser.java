@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +31,8 @@ public final class ParallelBlockStateJsonParser {
     private static final String BUILDSCAPE_NAMESPACE = "buildscape";
     private static final String PREFIX = "blockstates/";
     private static final String SUFFIX = ".json";
+    private static final Map<ResourceManager, CompletableFuture<Session>>
+            LAUNCH_SESSIONS = new IdentityHashMap<>();
 
     private ParallelBlockStateJsonParser() {
     }
@@ -44,6 +47,60 @@ public final class ParallelBlockStateJsonParser {
             return null;
         }
 
+        CompletableFuture<Session> shared;
+        boolean owner;
+        synchronized (LAUNCH_SESSIONS) {
+            shared = LAUNCH_SESSIONS.get(resourceManager);
+            owner = shared == null;
+            if (owner) {
+                shared = new CompletableFuture<>();
+                LAUNCH_SESSIONS.put(resourceManager, shared);
+            }
+        }
+
+        if (!owner) {
+            Session reused = shared.join();
+            if (reused != null) {
+                VHAccelerator.LOGGER.info(
+                        "Reused the prepared blockstate resource session "
+                                + "for another initial ModelBakery"
+                );
+            }
+            return reused;
+        }
+
+        Session prepared;
+        try {
+            prepared = prepareUnshared(resourceManager);
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Shared blockstate preparation failed; Minecraft "
+                            + "will use its original resource loader",
+                    failure
+            );
+            prepared = null;
+        }
+        shared.complete(prepared);
+        return prepared;
+    }
+
+    public static void releaseLaunchSessions() {
+        int released;
+        synchronized (LAUNCH_SESSIONS) {
+            released = LAUNCH_SESSIONS.size();
+            LAUNCH_SESSIONS.clear();
+        }
+        if (released > 0) {
+            VHAccelerator.LOGGER.info(
+                    "Released {} shared initial blockstate preparation session(s)",
+                    released
+            );
+        }
+    }
+
+    private static Session prepareUnshared(
+            ResourceManager resourceManager
+    ) {
         long started = System.nanoTime();
         PersistentBlockStateJsonCache.Session persistent =
                 PersistentBlockStateJsonCache.begin(

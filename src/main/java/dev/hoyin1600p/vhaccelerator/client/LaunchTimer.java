@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,6 +31,7 @@ public final class LaunchTimer {
                 elapsedMillis,
                 String.format("%.2f seconds", elapsedMillis / 1000.0)
         );
+        ParallelBlockStateJsonParser.releaseLaunchSessions();
     }
 
     public static long elapsedMillis() {
@@ -51,4 +53,3 @@ public final class LaunchTimer {
                 && CHAT_MESSAGE_CLAIMED.compareAndSet(false, true);
     }
 }
-

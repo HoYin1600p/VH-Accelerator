@@ -47,6 +47,16 @@ public abstract class ModelBakeryPreparationStartMixin
         vhaccelerator$startModelPreparation(resourceManager);
     }
 
+    @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
+    private void vhaccelerator$releasePreparationFutures(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$modelLocationFuture = null;
+        vhaccelerator$blockStateFuture = null;
+    }
+
     @Override
     public void vhaccelerator$startModelPreparation(
             ResourceManager resourceManager
