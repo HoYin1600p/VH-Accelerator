@@ -7,19 +7,28 @@ the Vault Hunters compatibility baseline.
 
 ## Sources reviewed
 
+- [Lightspeed](https://github.com/CCr4ft3r/lightspeed)
 - [ModernFix](https://github.com/embeddedt/ModernFix)
 - [DashLoader](https://github.com/alphaqu/DashLoader)
+- [Just Enough Threads](https://github.com/Tonywww2/JEI-Optimize)
 - [FerriteCore](https://github.com/malte0811/FerriteCore)
 - [ImmediatelyFast](https://github.com/RaphiMC/ImmediatelyFast)
 - [C2ME](https://github.com/RelativityMC/C2ME-fabric)
 - [Krypton](https://github.com/astei/krypton)
 - [Fastload](https://github.com/BumbleSoftware/Fastload)
+- [Ksyxis](https://www.curseforge.com/minecraft/mc-mods/ksyxis)
 - [Loading Profiler](https://github.com/Minecraft-LightLand/LoadingProfilerCore)
+- [BuildScape](https://github.com/HoYin1600p/Buildscape)
 - NeoForge's
   [1.21.5 model-system primer](https://github.com/neoforged/.github/blob/main/primers/1.21.5/index.md)
 
 Ignored source checkouts and local Minecraft source comparisons live under
 `reference/research/`.
+
+These projects were used for discovery, comparison, and design constraints.
+No reviewed source tree or third-party binary is bundled with VH Accelerator.
+The specific attribution relationship for each project is recorded in
+[CREDITS.md](../CREDITS.md).
 
 ## ModelManager ideas ported
 

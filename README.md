@@ -1,147 +1,214 @@
 # VH Accelerator
 
-VH Accelerator is a maintainable Forge 1.18.2 mod intended to reproduce and
-extend the useful launch-time optimizations from LaunchFaster.
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
+[![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-1.0.0-7b68ee)](docs/releases/1.0.0.md)
 
-## Upgrading development builds
+VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
+clients. It reduces work on the client-launch and multiplayer-login critical
+paths while keeping the first reported world frame playable.
 
-VH Accelerator uses the mod ID `vhaccelerator` and produces
-`VH-Accelerator-<version>.jar`. On its first run, it imports the previous
-development build's common and client settings when the corresponding new
-config does not exist. The original config files are left untouched for
-rollback.
+The same jar supports the current Vault Hunters Third Edition, Remastered, and
+the custom MVP test profile. Optional integrations activate only when their
+target mod and supported class layout are present.
 
-Remove or disable the previous jar before installing VH Accelerator. When a
-server also has the mod installed, client and server must both use the new mod
-identity.
+## Highlights
 
-## Current status
+- Parallel, guarded model and blockstate preparation with automatic
+  single-threaded fallback for custom or dynamic models.
+- Fingerprinted persistent caches for deterministic model, material, JEI,
+  recipe-index, and fuel data.
+- A private asynchronous JEI search-index build with main-thread publication,
+  stale-session rejection, and sequential failure recovery.
+- Parallel vanilla JEI recipe validation and prefix indexing while preserving
+  result order.
+- Targeted optimizations for Vault Hunters, JEITweaker, CraftTweaker, JER,
+  Powah, Thermal, Iron Furnaces, Industrial Foregoing, and Xaero's maps.
+- Launch, server-login, server/world-transfer, post-login-work, and disconnect
+  timers.
+- Compare Mode for disabling every optimization without losing measurement
+  tools.
+- Automatic ownership handoff for overlapping ModernFix features.
+- One universal jar containing isolated JEI 9 and JEI 10 compatibility
+  modules.
 
-This repository contains a first-pass implementation of every behavior found
-in the local LaunchFaster 1.0 jar. It has:
+The safety rule is simple: work may be prepared concurrently in private
+memory, but live game or mod state is published only at a defined completion
+barrier. Dynamic models, OpenGL uploads, ordered Forge callbacks, and unknown
+mod behavior remain on their established threads.
 
-- Forge 1.18.2 with Forge 40.3.11 as the development baseline
-- Java 17 and official Mojang mappings
-- client and dedicated-server run configurations
-- separate common and physical-client initialization paths
-- side-aware common and client mixins
-- client and dedicated-server launch timing, repeatable multiplayer
-  connect-to-first-playable-frame timing, and packet-to-playable-frame
-  server/world transfer timing
-- persistent Compare Mode for disabling every optimization while retaining
-  whichever timer and debug instrumentation switches are enabled
-- Compare-safe ModelBakery/ModelManager sub-phase measurements for discovery,
-  material/atlas preparation, upload/baking, Forge model-bake callbacks, and
-  the final block render lookup
-- model loading, atlas preparation, model baking, resource-list, reload, and
-  BlockState optimization paths
-- immutable jar-backed resource indexes with automatic fallback for folder,
-  generated, failed, or ModernFix-owned packs
-- indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
-  group construction for faster world entry
-- parallel Thermal manager refresh with a tag/config-validated persistent
-  Stirling furnace-fuel cache
-- parallel CraftTweaker tag binding and compact synchronized client replay
-  logging that preserves warnings, errors, and lifecycle diagnostics
-- one universal jar with isolated JEI 9 and JEI 10 compatibility modules,
-  selected from the installed JEI class layout before mixins are applied
-- a guarded JEI startup worker with stale-connection rejection and
-  main-thread publication
-- automatic disabling of overlapping mixins when ModernFix is present
-- optional post-launch deferral of validated Xaero Minimap and World Map
-  update/Patreon network checks
-- initial Vault GUI atlas uploads scheduled across the fixed loading-overlay
-  fade, with completion guaranteed before the overlay is removed
-- automatic single-threaded handling and failure recovery for dynamic/custom
-  Forge models
-- fingerprint-validated, memory-only prewarming of eligible plain models from
-  the persistent JSON cache before the initial resource-reload barrier
-- registry-informed sizing for ModelBakery's large maps plus direct promotion
-  of already-loaded block-state models
-- optional Forge client-loading phase and resource-listener attribution for
-  identifying the next bottleneck
-- conservative defaults for behavior known to be unsafe in the original
+## Requirements and support
 
-See [the original behavior map](docs/ORIGINAL_BEHAVIOR.md) for the complete
-inventory and [the optimization backlog](docs/OPTIMIZATION_BACKLOG.md) for
-additional launch-time work worth profiling.
+| Component | Supported |
+| --- | --- |
+| Minecraft | `1.18.2` |
+| Forge | `40.3.11` through `40.x` |
+| Java toolchain | Java 17 bytecode |
+| Vault Hunters Remastered | `20.0.3-remastered.6872` baseline |
+| Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
+| Custom MVP | `3.21.62` baseline |
+| JEI | `9.7.2.1001` and `10.2.1.1009` |
 
-The older VHClientOptimize reference has a separate
-[behavior and risk analysis](docs/VH_CLIENT_OPTIMIZE_ANALYSIS.md).
-The pinned Vault/JEI versions and read-only VaultCrafters comparison are in
-[the compatibility baseline](docs/COMPATIBILITY_BASELINE.md).
-Configuration and cluster-test coverage for the new world-load paths are in
-[the world-load optimization guide](docs/WORLD_LOAD_OPTIMIZATIONS.md).
-Dedicated-server class-loading boundaries, defaults, and optimization
-ownership are documented in [the server safety audit](docs/SERVER_SAFETY.md).
-Dynamic model exclusions and Sophisticated Storage compatibility are
-documented in [the dynamic model safety guide](docs/DYNAMIC_MODEL_SAFETY.md).
-The implemented and rejected ideas from newer loading systems are recorded in
-[the cross-version loading research](docs/CROSS_VERSION_LOADING_RESEARCH.md).
+VH Accelerator can be installed on a client that connects to a server without
+the mod. It can also be installed on a dedicated server, where all client and
+optional-mod compatibility classes are excluded. Version 1.0.0 includes a
+server launch timer and conservative shared resource indexing; broader
+server-side optimization is planned and will be documented separately.
 
-## Compare Mode
+See [Installation](docs/INSTALLATION.md) for placement, upgrade, conflicting
+mods, and first-launch expectations.
 
-Set `diagnostics.compareMode = true` in
-`config/vhaccelerator-common.toml`, or run:
+## Quick install
 
-```text
-/vha compare on
+1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
+2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
+   overlap paths now owned by VH Accelerator.
+3. Place `VH-Accelerator-1.0.0.jar` in the instance's `mods` directory.
+4. Launch once to create the configuration and validated cache directory.
+5. Keep the default configuration for the first stability test.
+
+ModernFix is optional. When present, VH Accelerator detects its effective
+dynamic-resource setting and disables overlapping transformations.
+
+## Commands
+
+All command changes are saved. A bare toggle name reports its current state,
+as does its `status` form.
+
+| Command | Result |
+| --- | --- |
+| `/vha` | Reports Compare Mode, timers, and debug state together. |
+| `/vha compare` | Reports Compare Mode. |
+| `/vha compare on` | Disables all VH Accelerator optimizations; keeps selected instrumentation. Restart before measuring. |
+| `/vha compare off` | Restores configured optimizations. Restart before measuring launch time. |
+| `/vha compare status` | Reports Compare Mode. |
+| `/vha timers` | Reports visible/routine timer state. |
+| `/vha timers on` | Enables timer displays and routine timing logs immediately. |
+| `/vha timers off` | Disables timer displays and routine timing logs immediately. |
+| `/vha timers status` | Reports timer state. |
+| `/vha debug` | Reports detailed diagnostic state. |
+| `/vha debug on` | Enables detailed profiling; reconnect or restart for complete samples. |
+| `/vha debug off` | Stops new detailed diagnostic sampling. |
+| `/vha debug status` | Reports detailed diagnostic state. |
+
+These are client commands in multiplayer and require no server permission.
+The same commands are available to a dedicated-server console and to operators
+with permission level 2 or higher.
+
+The complete behavior and permission reference is in
+[Configuration and commands](docs/CONFIGURATION.md).
+
+## Configuration
+
+VH Accelerator writes:
+
+- `config/vhaccelerator-common.toml`
+- `config/vhaccelerator-client.toml`
+
+Release defaults use:
+
+```toml
+[diagnostics]
+compareMode = false
+timers = true
+debug = false
 ```
 
-The command saves the setting. Restart before collecting a launch baseline.
-Use `/vha compare off` to restore optimizations and `/vha compare status` to
-inspect the current state. Compare Mode adds `[COMPARE]` to the main-menu
-timer when timers are enabled and prevents cache prewarming or other VH
-Accelerator optimization work. Timer and debug
-instrumentation are controlled independently. The command is client-side in
-multiplayer and is also available from a dedicated-server console.
+Detailed diagnostics are intentionally off for normal play. The timer display
+is on so users can immediately measure launch and login behavior.
 
-## Instrumentation controls
+Persistent cache files live under `cache/vhaccelerator/`. They are validated
+against the installed mods, relevant configs, resource packs, server identity,
+registries, synchronized tags, recipes, and Forge server config as appropriate
+for each cache. A mismatch runs the original path and replaces the affected
+cache; stale cache data is not trusted.
 
-Timer displays, chat notices, and routine timing summaries are enabled by
-default. Detailed profiling and diagnostic attribution remain disabled by
-default. They can be controlled independently:
+See [Configuration and commands](docs/CONFIGURATION.md) for every setting and
+default.
 
-```text
-/vha timers on
-/vha debug on
-```
+## Measurement
 
-Use `off` to disable either switch and `status` to inspect it. `/vha` reports
-Compare Mode and both instrumentation switches together. Timer display changes
-apply immediately. Reconnect after enabling debug for connection diagnostics,
-and restart for complete launch diagnostics.
+Depending on enabled timers and the event being measured, VH Accelerator
+reports:
 
-## Reference material
+- client or dedicated-server launch time;
+- multiplayer connect to first playable frame;
+- server/world transfer packet to first playable frame;
+- completion of post-login background work;
+- disconnect start to the next menu.
 
-The local `reference/` directory is intentionally ignored by Git. It contains:
+Use at least three warm runs and compare medians. Network delay and server tick
+load are part of login time, so a single connection is not a reliable
+benchmark. [Testing and benchmarking](docs/TESTING.md) provides a repeatable
+Compare Mode protocol.
 
-- `original/launchfaster-1.0.jar`, copied from the local PrismLauncher instance
-- `decompiled/`, generated with CFR 0.152
-- `modernfix-compat/`, a comparison of the local compatibility build
-- `vh-client-optimize/`, the 1.0.4-u19 jar, decompiled sources, and extracted
-  metadata/resources
-- `vault-remastered/`, `vault-mvp/`, `vault-official-latest/`, `jei/`,
-  `powah/`, and `jeitweaker/`, local compatibility references
-- `sophisticatedstorage/`, the exact testing-pack version decompiled for model
-  loader analysis
+## Compatibility and safety
 
-Reference jar SHA-256:
-`E7594E83836E7F1AEFD2533CEBAD7F22DEB7682A35796E810042F34164F59BFC`
+- Unsupported JEI layouts simply leave the relevant optional mixins disabled.
+- Optional integrations are presence-gated and are not bundled.
+- Forge custom geometry and dynamic model graphs use the original sequential
+  path.
+- Sophisticated Storage, Vault gear, Every Compat, and BuildScape models were
+  explicit visual-safety targets during development.
+- ModernFix owns overlapping dynamic-resource, resource-list, registry, and
+  BlockState paths when appropriate.
+- Cache failures, malformed data, worker exceptions, and stale connection
+  generations fall back to the original implementation.
 
-The original jar declares the MIT license. Decompiled output is for local
-implementation reference and is not part of this repository's tracked source.
+Current compatibility details:
 
-## Build
+- [Compatibility baseline](docs/COMPATIBILITY_BASELINE.md)
+- [Dynamic model safety](docs/DYNAMIC_MODEL_SAFETY.md)
+- [World-load optimizations](docs/WORLD_LOAD_OPTIMIZATIONS.md)
+- [Dedicated-server safety](docs/SERVER_SAFETY.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [Installation](docs/INSTALLATION.md) | Supported placement, upgrades, conflicts, and removal |
+| [Configuration and commands](docs/CONFIGURATION.md) | Every option, default, command, and permission |
+| [Testing and benchmarking](docs/TESTING.md) | Compare Mode and repeatable launch/login testing |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Safe isolation and issue-reporting steps |
+| [Release notes 1.0.0](docs/releases/1.0.0.md) | Initial public release |
+| [Changelog](CHANGELOG.md) | Version-to-version changes |
+| [Credits](CREDITS.md) | Inspiration, research, and compatibility attribution |
+| [Original behavior map](docs/ORIGINAL_BEHAVIOR.md) | LaunchFaster behavior studied during initial discovery |
+| [VHClientOptimize analysis](docs/VH_CLIENT_OPTIMIZE_ANALYSIS.md) | Vault/JEI behavior and risk review |
+| [Cross-version research](docs/CROSS_VERSION_LOADING_RESEARCH.md) | Other performance projects and newer model pipelines |
+
+## Building
+
+Requirements:
+
+- JDK 17
+- the compile-only jars listed in [`libs/README.md`](libs/README.md)
+
+Build and run all compatibility checks:
 
 ```powershell
-.\gradlew.bat build
+.\gradlew.bat clean build
 ```
 
-The build compiles the same sources against all four supported profiles:
-Remastered with JEI 10; the custom MVP with JEI 9; and official 3.21.5 and
-3.21.6 with JEI 9. It then verifies that the reobfuscated output contains
-both isolated JEI compatibility generations without bundling JEI or Vault
-classes.
+The reobfuscated release jar is written to `build/libs/`. The build compiles
+the same source against all four Vault profiles and verifies that both JEI
+generations are present without bundling JEI, Vault Hunters, or any optional
+compatibility dependency.
 
-The single reobfuscated mod jar is written to `build/libs/`.
+## Credits and license
+
+VH Accelerator was independently implemented by
+[HoYin1600p](https://github.com/HoYin1600p). Its earliest discovery work was
+inspired by LaunchFaster by [DogV2](https://github.com/DogV2) and
+[VHClientOptimize](https://github.com/JustAHuman-xD/VHClientOptimize) by
+JustAHuman. Many other performance and compatibility projects informed later
+research; all are documented in [CREDITS.md](CREDITS.md).
+
+No third-party mod jar or source is bundled in this repository or release.
+VH Accelerator is licensed under the [MIT License](LICENSE).
+
+Minecraft is a trademark of Microsoft. Vault Hunters belongs to its respective
+authors. This project is not affiliated with Mojang, Microsoft, Forge,
+Iskallia, JEI, or the credited projects.

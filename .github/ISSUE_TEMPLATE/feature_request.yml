@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a measured optimization, compatibility change, or tool.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: bottleneck
+    attributes:
+      label: Bottleneck or problem
+      description: Describe the measured cost or user-visible limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include timings, profiler output, logs, and affected mod versions where available.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the desired outcome, not only a specific implementation.
+    validations:
+      required: true
+  - type: dropdown
+    id: side
+    attributes:
+      label: Scope
+      options:
+        - Client launch
+        - Client login or transfer
+        - Client runtime
+        - Dedicated server
+        - Common/client and server
+        - Diagnostics or tooling
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and compatibility considerations
+      description: Note thread ownership, publication barriers, invalidation, and fallback risks.
+  - type: textarea
+    id: attribution
+    attributes:
+      label: Related projects or research
+      description: Link any project that inspired the request so it can be credited.

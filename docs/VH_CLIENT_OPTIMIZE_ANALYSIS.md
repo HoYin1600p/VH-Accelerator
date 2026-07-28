@@ -1,5 +1,11 @@
 # VHClientOptimize 1.0.4-u19 analysis
 
+VHClientOptimize was created by
+[JustAHuman](https://github.com/JustAHuman-xD). Its work provided primary
+discovery inspiration for Vault- and JEI-specific profiling. Credit applies
+even where VH Accelerator chose a different implementation or rejected the
+original tradeoff.
+
 ## Artifact
 
 - Local reference: `reference/vh-client-optimize/`

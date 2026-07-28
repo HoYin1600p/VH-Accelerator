@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a crash, compatibility problem, broken model, or regression.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read the troubleshooting guide before filing. Redact tokens, private
+        server addresses, and local profile-directory names from attachments.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I tested with only one VH Accelerator jar installed.
+          required: true
+        - label: I disabled LaunchFaster, Lightspeed, and VHClientOptimize.
+          required: true
+        - label: I checked the issue is not already reported.
+          required: true
+  - type: input
+    id: vha-version
+    attributes:
+      label: VH Accelerator version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Minecraft, Forge, Vault, and JEI versions
+      placeholder: "Minecraft 1.18.2; Forge 40.3.11; Vault ...; JEI ..."
+    validations:
+      required: true
+  - type: textarea
+    id: performance-mods
+    attributes:
+      label: Other performance or rendering mods
+      description: Include ModernFix and whether dynamic resources are enabled.
+    validations:
+      required: true
+  - type: dropdown
+    id: side
+    attributes:
+      label: Physical side
+      options:
+        - Client
+        - Dedicated server
+        - Both
+    validations:
+      required: true
+  - type: dropdown
+    id: compare
+    attributes:
+      label: Does Compare Mode reproduce the problem?
+      options:
+        - "Yes"
+        - "No"
+        - Not tested
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include expected behavior and whether the issue is in-world, in JEI, or both.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and crash report
+      description: Drag the complete latest.log and crash report here as files.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Changed VH Accelerator settings
+      description: List only values changed from defaults, or write "none".
+    validations:
+      required: true

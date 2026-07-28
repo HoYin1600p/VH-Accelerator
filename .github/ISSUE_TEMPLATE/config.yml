@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/HoYin1600p/VH-Accelerator/blob/master/docs/TROUBLESHOOTING.md
+    about: Safe isolation, cache reset, and required logs.
+  - name: Security report
+    url: https://github.com/HoYin1600p/VH-Accelerator/security/advisories/new
+    about: Privately report vulnerabilities with security impact.
