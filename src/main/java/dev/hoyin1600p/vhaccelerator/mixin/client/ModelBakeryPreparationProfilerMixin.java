@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ModelBakery.class, priority = 2_000)
@@ -45,26 +44,118 @@ public abstract class ModelBakeryPreparationProfilerMixin {
         vhaccelerator$stageStarted = System.nanoTime();
     }
 
-    @Redirect(
+    @Inject(
             method = "processLoading",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
-                            + "Ljava/lang/String;)V"
-            )
+                            + "Ljava/lang/String;)V",
+                    ordinal = 0
+            ),
+            require = 0
     )
-    private void vhaccelerator$recordPreparationStage(
+    private void vhaccelerator$profileStaticDefinitions(
             ProfilerFiller profiler,
-            String nextStage
+            int mipLevel,
+            CallbackInfo callback
     ) {
-        if (vhaccelerator$profilePreparation) {
-            vhaccelerator$finishCurrentStage();
-            vhaccelerator$currentStage =
-                    vhaccelerator$displayName(nextStage);
-            vhaccelerator$stageStarted = System.nanoTime();
-        }
-        profiler.popPush(nextStage);
+        vhaccelerator$transitionTo("static_definitions");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/util/profiling/"
+                            + "ProfilerFiller;popPush("
+                            + "Ljava/lang/String;)V",
+                    ordinal = 1
+            ),
+            require = 0
+    )
+    private void vhaccelerator$profileBlocks(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("blocks");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/util/profiling/"
+                            + "ProfilerFiller;popPush("
+                            + "Ljava/lang/String;)V",
+                    ordinal = 2
+            ),
+            require = 0
+    )
+    private void vhaccelerator$profileItems(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("items");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/util/profiling/"
+                            + "ProfilerFiller;popPush("
+                            + "Ljava/lang/String;)V",
+                    ordinal = 3
+            ),
+            require = 0
+    )
+    private void vhaccelerator$profileSpecialModels(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("special");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/util/profiling/"
+                            + "ProfilerFiller;popPush("
+                            + "Ljava/lang/String;)V",
+                    ordinal = 4
+            ),
+            require = 0
+    )
+    private void vhaccelerator$profileMaterials(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("textures");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/util/profiling/"
+                            + "ProfilerFiller;popPush("
+                            + "Ljava/lang/String;)V",
+                    ordinal = 5
+            ),
+            require = 0
+    )
+    private void vhaccelerator$profileAtlasPreparation(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("stitching");
     }
 
     @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
@@ -116,6 +207,17 @@ public abstract class ModelBakeryPreparationProfilerMixin {
                 System.nanoTime() - vhaccelerator$stageStarted,
                 Long::sum
         );
+    }
+
+    @Unique
+    private void vhaccelerator$transitionTo(String nextStage) {
+        if (!vhaccelerator$profilePreparation) {
+            return;
+        }
+        vhaccelerator$finishCurrentStage();
+        vhaccelerator$currentStage =
+                vhaccelerator$displayName(nextStage);
+        vhaccelerator$stageStarted = System.nanoTime();
     }
 
     @Unique
