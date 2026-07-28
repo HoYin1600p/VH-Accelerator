@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator;
 
+import java.lang.management.ManagementFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class ServerLaunchTimer {
@@ -10,10 +12,19 @@ public final class ServerLaunchTimer {
     }
 
     public static void markStart() {
-        if (START_NANOS.compareAndSet(-1L, System.nanoTime())) {
+        long attachedAtNanos = System.nanoTime();
+        long processUptimeMillis = Math.max(
+                0L,
+                ManagementFactory.getRuntimeMXBean().getUptime()
+        );
+        long processStartNanos = attachedAtNanos
+                - TimeUnit.MILLISECONDS.toNanos(processUptimeMillis);
+        if (START_NANOS.compareAndSet(-1L, processStartNanos)) {
             if (VHAcceleratorConfig.instrumentationEnabled()) {
                 VHAccelerator.LOGGER.info(
-                        "Dedicated-server launch timer started"
+                        "Dedicated-server launch timer attached {} ms "
+                                + "after JVM process start",
+                        processUptimeMillis
                 );
             }
         }
