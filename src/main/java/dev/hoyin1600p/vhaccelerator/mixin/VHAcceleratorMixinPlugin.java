@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import net.minecraftforge.api.distmarker.Dist;
@@ -34,6 +36,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean ironFurnacesLoaded;
     private boolean industrialForegoingLoaded;
     private boolean physicalClient;
+    private Boolean modernFixDynamicResourcesEnabled;
+    private boolean reportedModernFixBakeDecision;
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -146,7 +150,80 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains(".compat.industrialforegoing.")) {
             return jeiLoaded && industrialForegoingLoaded;
         }
+        if (mixinClassName.endsWith(
+                ".ModernFixCompatibleModelBakingMixin"
+        )) {
+            if (!modernFixLoaded) {
+                return false;
+            }
+            boolean dynamicResources =
+                    modernFixDynamicResourcesEnabled();
+            if (!reportedModernFixBakeDecision) {
+                reportedModernFixBakeDecision = true;
+                if (dynamicResources) {
+                    LOGGER.warn(
+                            "ModernFix dynamic resources are enabled or "
+                                    + "could not be verified as disabled; "
+                                    + "VH Accelerator parallel model baking "
+                                    + "will stay off"
+                    );
+                } else {
+                    LOGGER.info(
+                            "ModernFix dynamic resources are disabled; "
+                                    + "enabling guarded VH Accelerator "
+                                    + "parallel model baking"
+                    );
+                }
+            }
+            return !dynamicResources;
+        }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
+    }
+
+    private boolean modernFixDynamicResourcesEnabled() {
+        if (modernFixDynamicResourcesEnabled != null) {
+            return modernFixDynamicResourcesEnabled;
+        }
+
+        /*
+         * ModernFix resolves defaults, user properties, and mod overrides in
+         * its early config. Query that final decision rather than guessing
+         * from a single properties file. If its plugin is not ready or its
+         * API changes, fail closed and leave ModelBakery entirely to
+         * ModernFix.
+         */
+        try {
+            Class<?> pluginClass = Class.forName(
+                    "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
+                    false,
+                    VHAcceleratorMixinPlugin.class.getClassLoader()
+            );
+            Field instanceField = pluginClass.getField("instance");
+            Object instance = instanceField.get(null);
+            if (instance == null) {
+                return true;
+            }
+            Method optionMethod = pluginClass.getMethod(
+                    "isOptionEnabled",
+                    String.class
+            );
+            Object enabled = optionMethod.invoke(
+                    instance,
+                    "perf.dynamic_resources.ModelBakeryMixin"
+            );
+            modernFixDynamicResourcesEnabled =
+                    !Boolean.FALSE.equals(enabled);
+        } catch (ReflectiveOperationException
+                 | RuntimeException
+                 | LinkageError failure) {
+            modernFixDynamicResourcesEnabled = true;
+            LOGGER.debug(
+                    "Could not query ModernFix's effective dynamic-resource "
+                            + "configuration",
+                    failure
+            );
+        }
+        return modernFixDynamicResourcesEnabled;
     }
 
     @Override

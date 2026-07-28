@@ -25,6 +25,7 @@
     "client.LoadingOverlayMixin",
     "client.MinecraftDisconnectMixin",
     "client.MinecraftUserApiMixin",
+    "client.ModernFixCompatibleModelBakingMixin",
     "client.ReloadListenerProfilerMixin",
     "client.SkullBlockEntityMixin",
     "client.BlockModelMixin",
