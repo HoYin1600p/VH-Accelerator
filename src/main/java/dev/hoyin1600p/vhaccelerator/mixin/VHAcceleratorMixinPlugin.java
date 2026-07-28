@@ -189,6 +189,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 ".ModelBakeryLocationPreloadMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryPreparationStartMixin"
+        ) || mixinClassName.endsWith(
+                ".ModelBakeryPreparationProfilerMixin"
         )) {
             if (!modernFixLoaded) {
                 return true;
