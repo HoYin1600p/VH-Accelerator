@@ -46,6 +46,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
+        public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
         public final ForgeConfigSpec.BooleanValue showLaunchTimer;
 
@@ -226,6 +227,13 @@ public final class VHAcceleratorClientConfig {
                             "Caches Vault Hunters tooltip lookups by item and active locale.",
                             "Only used when both the client optimization master switch and The Vault are present.")
                     .define("cacheVaultTooltips", true);
+            optimizeVaultAtlasValidation = builder
+                    .comment(
+                            "Validates Vault texture atlases with constant-time membership checks.",
+                            "The same missing and unused textures are counted, but warning details",
+                            "are bounded so a large mismatch cannot stall launch with log output.",
+                            "This changes diagnostics only; atlas contents are never modified.")
+                    .define("optimizeVaultAtlasValidation", true);
             builder.pop();
 
             builder.push("display");

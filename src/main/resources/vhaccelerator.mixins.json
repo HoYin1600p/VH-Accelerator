@@ -58,6 +58,7 @@
     "compat.ironfurnaces.IronFurnacesJeiPluginMixin",
     "compat.industrialforegoing.IndustrialForegoingJeiPluginMixin",
     "compat.powah.WikiMixin",
+    "compat.vaulthunters.AbstractTextureAtlasHolderMixin",
     "compat.vaulthunters.GroupUtilsMixin",
     "compat.vaulthunters.TooltipConfigMixin"
   ],
