@@ -112,12 +112,13 @@ public final class VHAcceleratorConfig {
     }
 
     public static boolean compareModeEnabled() {
-        return COMMON.compareMode.get();
+        return BootstrapCompareMode.enabled();
     }
 
     public static void setCompareMode(boolean enabled) {
         COMMON.compareMode.set(enabled);
         COMMON.compareMode.save();
+        BootstrapCompareMode.set(enabled);
         VHAccelerator.LOGGER.info(
                 "Compare Mode {} and saved",
                 enabled ? "enabled" : "disabled"

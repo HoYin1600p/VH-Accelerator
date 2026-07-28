@@ -71,7 +71,7 @@ public final class PersistentModelMaterialCache {
     }
 
     public static synchronized void prewarm() {
-        if (preloadStarted) {
+        if (!enabled() || preloadStarted) {
             return;
         }
         preloadStarted = true;

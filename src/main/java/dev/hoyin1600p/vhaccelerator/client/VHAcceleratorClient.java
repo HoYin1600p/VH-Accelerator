@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.client;
 
 import com.mojang.realmsclient.RealmsMainScreen;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorCommand;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
@@ -75,6 +76,11 @@ public final class VHAcceleratorClient {
             if (thermalLoaded) {
                 PersistentStirlingFuelCache.prewarm();
             }
+        } else if (VHAcceleratorConfig.compareModeEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Compare Mode bootstrap audit: skipped all client "
+                            + "optimization startup groups"
+            );
         }
     }
 

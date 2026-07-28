@@ -15,7 +15,7 @@ public final class ConfigMigration {
     public static final String COMMON_CONFIG = "vhaccelerator-common.toml";
     public static final String CLIENT_CONFIG = "vhaccelerator-client.toml";
 
-    private static final String LEGACY_COMMON_CONFIG = "launchfastertoo-common.toml";
+    static final String LEGACY_COMMON_CONFIG = "launchfastertoo-common.toml";
     private static final String LEGACY_CLIENT_CONFIG = "launchfastertoo-client.toml";
 
     private ConfigMigration() {

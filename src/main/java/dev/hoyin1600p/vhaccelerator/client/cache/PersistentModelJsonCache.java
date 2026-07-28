@@ -70,7 +70,7 @@ public final class PersistentModelJsonCache {
     }
 
     public static synchronized void prewarm() {
-        if (preloadStarted) {
+        if (!enabled() || preloadStarted) {
             return;
         }
         preloadStarted = true;
