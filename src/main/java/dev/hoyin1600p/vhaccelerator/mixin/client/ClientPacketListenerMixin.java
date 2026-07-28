@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.client.ServerLoginTimer;
 import dev.hoyin1600p.vhaccelerator.client.ServerTransferTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.compat.thermal.ThermalRefreshPhase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -68,6 +69,7 @@ public abstract class ClientPacketListenerMixin {
 
         vhaccelerator$recipePacketStarted =
                 ClientConnectionProfiler.startStage();
+        ThermalRefreshPhase.beginRecipes();
         if (!VHAcceleratorClientConfig.VALUES
                 .enableClientOptimizations
                 .get()
@@ -157,6 +159,7 @@ public abstract class ClientPacketListenerMixin {
         }
         long started = vhaccelerator$recipePacketStarted;
         vhaccelerator$recipePacketStarted = -1L;
+        ThermalRefreshPhase.finishRecipes();
         ClientConnectionProfiler.finishStage(
                 "complete synchronized recipe application",
                 started
@@ -169,6 +172,7 @@ public abstract class ClientPacketListenerMixin {
             CallbackInfo callback
     ) {
         if (Minecraft.getInstance().isSameThread()) {
+            ThermalRefreshPhase.beginTags();
             vhaccelerator$tagPacketStarted =
                     ClientConnectionProfiler.startStage();
             long fingerprintStarted = ClientConnectionProfiler.startStage();
@@ -271,6 +275,7 @@ public abstract class ClientPacketListenerMixin {
         }
         long started = vhaccelerator$tagPacketStarted;
         vhaccelerator$tagPacketStarted = -1L;
+        ThermalRefreshPhase.finishTags();
         ClientConnectionProfiler.finishStage(
                 "complete synchronized tag application",
                 started

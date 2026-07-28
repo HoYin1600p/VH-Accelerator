@@ -8,6 +8,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -29,6 +30,7 @@ import net.minecraftforge.internal.BrandingControl;
 public final class VHAcceleratorClient {
     private static boolean ironFurnacesLoaded;
     private static boolean jerLoaded;
+    private static boolean thermalLoaded;
 
     private VHAcceleratorClient() {
     }
@@ -47,9 +49,13 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenDrawn);
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
+        thermalLoaded = ModList.get().isLoaded("thermal");
         AdaptiveJeiWorkScheduler.initialize();
         PersistentVanillaIngredientCache.prewarm();
         PersistentRecipeValidationCache.prewarm();
+        if (thermalLoaded) {
+            PersistentStirlingFuelCache.prewarm();
+        }
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {

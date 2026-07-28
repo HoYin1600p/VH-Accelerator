@@ -46,6 +46,8 @@
     "compat.jeitweaker.JeiTweakerPluginMixin",
     "compat.jer.JeiConfigMixin",
     "compat.crafttweaker.CraftTweakerTagRegistryMixin",
+    "compat.thermal.SingleItemFuelManagerAccessor",
+    "compat.thermal.StirlingFuelManagerMixin",
     "compat.thermal.ThermalRecipeManagersMixin",
     "compat.ironfurnaces.IronFurnacesJeiPluginMixin",
     "compat.industrialforegoing.IndustrialForegoingJeiPluginMixin",

@@ -174,6 +174,9 @@ public final class VHAcceleratorClientConfig {
             parallelThermalRecipeRefresh = builder
                     .comment(
                             "Refreshes independent Thermal machine recipe managers concurrently.",
+                            "Defers Stirling's duplicate pre-tag furnace-fuel scan and restores",
+                            "validated base fuel values from disk when server tags/configs match.",
+                            "Thermal's explicit recipe overrides are always applied fresh.",
                             "The Forge recipe/tag event remains blocked until every manager finishes,",
                             "so no incomplete Thermal recipe state reaches the first world frame.")
                     .define("parallelThermalRecipeRefresh", true);

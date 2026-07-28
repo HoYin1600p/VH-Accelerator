@@ -32,6 +32,8 @@ in the local LaunchFaster 1.0 jar. It has:
   BlockState optimization paths
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
   group construction for faster world entry
+- parallel Thermal manager refresh with a tag/config-validated persistent
+  Stirling furnace-fuel cache
 - one universal jar with isolated JEI 9 and JEI 10 compatibility modules,
   selected from the installed JEI class layout before mixins are applied
 - a guarded JEI startup worker with stale-connection rejection and
