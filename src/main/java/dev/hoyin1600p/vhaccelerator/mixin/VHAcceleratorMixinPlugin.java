@@ -187,6 +187,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 ".ParallelBlockModelShaperMixin"
         ) || mixinClassName.endsWith(
                 ".ModelBakeryLocationPreloadMixin"
+        ) || mixinClassName.endsWith(
+                ".ModelBakeryPreparationStartMixin"
         )) {
             if (!modernFixLoaded) {
                 return true;

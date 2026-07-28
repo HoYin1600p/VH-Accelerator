@@ -65,6 +65,12 @@ immutable registry and block-state data, then publish one immutable key on the
 corresponding state. A failed key is simply left empty for Minecraft to create
 on its established discovery path.
 
+Canonical-key and blockstate preparation start together before model JSON
+preparation. All three independent pipelines join before the original bakery
+begins discovery. This mirrors the separated asynchronous model/blockstate
+pipeline in newer Minecraft without allowing partially prepared data into
+Forge model loading.
+
 After Forge's model-bake event completes, independent workers resolve those
 canonical keys against the finalized baked-model registry. Each worker writes
 to an exclusive array range. The client thread joins all workers, constructs a

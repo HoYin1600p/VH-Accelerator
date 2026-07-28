@@ -24,6 +24,7 @@ public final class VHAcceleratorClientConfig {
 
     public static final class Values {
         public final ForgeConfigSpec.BooleanValue enableClientOptimizations;
+        public final ForgeConfigSpec.BooleanValue overlapModelPreparation;
         public final ForgeConfigSpec.BooleanValue parallelModelLoading;
         public final ForgeConfigSpec.BooleanValue parallelBlockStateLoading;
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
@@ -68,6 +69,14 @@ public final class VHAcceleratorClientConfig {
             enableClientOptimizations = builder
                     .comment("Master switch for optimizations that only apply to the physical client.")
                     .define("enableClientOptimizations", true);
+            overlapModelPreparation = builder
+                    .comment(
+                            "Starts model-key and blockstate preparation together",
+                            "while model JSON is prepared on the client reload thread.",
+                            "All independent work joins before vanilla bakery discovery.",
+                            "This backports the asynchronous preparation shape used",
+                            "by newer Minecraft versions.")
+                    .define("overlapModelPreparation", true);
             parallelModelLoading = builder
                     .comment(
                             "Reads and parses plain model JSON concurrently.",

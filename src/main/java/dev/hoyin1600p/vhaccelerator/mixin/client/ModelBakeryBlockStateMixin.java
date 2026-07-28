@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
+import dev.hoyin1600p.vhaccelerator.client.model.ModelPreparationWorkHolder;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
@@ -19,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ModelBakery.class)
+@Mixin(value = ModelBakery.class, priority = 500)
 public abstract class ModelBakeryBlockStateMixin {
     @Shadow
     @Final
@@ -35,10 +36,14 @@ public abstract class ModelBakeryBlockStateMixin {
             int mipLevel,
             CallbackInfo callback
     ) {
+        ModelPreparationWorkHolder preparation =
+                (ModelPreparationWorkHolder) this;
         vhaccelerator$blockStateSession =
-                ParallelBlockStateJsonParser.prepare(
-                        resourceManager
-                );
+                preparation.vhaccelerator$hasOverlappedPreparation()
+                        ? preparation.vhaccelerator$awaitBlockStates()
+                        : ParallelBlockStateJsonParser.prepare(
+                                resourceManager
+                        );
     }
 
     @Redirect(
