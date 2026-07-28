@@ -64,6 +64,9 @@ public final class PersistentBlockStateJsonCache {
     }
 
     public static synchronized void prewarm() {
+        if (!enabled()) {
+            return;
+        }
         ClientAssetFingerprint.prewarm();
         if (preloadStarted) {
             return;
