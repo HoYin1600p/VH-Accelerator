@@ -30,6 +30,8 @@ in the local LaunchFaster 1.0 jar. It has:
   server/world transfer timing
 - persistent Compare Mode for disabling every optimization while retaining
   launch, reload, connection, transfer, post-login, and disconnect diagnostics
+- Compare-safe ModelManager sub-phase measurements for atlas upload/baking,
+  Forge model-bake callbacks, and the final block render lookup
 - model loading, atlas preparation, model baking, resource-list, reload, and
   BlockState optimization paths
 - indexed Powah wiki recipes, bounded JEITweaker matching, and staged Vault
