@@ -21,6 +21,18 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Removed
 
+## [1.0.1] - 2026-07-28
+
+### Fixed
+
+- Compare Mode is now captured directly from its on-disk common config before
+  any early mixin or optimization path can run.
+- Compare Mode remains stable for the complete launch, preventing a hybrid run
+  where cache preloading, asset fingerprinting, model preparation, or other
+  startup work began before Forge attached the common config.
+- Added a startup audit message confirming that client optimization groups
+  were skipped while Compare Mode is active.
+
 ## [1.0.0] - 2026-07-28
 
 ### Added
@@ -54,5 +66,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/HoYin1600p/VH-Accelerator/releases/tag/v1.0.0

@@ -42,6 +42,10 @@ and optional-mod optimizations. It does not simulate removing the jar's mixin
 configuration or class-loading cost, which keeps the comparison focused on
 the optimizations themselves.
 
+Beginning with 1.0.1, Compare Mode is captured from disk before early mixins
+can run and remains stable for the complete launch. The log reports both the
+bootstrap capture and the skipped client optimization startup groups.
+
 ## Cold and warm caches
 
 Label results as:
