@@ -65,11 +65,7 @@ public final class VHAcceleratorClient {
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
             ClientWorkSession.begin();
-            LoginStateFingerprint.beginConnection();
-            IronFurnacesRecipeCache.beginConnection();
-            PersistentVanillaIngredientCache.beginConnection();
-            PersistentRecipeValidationCache.beginConnection();
-            PersistentJeiRecipeIndexCache.beginConnection();
+            beginServerStateRefresh();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.cancelActiveAttempt();
             ServerLoginTimer.markStart();
@@ -77,9 +73,7 @@ public final class VHAcceleratorClient {
                 && !ServerLoginTimer.isActive()
                 && !ServerTransferTimer.isActive()) {
             ClientWorkSession.begin();
-            PersistentVanillaIngredientCache.beginConnection();
-            PersistentRecipeValidationCache.beginConnection();
-            PersistentJeiRecipeIndexCache.beginConnection();
+            beginServerStateRefresh();
             AdaptiveJeiWorkScheduler.markLoading();
             ServerTransferTimer.markStart("receiving-level screen");
         }
@@ -91,6 +85,14 @@ public final class VHAcceleratorClient {
                     event.getScreen().getClass().getSimpleName()
             );
         }
+    }
+
+    public static void beginServerStateRefresh() {
+        LoginStateFingerprint.beginConnection();
+        IronFurnacesRecipeCache.beginConnection();
+        PersistentVanillaIngredientCache.beginConnection();
+        PersistentRecipeValidationCache.beginConnection();
+        PersistentJeiRecipeIndexCache.beginConnection();
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {

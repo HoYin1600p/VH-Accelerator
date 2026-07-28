@@ -19,7 +19,8 @@ public final class PacketDecodeProfiler {
     }
 
     public static void begin(int packetId, FriendlyByteBuf buffer) {
-        if (!ClientConnectionProfiler.isActive()
+        if ((!ClientConnectionProfiler.isActive()
+                && !ServerTransferTimer.isActive())
                 || buffer.readableBytes() < FINGERPRINT_PACKET_BYTES) {
             ACTIVE.remove();
             return;

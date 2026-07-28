@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.client.ClientConnectionProfiler;
 import dev.hoyin1600p.vhaccelerator.client.ServerLoginTimer;
 import dev.hoyin1600p.vhaccelerator.client.ServerTransferTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.ThermalRefreshPhase;
 import net.minecraft.client.Minecraft;
@@ -372,8 +373,9 @@ public abstract class ClientPacketListenerMixin {
             CallbackInfo callback
     ) {
         if (Minecraft.getInstance().isSameThread()
-                && !ServerLoginTimer.isActive()) {
-            ServerTransferTimer.markStart("respawn packet");
+                && !ServerLoginTimer.isActive()
+                && ServerTransferTimer.markStart("respawn packet")) {
+            VHAcceleratorClient.beginServerStateRefresh();
         }
     }
 }
