@@ -41,6 +41,19 @@ A failed model is never silently omitted.
 Material dependency memoization also bypasses protected graphs so custom
 loaders can perform their normal live material lookup.
 
+## Persistent raw JSON safety
+
+The persistent cache stores only the resolved raw `models/*.json` text. It
+never stores parsed Forge geometry, textures, baked models, or runtime model
+state. Its fingerprint includes Minecraft and mod versions, mod-file metadata,
+resource-pack contents, active pack classes/names, and pack order.
+
+Configuration files remain content-hashed except for an explicit list of
+volatile map, voice, shader, and renderer UI files that are rewritten during
+normal startup but cannot change resource-pack model JSON. This prevents
+unrelated session state from invalidating the cache on every launch without
+making the cache generally insensitive to mod configuration.
+
 ## Other compatibility layers
 
 When ModernFix is present, VH Accelerator disables its complete ModelBakery

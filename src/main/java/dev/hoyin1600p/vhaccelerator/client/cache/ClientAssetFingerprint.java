@@ -24,7 +24,7 @@ import net.minecraftforge.forgespi.language.IModInfo;
  * Identifies inputs that can affect the initial client model resource view.
  */
 public final class ClientAssetFingerprint {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
     private static volatile CompletableFuture<String> baseFingerprint;
 
@@ -161,6 +161,9 @@ public final class ClientAssetFingerprint {
                             long size = Files.size(path);
                             String relative =
                                     normalizeRelative(directory, path);
+                            if (isVolatileNonAssetConfig(relative)) {
+                                return;
+                            }
                             if (size <= MAX_CONFIG_HASH_BYTES) {
                                 inputs.add(
                                         label
@@ -191,6 +194,29 @@ public final class ClientAssetFingerprint {
         } catch (IOException exception) {
             inputs.add(label + "-directory-read-failed");
         }
+    }
+
+    /**
+     * Excludes files that are rewritten with client session/UI state and
+     * cannot alter the resolved model JSON supplied by resource packs.
+     *
+     * <p>All other configuration remains fingerprinted. This avoids making
+     * the cache globally insensitive to mod configuration while preventing
+     * map, voice, shader, and renderer state from invalidating it on every
+     * launch.</p>
+     */
+    private static boolean isVolatileNonAssetConfig(String relative) {
+        String normalized =
+                relative.toLowerCase(java.util.Locale.ROOT);
+        return normalized.equals("distanthorizons.toml")
+                || normalized.equals("embeddium-options.json")
+                || normalized.equals("forge-client.toml")
+                || normalized.equals("oculus.properties")
+                || normalized.equals("vaultlootbeams.json")
+                || normalized.startsWith("xaerominimap")
+                || normalized.startsWith("xaeroworldmap")
+                || normalized.startsWith("voicechat/")
+                || normalized.startsWith("konkrete/locals/");
     }
 
     private static void appendResourcePackMetadata(
