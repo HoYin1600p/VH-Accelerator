@@ -181,7 +181,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.endsWith(
                 ".ModelMaterialCollectionMixin"
-        ) && modernFixLoaded) {
+        ) || mixinClassName.endsWith(
+                ".ModelBakeryBlockStateMixin"
+        )) {
+            if (!modernFixLoaded) {
+                return true;
+            }
             return !modernFixDynamicResourcesEnabled();
         }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);

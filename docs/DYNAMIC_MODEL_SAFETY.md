@@ -45,6 +45,12 @@ The top-level material collection also collapses repeated references to the
 same unbaked model only when the complete dependency graph passes this guard.
 Repeated custom or dynamic references retain their original call count.
 
+Plain blockstate variant JSON is read and parsed on the background executor
+with a separate immutable parser context per registered block. Multipart
+definitions, Forge/custom markers, BuildScape resources, unknown blocks, and
+parse failures are returned to the original sequential parser. Cached resource
+stacks preserve resource-pack order and source names.
+
 ## Persistent raw JSON safety
 
 The persistent cache stores only the resolved raw `models/*.json` text. It

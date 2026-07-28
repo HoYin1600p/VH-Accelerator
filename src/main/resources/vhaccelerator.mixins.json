@@ -25,6 +25,7 @@
     "client.LoadingOverlayMixin",
     "client.MinecraftDisconnectMixin",
     "client.MinecraftUserApiMixin",
+    "client.ModelBakeryBlockStateMixin",
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
     "client.ModelMaterialCollectionMixin",

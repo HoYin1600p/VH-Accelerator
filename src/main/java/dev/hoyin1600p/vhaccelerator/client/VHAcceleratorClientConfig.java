@@ -25,6 +25,7 @@ public final class VHAcceleratorClientConfig {
     public static final class Values {
         public final ForgeConfigSpec.BooleanValue enableClientOptimizations;
         public final ForgeConfigSpec.BooleanValue parallelModelLoading;
+        public final ForgeConfigSpec.BooleanValue parallelBlockStateLoading;
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
@@ -70,6 +71,14 @@ public final class VHAcceleratorClientConfig {
                             "Forge custom loaders, BuildScape models, cache misses, and parse failures",
                             "remain on their established loading paths.")
                     .define("parallelModelLoading", true);
+            parallelBlockStateLoading = builder
+                    .comment(
+                            "Reads and parses plain variant blockstate JSON concurrently.",
+                            "Multipart, Forge/custom-marker, BuildScape, unknown-block,",
+                            "and failed resources stay on their established loading path.",
+                            "This backports the split model/blockstate loading pipeline",
+                            "used by newer Minecraft versions.")
+                    .define("parallelBlockStateLoading", true);
             parallelAtlasStitching = builder
                     .comment("Prepares independent texture atlases concurrently.")
                     .define("parallelAtlasStitching", true);
