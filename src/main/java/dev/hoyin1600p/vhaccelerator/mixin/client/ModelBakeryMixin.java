@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -74,6 +75,10 @@ public abstract class ModelBakeryMixin {
     private Map<ResourceLocation, String> vhaccelerator$modelJsonCache;
 
     @Unique
+    private PersistentModelJsonCache.Session
+            vhaccelerator$persistentModelCacheSession;
+
+    @Unique
     private int vhaccelerator$currentMipLevel;
 
     @Unique
@@ -90,6 +95,13 @@ public abstract class ModelBakeryMixin {
             CallbackInfo callback
     ) {
         vhaccelerator$currentMipLevel = mipLevel;
+        vhaccelerator$persistentModelCacheSession =
+                PersistentModelJsonCache.prepare(resourceManager);
+        if (vhaccelerator$persistentModelCacheSession != null) {
+            vhaccelerator$modelJsonCache =
+                    vhaccelerator$persistentModelCacheSession.models();
+            return;
+        }
         if (!vhaccelerator$clientOption(
                 VHAcceleratorClientConfig.VALUES.parallelModelLoading.get())) {
             return;
@@ -143,9 +155,24 @@ public abstract class ModelBakeryMixin {
             return;
         }
 
-        BlockModel model = BlockModel.fromStream(new StringReader(json));
-        model.name = location.toString();
-        callback.setReturnValue(model);
+        try {
+            BlockModel model =
+                    BlockModel.fromStream(new StringReader(json));
+            model.name = location.toString();
+            callback.setReturnValue(model);
+        } catch (RuntimeException | LinkageError failure) {
+            PersistentModelJsonCache.Session session =
+                    vhaccelerator$persistentModelCacheSession;
+            if (session != null) {
+                session.invalidate();
+            }
+            VHAccelerator.LOGGER.warn(
+                    "Cached model JSON {} could not be parsed; retrying "
+                            + "through the active resource manager",
+                    location,
+                    failure
+            );
+        }
     }
 
     @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
@@ -154,6 +181,10 @@ public abstract class ModelBakeryMixin {
             int mipLevel,
             CallbackInfo callback
     ) {
+        PersistentModelJsonCache.finish(
+                vhaccelerator$persistentModelCacheSession
+        );
+        vhaccelerator$persistentModelCacheSession = null;
         vhaccelerator$modelJsonCache = null;
     }
 

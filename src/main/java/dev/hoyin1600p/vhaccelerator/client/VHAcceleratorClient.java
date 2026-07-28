@@ -4,6 +4,7 @@ import com.mojang.realmsclient.RealmsMainScreen;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
@@ -51,6 +52,7 @@ public final class VHAcceleratorClient {
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");
         AdaptiveJeiWorkScheduler.initialize();
+        PersistentModelJsonCache.prewarm();
         PersistentVanillaIngredientCache.prewarm();
         PersistentRecipeValidationCache.prewarm();
         if (thermalLoaded) {

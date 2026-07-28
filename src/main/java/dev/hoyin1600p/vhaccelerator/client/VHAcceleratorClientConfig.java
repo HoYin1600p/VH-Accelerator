@@ -21,6 +21,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelModelLoading;
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
+        public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
@@ -64,6 +65,15 @@ public final class VHAcceleratorClientConfig {
             parallelModelBaking = builder
                     .comment("Bakes top-level models in batches on Minecraft's background executor.")
                     .define("parallelModelBaking", true);
+            persistentModelJsonCache = builder
+                    .comment(
+                            "Persists the resolved initial model JSON resource view as one",
+                            "checksummed file and restores it only when the mod files,",
+                            "resource packs, relevant local configs, and pack order match.",
+                            "Forge still parses every JSON and runs every custom geometry loader;",
+                            "parsed models, baked models, textures, and dynamic state are never stored.",
+                            "Runtime resource reloads always bypass this cache.")
+                    .define("persistentModelJsonCache", true);
             asyncUserApiService = builder
                     .comment(
                             "Creates the online UserApiService asynchronously.",

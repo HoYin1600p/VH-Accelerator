@@ -152,6 +152,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.endsWith(
                 ".ModernFixCompatibleModelBakingMixin"
+        ) || mixinClassName.endsWith(
+                ".ModernFixCompatibleModelJsonCacheMixin"
         )) {
             if (!modernFixLoaded) {
                 return false;
