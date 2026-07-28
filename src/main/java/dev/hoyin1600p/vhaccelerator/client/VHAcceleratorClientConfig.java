@@ -58,7 +58,10 @@ public final class VHAcceleratorClientConfig {
                     .comment("Master switch for optimizations that only apply to the physical client.")
                     .define("enableClientOptimizations", true);
             parallelModelLoading = builder
-                    .comment("Reads model JSON resources concurrently before ModelBakery parses them.")
+                    .comment(
+                            "Reads and parses plain model JSON concurrently.",
+                            "Forge custom loaders, BuildScape models, cache misses, and parse failures",
+                            "remain on their established loading paths.")
                     .define("parallelModelLoading", true);
             parallelAtlasStitching = builder
                     .comment("Prepares independent texture atlases concurrently.")
