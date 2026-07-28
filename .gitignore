@@ -13,6 +13,10 @@ run/
 run-*/
 logs/
 
+# Locally assembled release-upload bundles. Public release copy and artwork
+# sources live under docs/curseforge/.
+/release/
+
 # Local reverse-engineering material. This directory contains the original jar
 # and generated decompiler output and must never be committed.
 /reference/
