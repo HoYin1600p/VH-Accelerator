@@ -447,8 +447,8 @@ public final class VHAcceleratorClientConfig {
             builder.push("display");
             profileClientLaunchPhases = builder
                     .comment(
-                            "Profiles the initial client resource reload and logs prepare/apply",
-                            "timings for listeners that take at least 20 milliseconds.",
+                            "Profiles Forge client-loading phases and the initial resource reload.",
+                            "Resource listeners taking at least 20 milliseconds are logged.",
                             "The profiler observes the existing futures and does not change",
                             "listener order, executors, or menu precompile behavior.")
                     .define("profileClientLaunchPhases", true);
