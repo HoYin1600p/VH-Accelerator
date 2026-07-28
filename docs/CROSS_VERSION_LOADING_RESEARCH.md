@@ -28,8 +28,8 @@ asynchronous pipelines and performs more baking work through executor-backed
 futures. The safe portions backported to 1.18.2 are:
 
 - concurrent plain model JSON reading and parsing with custom-loader fallback;
-- concurrent plain blockstate resource reading and parsing, preserving every
-  resource-pack layer and source name;
+- concurrent registered blockstate resource reading, preserving every
+  resource-pack layer and source name while retaining the original parser;
 - overlapping model-key, blockstate, and model JSON preparation before one
   barrier at vanilla bakery discovery;
 - caching each immutable block state's canonical model key;
@@ -41,10 +41,11 @@ futures. The safe portions backported to 1.18.2 are:
   same asset fingerprint;
 - detailed, Compare-safe ModelBakery and ModelManager phase measurements.
 
-The implementation keeps Forge custom geometry, BuildScape, multipart
-blockstates, failed parses, and unknown resources on their established paths.
-No parsed custom geometry, texture, baked model, or runtime model state is
-serialized.
+The implementation keeps Forge custom geometry and parsing, BuildScape,
+failed reads, and unknown resources on their established paths. Multipart
+blockstates use prepared raw bytes but still run through Minecraft's original
+parser. No parsed custom geometry, texture, baked model, or runtime model
+state is serialized.
 
 ## Approaches intentionally not ported
 

@@ -7,8 +7,6 @@ import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -16,30 +14,22 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
-import net.minecraft.client.renderer.block.model.BlockModelDefinition;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.world.level.block.Block;
 
 /**
- * Prepares plain blockstate variant definitions without invoking custom model
- * loaders or publishing partially parsed state.
+ * Prepares ordered raw blockstate resource stacks without invoking model
+ * parsers or publishing partially constructed definitions.
  */
 public final class ParallelBlockStateJsonParser {
     private static final String BUILDSCAPE_NAMESPACE = "buildscape";
     private static final String PREFIX = "blockstates/";
     private static final String SUFFIX = ".json";
-    private static final Pattern COMPLEX_FORMAT = Pattern.compile(
-            "\"(?:multipart|forge_marker|loader)\"\\s*:"
-    );
-    private static final ThreadLocal<BlockModelDefinition>
-            ACTIVE_DEFINITION = new ThreadLocal<>();
 
     private ParallelBlockStateJsonParser() {
     }
@@ -68,8 +58,7 @@ public final class ParallelBlockStateJsonParser {
                 new ArrayList<>(listed);
         Map<ResourceLocation, List<Resource>> cached =
                 new ConcurrentHashMap<>();
-        AtomicInteger parsed = new AtomicInteger();
-        AtomicInteger complex = new AtomicInteger();
+        AtomicInteger preparedResources = new AtomicInteger();
         AtomicInteger buildscape = new AtomicInteger();
         AtomicInteger unknownBlocks = new AtomicInteger();
         AtomicInteger failures = new AtomicInteger();
@@ -90,10 +79,6 @@ public final class ParallelBlockStateJsonParser {
                 unknownBlocks.incrementAndGet();
                 return;
             }
-            Block block = Registry.BLOCK.get(blockLocation);
-            BlockModelDefinition.Context context =
-                    new BlockModelDefinition.Context();
-            context.setDefinition(block.getStateDefinition());
 
             List<PersistentBlockStateJsonCache.RawResource>
                     rawResources = persistent == null
@@ -117,46 +102,12 @@ public final class ParallelBlockStateJsonParser {
             try {
                 for (PersistentBlockStateJsonCache.RawResource
                         resource : rawResources) {
-                    String sourceName = resource.sourceName();
-                    byte[] bytes = resource.bytes();
-                    String json = new String(
-                            bytes,
-                            StandardCharsets.UTF_8
-                    );
-                    BlockModelDefinition definition = null;
-                    if (COMPLEX_FORMAT.matcher(json).find()) {
-                        complex.incrementAndGet();
-                    } else {
-                        try {
-                            definition =
-                                    BlockModelDefinition.fromStream(
-                                            context,
-                                            new InputStreamReader(
-                                                    new ByteArrayInputStream(
-                                                            bytes
-                                                    ),
-                                                    StandardCharsets.UTF_8
-                                            )
-                                    );
-                            parsed.incrementAndGet();
-                        } catch (RuntimeException
-                                 | LinkageError failure) {
-                            failures.incrementAndGet();
-                            VHAccelerator.LOGGER.debug(
-                                    "Parallel blockstate parsing deferred "
-                                            + "{} from {}",
-                                    location,
-                                    sourceName,
-                                    failure
-                            );
-                        }
-                    }
                     prepared.add(new PreparedResource(
                             location,
-                            sourceName,
-                            bytes,
-                            definition
+                            resource.sourceName(),
+                            resource.bytes()
                     ));
+                    preparedResources.incrementAndGet();
                 }
                 cached.put(location, List.copyOf(prepared));
             } catch (RuntimeException failure) {
@@ -175,13 +126,12 @@ public final class ParallelBlockStateJsonParser {
 
         VHAccelerator.LOGGER.info(
                 "Prepared {} blockstate resource stacks in parallel in {} ms "
-                        + "[{} plain resources parsed, {} complex resources, "
-                        + "{} persistent stacks, {} BuildScape, {} unknown "
-                        + "blocks, {} failures deferred]",
+                        + "[{} raw resources, {} persistent stacks, "
+                        + "{} BuildScape, {} unknown blocks, "
+                        + "{} failures deferred]",
                 cached.size(),
                 (System.nanoTime() - started) / 1_000_000L,
-                parsed.get(),
-                complex.get(),
+                preparedResources.get(),
                 restoredStacks.get(),
                 buildscape.get(),
                 unknownBlocks.get(),
@@ -254,18 +204,6 @@ public final class ParallelBlockStateJsonParser {
     }
 
     @Nullable
-    public static BlockModelDefinition claimPreparedDefinition() {
-        BlockModelDefinition definition =
-                ACTIVE_DEFINITION.get();
-        ACTIVE_DEFINITION.remove();
-        return definition;
-    }
-
-    public static void clearPreparedDefinition() {
-        ACTIVE_DEFINITION.remove();
-    }
-
-    @Nullable
     private static ResourceLocation blockLocation(
             ResourceLocation resource
     ) {
@@ -332,19 +270,15 @@ public final class ParallelBlockStateJsonParser {
         private final ResourceLocation location;
         private final String sourceName;
         private final byte[] bytes;
-        @Nullable
-        private final BlockModelDefinition definition;
 
         private PreparedResource(
                 ResourceLocation location,
                 String sourceName,
-                byte[] bytes,
-                @Nullable BlockModelDefinition definition
+                byte[] bytes
         ) {
             this.location = location;
             this.sourceName = sourceName;
             this.bytes = bytes;
-            this.definition = definition;
         }
 
         @Override
@@ -354,11 +288,6 @@ public final class ParallelBlockStateJsonParser {
 
         @Override
         public InputStream getInputStream() {
-            if (definition == null) {
-                ACTIVE_DEFINITION.remove();
-            } else {
-                ACTIVE_DEFINITION.set(definition);
-            }
             return new ByteArrayInputStream(bytes);
         }
 

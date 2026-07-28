@@ -45,11 +45,11 @@ The top-level material collection also collapses repeated references to the
 same unbaked model only when the complete dependency graph passes this guard.
 Repeated custom or dynamic references retain their original call count.
 
-Plain blockstate variant JSON is read and parsed on the background executor
-with a separate immutable parser context per registered block. Multipart
-definitions, Forge/custom markers, BuildScape resources, unknown blocks, and
-parse failures are returned to the original sequential parser. Cached resource
-stacks preserve resource-pack order and source names.
+Registered blockstate resource stacks are read on the background executor.
+Every definition, including multipart and Forge/custom formats, is still
+parsed by Minecraft's original sequential parser. BuildScape resources,
+unknown blocks, and read failures remain entirely on their original path.
+Cached resource stacks preserve resource-pack order and source names.
 
 The canonical `ModelResourceLocation` is cached directly on each immutable
 block-state instance after Minecraft first computes it. The later render-cache
@@ -91,8 +91,9 @@ unrelated session state from invalidating the cache on every launch without
 making the cache generally insensitive to mod configuration.
 
 Blockstate persistence likewise stores only ordered raw resource bytes plus
-their source names. Definitions are parsed fresh against the active registered
-block and its current state definition. Resource reloads bypass both caches.
+their source names. Definitions are parsed fresh by Minecraft and Forge
+against the active registered block and its current state definition.
+Resource reloads bypass both caches.
 
 ## Other compatibility layers
 

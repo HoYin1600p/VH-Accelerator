@@ -86,9 +86,10 @@ public final class VHAcceleratorClientConfig {
                     .define("parallelModelLoading", true);
             parallelBlockStateLoading = builder
                     .comment(
-                            "Reads and parses plain variant blockstate JSON concurrently.",
-                            "Multipart, Forge/custom-marker, BuildScape, unknown-block,",
-                            "and failed resources stay on their established loading path.",
+                            "Reads ordered registered blockstate JSON resource stacks concurrently.",
+                            "Every definition is still parsed by Minecraft and Forge on their",
+                            "established loading path. BuildScape, unknown-block, and failed",
+                            "resources remain entirely on their original path.",
                             "This backports the split model/blockstate loading pipeline",
                             "used by newer Minecraft versions.")
                     .define("parallelBlockStateLoading", true);

@@ -3,9 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelPreparationWorkHolder;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.List;
-import net.minecraft.client.renderer.block.model.BlockModelDefinition;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -60,7 +58,6 @@ public abstract class ModelBakeryBlockStateMixin {
             ResourceManager manager,
             ResourceLocation location
     ) throws IOException {
-        ParallelBlockStateJsonParser.clearPreparedDefinition();
         ParallelBlockStateJsonParser.Session session =
                 vhaccelerator$blockStateSession;
         if (session != null) {
@@ -72,32 +69,6 @@ public abstract class ModelBakeryBlockStateMixin {
         return manager.getResources(location);
     }
 
-    @Redirect(
-            method = "loadModel",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/block/model/"
-                            + "BlockModelDefinition;fromStream("
-                            + "Lnet/minecraft/client/renderer/block/model/"
-                            + "BlockModelDefinition$Context;"
-                            + "Ljava/io/Reader;)"
-                            + "Lnet/minecraft/client/renderer/block/model/"
-                            + "BlockModelDefinition;"
-            )
-    )
-    private BlockModelDefinition
-            vhaccelerator$usePreparedDefinition(
-                    BlockModelDefinition.Context context,
-                    Reader reader
-            ) {
-        BlockModelDefinition prepared =
-                ParallelBlockStateJsonParser
-                        .claimPreparedDefinition();
-        return prepared != null
-                ? prepared
-                : BlockModelDefinition.fromStream(context, reader);
-    }
-
     @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
     private void vhaccelerator$releaseBlockStates(
             ProfilerFiller profiler,
@@ -105,6 +76,5 @@ public abstract class ModelBakeryBlockStateMixin {
             CallbackInfo callback
     ) {
         vhaccelerator$blockStateSession = null;
-        ParallelBlockStateJsonParser.clearPreparedDefinition();
     }
 }
