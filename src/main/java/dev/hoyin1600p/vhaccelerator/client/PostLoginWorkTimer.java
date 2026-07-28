@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -24,6 +25,10 @@ public final class PostLoginWorkTimer {
     }
 
     public static synchronized void beginSession(long session) {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            clearActive();
+            return;
+        }
         activeSession = session;
         firstPlayableFrameNanos = -1L;
         workCompletedNanos = -1L;
@@ -40,6 +45,10 @@ public final class PostLoginWorkTimer {
             long session,
             String description
     ) {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            clearActive();
+            return -1L;
+        }
         if (session < 0L || session != activeSession || finalized) {
             return -1L;
         }
@@ -60,6 +69,10 @@ public final class PostLoginWorkTimer {
     }
 
     public static synchronized void markFirstPlayableFrame() {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            clearActive();
+            return;
+        }
         if (activeSession < 0L || firstPlayableFrameNanos >= 0L) {
             return;
         }
@@ -71,6 +84,10 @@ public final class PostLoginWorkTimer {
     }
 
     public static synchronized void markWorkCompleted(long token) {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            clearActive();
+            return;
+        }
         if (token < 0L || ACTIVE_WORK.remove(token) == null) {
             return;
         }

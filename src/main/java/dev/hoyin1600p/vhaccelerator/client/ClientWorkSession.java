@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 
 /**
  * Identifies client login/transfer work that belongs to the current server
@@ -18,10 +19,12 @@ public final class ClientWorkSession {
         DisconnectTimer.cancelActive();
         activeGeneration = ++nextGeneration;
         PostLoginWorkTimer.beginSession(activeGeneration);
-        VHAccelerator.LOGGER.info(
-                "Client work session {} started",
-                activeGeneration
-        );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Client work session {} started",
+                    activeGeneration
+            );
+        }
         return activeGeneration;
     }
 
@@ -41,10 +44,12 @@ public final class ClientWorkSession {
 
         activeGeneration = -1L;
         PostLoginWorkTimer.cancelSession(invalidated);
-        VHAccelerator.LOGGER.info(
-                "Client work session {} invalidated at {}",
-                invalidated,
-                reason
-        );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Client work session {} invalidated at {}",
+                    invalidated,
+                    reason
+            );
+        }
     }
 }

@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -28,6 +29,9 @@ public abstract class ForgeLogoutTimingMixin {
             IEventBus eventBus,
             Event event
     ) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            return eventBus.post(event);
+        }
         long dispatchStarted = System.nanoTime();
         boolean cancelled = eventBus.post(event, (listener, dispatchedEvent) -> {
             long listenerStarted = System.nanoTime();

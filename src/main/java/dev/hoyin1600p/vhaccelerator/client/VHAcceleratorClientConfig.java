@@ -61,10 +61,13 @@ public final class VHAcceleratorClientConfig {
 
         launchBooleanSnapshot = Map.copyOf(snapshot);
         launchSnapshotCaptured = true;
-        VHAccelerator.LOGGER.info(
-                "Captured {} client launch configuration values before the initial resource reload",
-                launchBooleanSnapshot.size()
-        );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Captured {} client launch configuration values "
+                            + "before the initial resource reload",
+                    launchBooleanSnapshot.size()
+            );
+        }
     }
 
     public static boolean launchValue(ForgeConfigSpec.BooleanValue value) {
@@ -130,7 +133,6 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
-        public final ForgeConfigSpec.BooleanValue showLaunchTimer;
 
         private Values(ForgeConfigSpec.Builder builder) {
             builder.push("optimizations");
@@ -444,22 +446,21 @@ public final class VHAcceleratorClientConfig {
                     .define("optimizeVaultAtlasValidation", true);
             builder.pop();
 
-            builder.push("display");
+            builder.push("diagnostics");
             profileClientLaunchPhases = builder
                     .comment(
                             "Profiles Forge client-loading phases and the initial resource reload.",
                             "Resource listeners taking at least 20 milliseconds are logged.",
+                            "The common diagnostics.debug master switch must also be enabled.",
                             "The profiler observes the existing futures and does not change",
                             "listener order, executors, or menu precompile behavior.")
                     .define("profileClientLaunchPhases", true);
-            showLaunchTimer = builder
-                    .comment(
-                            "Shows measured launch time on the title screen and after joining a world.",
-                            "Multiplayer joins also show connect-to-first-playable-frame server login time.",
-                            "The JEI search-index worker reports remaining post-login work",
-                            "when its completed index is published.")
-                    .define("showLaunchTimer", true);
             builder.pop();
         }
+    }
+
+    public static boolean launchProfilingEnabled() {
+        return VHAcceleratorConfig.debugDiagnosticsEnabled()
+                && launchValue(VALUES.profileClientLaunchPhases);
     }
 }

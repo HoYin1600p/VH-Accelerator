@@ -43,10 +43,7 @@ public abstract class ModelBakeryLoadProfilerMixin {
             CallbackInfo callback
     ) {
         vhaccelerator$profileLoads =
-                VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES
-                                .profileClientLaunchPhases
-                );
+                VHAcceleratorClientConfig.launchProfilingEnabled();
         if (vhaccelerator$profileLoads) {
             vhaccelerator$loadTimings = new HashMap<>();
         }

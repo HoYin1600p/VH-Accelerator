@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,7 +16,11 @@ public final class LaunchTimer {
 
     public static void markStart() {
         if (START_NANOS.compareAndSet(-1L, System.nanoTime())) {
-            VHAccelerator.LOGGER.info("Client launch timer started");
+            if (VHAcceleratorConfig.instrumentationEnabled()) {
+                VHAccelerator.LOGGER.info(
+                        "Client launch timer started"
+                );
+            }
         }
     }
 
@@ -27,11 +32,16 @@ public final class LaunchTimer {
 
         long elapsedMillis = elapsedMillis();
         LaunchEventProfiler.finish();
-        VHAccelerator.LOGGER.info(
-                "Client launch completed in {} ms ({})",
-                elapsedMillis,
-                String.format("%.2f seconds", elapsedMillis / 1000.0)
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Client launch completed in {} ms ({})",
+                    elapsedMillis,
+                    String.format(
+                            "%.2f seconds",
+                            elapsedMillis / 1000.0
+                    )
+            );
+        }
         ParallelBlockStateJsonParser.releaseLaunchSessions();
     }
 
@@ -50,7 +60,7 @@ public final class LaunchTimer {
 
     public static boolean claimChatMessage() {
         return isFinished()
-                && VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()
+                && VHAcceleratorConfig.timersEnabled()
                 && CHAT_MESSAGE_CLAIMED.compareAndSet(false, true);
     }
 }

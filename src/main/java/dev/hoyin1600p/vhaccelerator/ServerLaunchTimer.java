@@ -11,7 +11,11 @@ public final class ServerLaunchTimer {
 
     public static void markStart() {
         if (START_NANOS.compareAndSet(-1L, System.nanoTime())) {
-            VHAccelerator.LOGGER.info("Dedicated-server launch timer started");
+            if (VHAcceleratorConfig.instrumentationEnabled()) {
+                VHAccelerator.LOGGER.info(
+                        "Dedicated-server launch timer started"
+                );
+            }
         }
     }
 
@@ -22,11 +26,16 @@ public final class ServerLaunchTimer {
         }
 
         long elapsedMillis = (END_NANOS.get() - start) / 1_000_000L;
-        VHAccelerator.LOGGER.info(
-                "Dedicated server reached ServerStartedEvent in {} ms ({})",
-                elapsedMillis,
-                String.format("%.2f seconds", elapsedMillis / 1000.0)
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Dedicated server reached ServerStartedEvent in "
+                            + "{} ms ({})",
+                    elapsedMillis,
+                    String.format(
+                            "%.2f seconds",
+                            elapsedMillis / 1000.0
+                    )
+            );
+        }
     }
 }
-

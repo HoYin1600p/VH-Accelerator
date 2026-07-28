@@ -18,6 +18,8 @@ public final class VHAcceleratorConfig {
 
     public static final class Common {
         public final ForgeConfigSpec.BooleanValue compareMode;
+        public final ForgeConfigSpec.BooleanValue timers;
+        public final ForgeConfigSpec.BooleanValue debug;
         public final ForgeConfigSpec.BooleanValue enableCommonOptimizations;
         public final ForgeConfigSpec.BooleanValue parallelReloadPreparation;
         public final ForgeConfigSpec.BooleanValue skipRedundantRegistryValidation;
@@ -32,11 +34,26 @@ public final class VHAcceleratorConfig {
             compareMode = builder
                     .comment(
                             "Disables every VH Accelerator optimization while retaining",
-                            "launch, reload, connection, transfer, post-login, and disconnect",
-                            "timers and profilers for an unmodified baseline.",
+                            "instrumentation selected by the separate timers and debug settings",
+                            "for an unmodified baseline.",
                             "The /vha compare command changes and saves this setting.",
                             "Restart after changing it before comparing client or server launch time.")
                     .define("compareMode", false);
+            timers = builder
+                    .comment(
+                            "Shows launch, login, transfer, post-login, and disconnect",
+                            "measurements in the UI and writes their routine timing summaries",
+                            "to the log. The /vha timers command changes this setting.",
+                            "Internal lifecycle timestamps required for safe optimizations",
+                            "remain available when this display setting is disabled.")
+                    .define("timers", false);
+            debug = builder
+                    .comment(
+                            "Enables detailed launch, reload, model, connection, packet,",
+                            "and disconnect diagnostics. This adds measurement and logging",
+                            "overhead and is disabled by default for normal play.",
+                            "The /vha debug command changes this setting.")
+                    .define("debug", false);
             builder.pop();
 
             builder.push("optimizations");
@@ -105,5 +122,27 @@ public final class VHAcceleratorConfig {
                 "Compare Mode {} and saved",
                 enabled ? "enabled" : "disabled"
         );
+    }
+
+    public static boolean timersEnabled() {
+        return COMMON.timers.get();
+    }
+
+    public static void setTimersEnabled(boolean enabled) {
+        COMMON.timers.set(enabled);
+        COMMON.timers.save();
+    }
+
+    public static boolean debugDiagnosticsEnabled() {
+        return COMMON.debug.get();
+    }
+
+    public static void setDebugDiagnosticsEnabled(boolean enabled) {
+        COMMON.debug.set(enabled);
+        COMMON.debug.save();
+    }
+
+    public static boolean instrumentationEnabled() {
+        return timersEnabled() || debugDiagnosticsEnabled();
     }
 }

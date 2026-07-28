@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 
 /**
  * Separates the synchronous network-channel close from Minecraft's client
@@ -19,6 +20,10 @@ public final class DisconnectTimer {
     }
 
     public static synchronized void beginNetworkClose() {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            clearActive();
+            return;
+        }
         startedNanos = System.nanoTime();
         networkCloseNanos = -1L;
         teardownStartedNanos = -1L;
@@ -40,6 +45,9 @@ public final class DisconnectTimer {
     }
 
     public static synchronized void beginClientTeardown() {
+        if (!VHAcceleratorConfig.instrumentationEnabled()) {
+            return;
+        }
         if (startedNanos < 0L) {
             beginNetworkClose();
             finishNetworkClose();
@@ -70,6 +78,9 @@ public final class DisconnectTimer {
     public static synchronized void beginClearLevelPhases(
             int pendingTaskCount
     ) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            return;
+        }
         clearLevelPhaseStartedNanos = System.nanoTime();
         clearLevelLastMarkerNanos = clearLevelPhaseStartedNanos;
         VHAccelerator.LOGGER.info(
@@ -148,7 +159,8 @@ public final class DisconnectTimer {
             String phaseName,
             Integer pendingTaskCount
     ) {
-        if (clearLevelPhaseStartedNanos < 0L
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()
+                || clearLevelPhaseStartedNanos < 0L
                 || clearLevelLastMarkerNanos < 0L) {
             return;
         }

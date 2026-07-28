@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 
 /**
  * Measures a multiplayer connection from the opening of vanilla's connect
@@ -21,7 +22,8 @@ public final class ServerLoginTimer {
         playerReadyNanos = -1L;
         ClientConnectionProfiler.beginConnection(attempt);
 
-        VHAccelerator.LOGGER.info(
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
                 "Server login timer started for attempt {} "
                         + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
                         + "optimizeJeiIngredientFilterConstruction={}, "
@@ -35,8 +37,11 @@ public final class ServerLoginTimer {
                         .get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
-                VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()
-        );
+                    VHAcceleratorClientConfig.VALUES
+                            .parallelJeiTweakerMatching
+                            .get()
+            );
+        }
     }
 
     public static synchronized boolean markPlayerReady() {
@@ -46,11 +51,14 @@ public final class ServerLoginTimer {
 
         playerReadyNanos = System.nanoTime();
         ClientConnectionProfiler.markPlayerReady();
-        VHAccelerator.LOGGER.info(
-                "Server login attempt {} initialized the client player after {} ms",
-                attempt,
-                nanosToMillis(playerReadyNanos - startNanos)
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Server login attempt {} initialized the client "
+                            + "player after {} ms",
+                    attempt,
+                    nanosToMillis(playerReadyNanos - startNanos)
+            );
+        }
         return true;
     }
 
@@ -70,14 +78,20 @@ public final class ServerLoginTimer {
         startNanos = -1L;
         playerReadyNanos = -1L;
 
-        VHAccelerator.LOGGER.info(
-                "Server login completed in {} ms ({}) "
-                        + "[client player: {} ms, first playable frame: {} ms]",
-                sample.totalMillis(),
-                String.format("%.2f seconds", sample.totalMillis() / 1000.0),
-                sample.playerReadyMillis(),
-                sample.firstFrameMillis()
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Server login completed in {} ms ({}) "
+                            + "[client player: {} ms, first playable "
+                            + "frame: {} ms]",
+                    sample.totalMillis(),
+                    String.format(
+                            "%.2f seconds",
+                            sample.totalMillis() / 1000.0
+                    ),
+                    sample.playerReadyMillis(),
+                    sample.firstFrameMillis()
+            );
+        }
         return sample;
     }
 
@@ -87,10 +101,13 @@ public final class ServerLoginTimer {
             return;
         }
 
-        VHAccelerator.LOGGER.info(
-                "Server login attempt {} ended before its first playable frame",
-                attempt
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Server login attempt {} ended before its first "
+                            + "playable frame",
+                    attempt
+            );
+        }
         startNanos = -1L;
         playerReadyNanos = -1L;
         ClientConnectionProfiler.cancel();

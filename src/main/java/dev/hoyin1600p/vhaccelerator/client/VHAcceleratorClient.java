@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import com.mojang.realmsclient.RealmsMainScreen;
-import dev.hoyin1600p.vhaccelerator.CompareModeCommand;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorCommand;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
@@ -81,7 +81,7 @@ public final class VHAcceleratorClient {
     private static void onRegisterClientCommands(
             RegisterClientCommandsEvent event
     ) {
-        CompareModeCommand.register(event.getDispatcher(), false);
+        VHAcceleratorCommand.register(event.getDispatcher(), false);
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
@@ -129,7 +129,7 @@ public final class VHAcceleratorClient {
         runMenuPrecompile(event);
         if (!(event.getScreen() instanceof TitleScreen)
                 || !LaunchTimer.isFinished()
-                || !VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()) {
+                || !VHAcceleratorConfig.timersEnabled()) {
             return;
         }
 
@@ -379,7 +379,7 @@ public final class VHAcceleratorClient {
                 ServerTransferTimer.markFirstPlayableFrame();
         PostLoginWorkTimer.Sample postLoginSample =
                 PostLoginWorkTimer.claimCompletedSample();
-        if (!VHAcceleratorClientConfig.VALUES.showLaunchTimer.get()) {
+        if (!VHAcceleratorConfig.timersEnabled()) {
             return;
         }
 

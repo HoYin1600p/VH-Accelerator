@@ -44,9 +44,7 @@ public abstract class ModelManagerApplyProfilerMixin {
             CallbackInfo callback
     ) {
         vhaccelerator$profileApply =
-                VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES.profileClientLaunchPhases
-                );
+                VHAcceleratorClientConfig.launchProfilingEnabled();
         if (!vhaccelerator$profileApply) {
             return;
         }

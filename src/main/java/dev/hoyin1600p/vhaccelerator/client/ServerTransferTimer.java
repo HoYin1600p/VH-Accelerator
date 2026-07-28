@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 
 /**
  * Measures an established connection's world replacement from the first
@@ -22,7 +23,8 @@ public final class ServerTransferTimer {
 
         attempt++;
         startNanos = System.nanoTime();
-        VHAccelerator.LOGGER.info(
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
                 "Server/world transfer timer started for attempt {} from {} "
                         + "[asyncJeiSearchIndex={}, parallelVanillaRecipeValidation={}, "
                         + "optimizeJeiIngredientFilterConstruction={}, "
@@ -37,8 +39,11 @@ public final class ServerTransferTimer {
                         .get(),
                 VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get(),
                 VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get(),
-                VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()
-        );
+                    VHAcceleratorClientConfig.VALUES
+                            .parallelJeiTweakerMatching
+                            .get()
+            );
+        }
         return true;
     }
 
@@ -52,11 +57,16 @@ public final class ServerTransferTimer {
         lastSample = sample;
         startNanos = -1L;
 
-        VHAccelerator.LOGGER.info(
-                "Server/world transfer completed in {} ms ({})",
-                sample.totalMillis(),
-                String.format("%.2f seconds", sample.totalMillis() / 1000.0)
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Server/world transfer completed in {} ms ({})",
+                    sample.totalMillis(),
+                    String.format(
+                            "%.2f seconds",
+                            sample.totalMillis() / 1000.0
+                    )
+            );
+        }
         return sample;
     }
 
@@ -65,10 +75,13 @@ public final class ServerTransferTimer {
             return;
         }
 
-        VHAccelerator.LOGGER.info(
-                "Server/world transfer attempt {} ended before its first playable frame",
-                attempt
-        );
+        if (VHAcceleratorConfig.instrumentationEnabled()) {
+            VHAccelerator.LOGGER.info(
+                    "Server/world transfer attempt {} ended before its "
+                            + "first playable frame",
+                    attempt
+            );
+        }
         startNanos = -1L;
     }
 

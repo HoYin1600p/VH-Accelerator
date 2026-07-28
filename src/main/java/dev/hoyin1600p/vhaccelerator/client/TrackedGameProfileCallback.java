@@ -29,7 +29,7 @@ public final class TrackedGameProfileCallback implements Consumer<GameProfile> {
                 generation,
                 "player-head profile"
         );
-        if (token < 0L) {
+        if (generation < 0L) {
             return delegate;
         }
         return new TrackedGameProfileCallback(delegate, generation, token);

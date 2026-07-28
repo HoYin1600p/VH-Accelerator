@@ -29,7 +29,7 @@ in the local LaunchFaster 1.0 jar. It has:
   connect-to-first-playable-frame timing, and packet-to-playable-frame
   server/world transfer timing
 - persistent Compare Mode for disabling every optimization while retaining
-  launch, reload, connection, transfer, post-login, and disconnect diagnostics
+  whichever timer and debug instrumentation switches are enabled
 - Compare-safe ModelBakery/ModelManager sub-phase measurements for discovery,
   material/atlas preparation, upload/baking, Forge model-bake callbacks, and
   the final block render lookup
@@ -58,8 +58,8 @@ in the local LaunchFaster 1.0 jar. It has:
   the persistent JSON cache before the initial resource-reload barrier
 - registry-informed sizing for ModelBakery's large maps plus direct promotion
   of already-loaded block-state models
-- reachable Forge client-loading phase and resource-listener attribution that
-  remains active in Compare Mode and identifies the next bottleneck
+- optional Forge client-loading phase and resource-listener attribution for
+  identifying the next bottleneck
 - conservative defaults for behavior known to be unsafe in the original
 
 See [the original behavior map](docs/ORIGINAL_BEHAVIOR.md) for the complete
@@ -90,10 +90,27 @@ Set `diagnostics.compareMode = true` in
 
 The command saves the setting. Restart before collecting a launch baseline.
 Use `/vha compare off` to restore optimizations and `/vha compare status` to
-inspect the current state. Compare Mode leaves all timers and profilers active,
-adds `[COMPARE]` to the main-menu timer, and prevents cache prewarming or other
-VH Accelerator optimization work. The command is client-side in multiplayer
-and is also available from a dedicated-server console.
+inspect the current state. Compare Mode adds `[COMPARE]` to the main-menu
+timer when timers are enabled and prevents cache prewarming or other VH
+Accelerator optimization work. Timer and debug
+instrumentation are controlled independently. The command is client-side in
+multiplayer and is also available from a dedicated-server console.
+
+## Instrumentation controls
+
+Timer displays, chat notices, and routine timing summaries are disabled by
+default. Detailed profiling and diagnostic attribution are also disabled by
+default. They can be enabled independently:
+
+```text
+/vha timers on
+/vha debug on
+```
+
+Use `off` to disable either switch and `status` to inspect it. `/vha` reports
+Compare Mode and both instrumentation switches together. Timer display changes
+apply immediately. Reconnect after enabling debug for connection diagnostics,
+and restart for complete launch diagnostics.
 
 ## Reference material
 

@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
@@ -28,7 +29,9 @@ public final class PacketDecodeProfiler {
         ACTIVE.set(new Sample(
                 packetId,
                 buffer.readableBytes(),
-                System.nanoTime(),
+                VHAcceleratorConfig.debugDiagnosticsEnabled()
+                        ? System.nanoTime()
+                        : -1L,
                 LoginStateFingerprint.fingerprintPayload(buffer)
         ));
     }
@@ -44,7 +47,8 @@ public final class PacketDecodeProfiler {
                     sample.payloadHash()
             );
         }
-        if (sample.bytes() < LARGE_PACKET_BYTES) {
+        if (sample.bytes() < LARGE_PACKET_BYTES
+                || !VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             return;
         }
         long elapsed = Math.max(0L, System.nanoTime() - sample.startedNanos());

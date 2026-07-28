@@ -41,6 +41,6 @@ public final class VHAccelerator {
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
-        CompareModeCommand.register(event.getDispatcher(), true);
+        VHAcceleratorCommand.register(event.getDispatcher(), true);
     }
 }

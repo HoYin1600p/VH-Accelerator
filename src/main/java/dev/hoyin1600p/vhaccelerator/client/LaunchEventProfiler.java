@@ -49,17 +49,17 @@ public final class LaunchEventProfiler {
             return;
         }
 
-        reportStages();
+        if (VHAcceleratorClientConfig.launchProfilingEnabled()) {
+            reportStages();
+        }
         STAGE_TIMINGS.clear();
     }
 
     public static boolean enabled() {
         return !FINISHED.get()
                 && !LaunchTimer.isFinished()
-                && VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES
-                                .profileClientLaunchPhases
-                );
+                && VHAcceleratorClientConfig
+                        .launchProfilingEnabled();
     }
 
     private static void reportStages() {

@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
@@ -54,6 +55,10 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized void beginConnection(long connectionAttempt) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            cancel();
+            return;
+        }
         active = true;
         playerReady = false;
         firstWorldRenderClaimed = false;
@@ -67,6 +72,10 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized void markPlayerReady() {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            cancel();
+            return;
+        }
         if (!active || playerReady) {
             return;
         }
@@ -83,7 +92,8 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized boolean isActive() {
-        return active;
+        return active
+                && VHAcceleratorConfig.debugDiagnosticsEnabled();
     }
 
     public static long startStage() {
@@ -133,7 +143,9 @@ public final class ClientConnectionProfiler {
             String channel,
             long startedNanos
     ) {
-        if (!active || startedNanos < 0L) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()
+                || !active
+                || startedNanos < 0L) {
             return;
         }
         long elapsed = elapsed(startedNanos);
@@ -147,7 +159,9 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized void recordChunkPacket(long startedNanos) {
-        if (!active || startedNanos < 0L) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()
+                || !active
+                || startedNanos < 0L) {
             return;
         }
         long elapsed = elapsed(startedNanos);
@@ -157,7 +171,8 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized long beginFirstWorldRender() {
-        if (!active
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()
+                || !active
                 || !playerReady
                 || firstWorldRenderClaimed) {
             return -1L;
@@ -168,7 +183,9 @@ public final class ClientConnectionProfiler {
     }
 
     public static synchronized long beginLevelRender() {
-        return active && firstWorldRenderInProgress
+        return VHAcceleratorConfig.debugDiagnosticsEnabled()
+                && active
+                && firstWorldRenderInProgress
                 ? System.nanoTime()
                 : -1L;
     }
@@ -180,6 +197,10 @@ public final class ClientConnectionProfiler {
     public static synchronized void finishFirstWorldRender(
             long startedNanos
     ) {
+        if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            cancel();
+            return;
+        }
         if (!active || startedNanos < 0L) {
             return;
         }

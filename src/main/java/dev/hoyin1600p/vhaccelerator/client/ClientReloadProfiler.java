@@ -56,9 +56,7 @@ public final class ClientReloadProfiler {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.launchValue(
-                VHAcceleratorClientConfig.VALUES.profileClientLaunchPhases
-        );
+        return VHAcceleratorClientConfig.launchProfilingEnabled();
     }
 
     private static String listenerName(PreparableReloadListener listener) {

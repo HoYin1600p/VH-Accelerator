@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -223,11 +224,13 @@ public final class ClientAssetFingerprint {
 
         StableConfigResult stableConfigs =
                 resolveStableConfigContents(earlyConfigs);
-        reportConfigChanges(
-                earlyConfigs,
-                stableConfigs.manifest,
-                stableConfigs.changedDuringLaunch
-        );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            reportConfigChanges(
+                    earlyConfigs,
+                    stableConfigs.manifest,
+                    stableConfigs.changedDuringLaunch
+            );
+        }
 
         List<String> resourceFiles = new ArrayList<>();
         appendResourcePackMetadata(
