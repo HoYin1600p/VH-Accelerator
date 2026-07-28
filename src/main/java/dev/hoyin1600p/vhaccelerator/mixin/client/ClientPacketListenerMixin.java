@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.client.ClientConnectionProfiler;
 import dev.hoyin1600p.vhaccelerator.client.ServerLoginTimer;
 import dev.hoyin1600p.vhaccelerator.client.ServerTransferTimer;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.ClientRecipeBook;
@@ -67,6 +68,14 @@ public abstract class ClientPacketListenerMixin {
 
         vhaccelerator$recipePacketStarted =
                 ClientConnectionProfiler.startStage();
+        if (!VHAcceleratorClientConfig.VALUES
+                .enableClientOptimizations
+                .get()
+                || !VHAcceleratorClientConfig.VALUES
+                        .persistentVanillaRecipeValidationCache
+                        .get()) {
+            return;
+        }
         long fingerprintStarted = ClientConnectionProfiler.startStage();
         LoginStateFingerprint.captureRecipePacket(packet);
         ClientConnectionProfiler.finishStage(

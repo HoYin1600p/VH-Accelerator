@@ -150,12 +150,14 @@ public final class VHAcceleratorClientConfig {
             persistentVanillaRecipeValidationCache = builder
                     .comment(
                             "Persists the IDs that passed JEI's vanilla recipe validation.",
+                            "Disabled by default because fingerprinting a large synchronized",
+                            "recipe set can cost more than parallel validation saves.",
                             "Recipe objects are always resolved from the active world; cached IDs",
                             "are accepted only when the server recipe/tag payloads, synchronized",
                             "server configs, and installed mod files match.",
                             "Volatile UI and per-world client settings are intentionally excluded",
                             "because they do not define the server-synchronized recipe set.")
-                    .define("persistentVanillaRecipeValidationCache", true);
+                    .define("persistentVanillaRecipeValidationCache", false);
             cacheJerCompatibility = builder
                     .comment(
                             "Preloads Just Enough Resources' local loot tables asynchronously in menus,",

@@ -44,6 +44,8 @@ import net.minecraftforge.registries.ForgeRegistries;
  * login. Cached products must not be published until this fingerprint matches.
  */
 public final class LoginStateFingerprint {
+    private static final String RECIPE_PAYLOAD_NOT_CAPTURED =
+            "recipe-payload-not-captured";
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
@@ -227,10 +229,21 @@ public final class LoginStateFingerprint {
     }
 
     public static Snapshot current() {
+        return current(false);
+    }
+
+    public static Snapshot currentWithRecipes() {
+        return current(true);
+    }
+
+    private static Snapshot current(boolean requireRecipes) {
         String recipes = recipePayloadHash;
         CompletableFuture<String> tagHash = tagPayloadHash;
-        if (recipes == null || tagHash == null) {
+        if (tagHash == null || (requireRecipes && recipes == null)) {
             return null;
+        }
+        if (recipes == null) {
+            recipes = RECIPE_PAYLOAD_NOT_CAPTURED;
         }
         String tags = tagHash.join();
 

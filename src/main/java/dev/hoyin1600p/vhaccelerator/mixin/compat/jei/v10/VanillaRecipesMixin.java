@@ -284,6 +284,6 @@ public abstract class VanillaRecipesMixin {
                 .get()) {
             return null;
         }
-        return LoginStateFingerprint.current();
+        return LoginStateFingerprint.currentWithRecipes();
     }
 }
