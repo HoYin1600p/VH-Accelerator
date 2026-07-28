@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
+import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.VaultGroupBuild;
 import iskallia.vault.core.world.data.entity.EntityPredicate;
@@ -39,6 +41,8 @@ public abstract class GroupUtilsMixin {
 
     @Unique
     private static VaultGroupBuild vhaccelerator$build;
+    @Unique
+    private static long vhaccelerator$workToken = -1L;
 
     @Inject(method = "setup", at = @At("HEAD"), cancellable = true)
     private static void vhaccelerator$stageGroupSetup(
@@ -47,7 +51,7 @@ public abstract class GroupUtilsMixin {
     ) {
         if (!VHAcceleratorClientConfig.VALUES.enableClientOptimizations.get()
                 || !VHAcceleratorClientConfig.VALUES.stagedVaultGroupLoading.get()) {
-            vhaccelerator$build = null;
+            vhaccelerator$cancelBuild();
             return;
         }
 
@@ -58,13 +62,19 @@ public abstract class GroupUtilsMixin {
 
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) {
-            vhaccelerator$build = null;
+            vhaccelerator$cancelBuild();
             return;
         }
 
         if (vhaccelerator$build == null
                 || !vhaccelerator$build.matchesLevel(level)) {
+            vhaccelerator$cancelBuild();
             vhaccelerator$build = new VaultGroupBuild(level);
+            vhaccelerator$workToken =
+                    PostLoginWorkTimer.markWorkStarted(
+                            ClientWorkSession.current(),
+                            "staged Vault group construction"
+                    );
             VHAccelerator.LOGGER.info("Started staged Vault group construction");
         }
 
@@ -83,5 +93,14 @@ public abstract class GroupUtilsMixin {
                 vhaccelerator$build.elapsedMillis()
         );
         vhaccelerator$build = null;
+        PostLoginWorkTimer.markWorkCompleted(vhaccelerator$workToken);
+        vhaccelerator$workToken = -1L;
+    }
+
+    @Unique
+    private static void vhaccelerator$cancelBuild() {
+        vhaccelerator$build = null;
+        PostLoginWorkTimer.cancel(vhaccelerator$workToken);
+        vhaccelerator$workToken = -1L;
     }
 }

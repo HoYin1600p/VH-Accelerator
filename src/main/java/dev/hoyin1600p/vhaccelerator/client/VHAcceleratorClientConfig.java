@@ -38,6 +38,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentVanillaRecipeValidationCache;
         public final ForgeConfigSpec.BooleanValue cacheJerCompatibility;
         public final ForgeConfigSpec.BooleanValue parallelCraftTweakerTagBinding;
+        public final ForgeConfigSpec.BooleanValue compactCraftTweakerClientReplayLogging;
         public final ForgeConfigSpec.BooleanValue parallelThermalRecipeRefresh;
         public final ForgeConfigSpec.BooleanValue cacheIronFurnacesJeiRecipes;
         public final ForgeConfigSpec.BooleanValue persistentIronFurnacesFuelCache;
@@ -171,6 +172,14 @@ public final class VHAcceleratorClientConfig {
                             "Each registry is built in worker-owned memory, all workers are joined",
                             "before publication, and a failure retries CraftTweaker's original path.")
                     .define("parallelCraftTweakerTagBinding", true);
+            compactCraftTweakerClientReplayLogging = builder
+                    .comment(
+                            "Compacts repeated per-action INFO messages while CraftTweaker",
+                            "replays server-synchronized scripts on the client.",
+                            "Warnings, errors, script file names, and lifecycle messages remain.",
+                            "Disable this when individual client replay actions are needed",
+                            "in crafttweaker.log for script troubleshooting.")
+                    .define("compactCraftTweakerClientReplayLogging", true);
             parallelThermalRecipeRefresh = builder
                     .comment(
                             "Refreshes independent Thermal machine recipe managers concurrently.",
