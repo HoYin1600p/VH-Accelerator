@@ -13,13 +13,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Persistent model-material cache hits now preserve Minecraft's canonical
-  block-atlas identity, allowing Forge 1.18.2 mods with identity-based stitch
-  listeners to register their dynamic sprites normally.
-- Restored Comforts sleeping bags, Vault workstation placeholders, Curios
-  empty-slot icons, and other event-added block-atlas textures without
-  mod-specific sprite lists.
-
 ### Performance
 
 ### Compatibility
@@ -27,6 +20,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Server
 
 ### Removed
+
+## [1.0.5] - 2026-07-29
+
+### Fixed
+
+- Persistent model-material cache hits now preserve Minecraft's canonical
+  block-atlas identity, allowing Forge 1.18.2 mods with identity-based stitch
+  listeners to register their dynamic sprites normally.
+- Restored Comforts sleeping bags, Vault workstation placeholders, Curios
+  empty-slot icons, and other event-added block-atlas textures without
+  mod-specific sprite lists.
 
 ## [1.0.4] - 2026-07-29
 
@@ -101,7 +105,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.1...v1.0.2

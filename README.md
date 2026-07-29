@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.0.4-7b68ee)](docs/releases/1.0.4.md)
+[![Release](https://img.shields.io/badge/Release-1.0.5-7b68ee)](docs/releases/1.0.5.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 clients. It reduces work on the client-launch and multiplayer-login critical
@@ -64,7 +64,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.0.4.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.0.5.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -172,7 +172,7 @@ Current compatibility details:
 | [Configuration and commands](docs/CONFIGURATION.md) | Every option, default, command, and permission |
 | [Testing and benchmarking](docs/TESTING.md) | Compare Mode and repeatable launch/login testing |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Safe isolation and issue-reporting steps |
-| [Release notes 1.0.4](docs/releases/1.0.4.md) | Vault Sigil memory-slot placeholder correction |
+| [Release notes 1.0.5](docs/releases/1.0.5.md) | Dynamic block-atlas texture registration correction |
 | [Release notes 1.0.3](docs/releases/1.0.3.md) | Sophisticated Storage slot-texture correction |
 | [Release notes 1.0.2](docs/releases/1.0.2.md) | Full-process launch timer correction |
 | [Release notes 1.0.1](docs/releases/1.0.1.md) | Compare Mode bootstrap correction |
