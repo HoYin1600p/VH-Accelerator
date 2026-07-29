@@ -5,7 +5,7 @@ VH Accelerator CurseForge listing.
 
 - `vh-accelerator-icon.jpg`: square project icon
 - `DESCRIPTION.md`: project-page Markdown
-- `CHANGELOG-1.0.0.md`: first-file Markdown changelog
+- `CHANGELOG-X.Y.Z.md`: concise per-file Markdown changelogs
 - `UPLOAD-1.0.0.md`: copy/paste fields and upload checklist
 
 Locally assembled upload bundles belong under `release/curseforge/` and are

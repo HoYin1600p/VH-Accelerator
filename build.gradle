@@ -291,6 +291,7 @@ tasks.register('verifyUnifiedCompatibilityJar') {
             def bundledDependencies = archive.entries().toList().findAll {
                 it.name.startsWith('mezz/jei/') ||
                         it.name.startsWith('iskallia/vault/') ||
+                        it.name.startsWith('net/p3pp3rf1y/sophisticatedcore/') ||
                         it.name.startsWith('cofh/thermal/') ||
                         it.name.startsWith('com/blamejared/crafttweaker/') ||
                         it.name.startsWith('xaero/')
