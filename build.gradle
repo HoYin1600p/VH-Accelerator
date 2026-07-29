@@ -108,6 +108,7 @@ dependencies {
     compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
     compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
     compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
+    compileOnly files(localCompileDependency('sophisticatedcore-1.18.2-0.6.4.604.jar'))
 }
 
 def compatibilityProfiles = [
@@ -227,6 +228,7 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/client/compat/vaulthunters/DeferredVaultAtlasUploads.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroMinimapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroWorldMapOnlineChecksMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/sophisticated/StorageScreenBaseMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelBakingMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelJsonCacheMixin.class',

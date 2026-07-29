@@ -87,6 +87,7 @@
     "compat.xaero.XaeroMinimapOnlineChecksMixin",
     "compat.xaero.XaeroWorldMapOnlineChecksMixin",
     "compat.powah.WikiMixin",
+    "compat.sophisticated.StorageScreenBaseMixin",
     "compat.vaulthunters.AbstractTextureAtlasHolderMixin",
     "compat.vaulthunters.GroupUtilsMixin",
     "compat.vaulthunters.TooltipConfigMixin"

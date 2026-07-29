@@ -40,6 +40,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean elevatorLoaded;
     private boolean extraStorageLoaded;
     private boolean refinedStorageLoaded;
+    private boolean sophisticatedCoreLoaded;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -88,6 +89,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("extrastorage") != null;
                 refinedStorageLoaded = modList != null
                         && modList.getModFileById("refinedstorage") != null;
+                sophisticatedCoreLoaded = modList != null
+                        && modList.getModFileById("sophisticatedcore") != null;
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -115,6 +118,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             elevatorLoaded = false;
             extraStorageLoaded = false;
             refinedStorageLoaded = false;
+            sophisticatedCoreLoaded = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -166,6 +170,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.vaulthunters.")) {
             return vaultHuntersLoaded;
+        }
+        if (mixinClassName.contains(".compat.sophisticated.")) {
+            return vaultHuntersLoaded && sophisticatedCoreLoaded;
         }
         if (mixinClassName.contains(".compat.powah.")) {
             return powahLoaded;
