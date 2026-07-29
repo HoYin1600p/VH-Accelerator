@@ -26,6 +26,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
@@ -261,7 +262,9 @@ public final class PersistentModelMaterialCache {
                         materialIndex < materialCount;
                         materialIndex++) {
                     ResourceLocation atlas =
-                            readLocation(input, "atlas");
+                            canonicalAtlasLocation(
+                                    readLocation(input, "atlas")
+                            );
                     ResourceLocation texture =
                             readLocation(input, "texture");
                     modelMaterials.add(new Material(atlas, texture));
@@ -376,6 +379,22 @@ public final class PersistentModelMaterialCache {
             throw new IOException(
                     "Invalid " + role + " identifier in material cache"
             );
+        }
+        return location;
+    }
+
+    /**
+     * Some Forge 1.18.2 mods compare the block-atlas location by identity
+     * inside TextureStitchEvent.Pre listeners. Material locations restored
+     * from disk are value-equal but otherwise newly allocated, which causes
+     * those listeners to skip their dynamic sprites. Preserve Minecraft's
+     * canonical block-atlas object at the persistence boundary.
+     */
+    private static ResourceLocation canonicalAtlasLocation(
+            ResourceLocation location
+    ) {
+        if (TextureAtlas.LOCATION_BLOCKS.equals(location)) {
+            return TextureAtlas.LOCATION_BLOCKS;
         }
         return location;
     }

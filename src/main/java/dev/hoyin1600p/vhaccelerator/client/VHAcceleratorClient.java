@@ -16,7 +16,6 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredien
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
-import dev.hoyin1600p.vhaccelerator.client.compat.sophisticated.SophisticatedSlotSpriteGuard;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
 import net.minecraft.ChatFormatting;
@@ -62,7 +61,6 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(
                 VHAcceleratorClient::onRegisterClientCommands
         );
-        SophisticatedSlotSpriteGuard.initialize();
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");

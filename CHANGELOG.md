@@ -13,6 +13,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Persistent model-material cache hits now preserve Minecraft's canonical
+  block-atlas identity, allowing Forge 1.18.2 mods with identity-based stitch
+  listeners to register their dynamic sprites normally.
+- Restored Comforts sleeping bags, Vault workstation placeholders, Curios
+  empty-slot icons, and other event-added block-atlas textures without
+  mod-specific sprite lists.
+
 ### Performance
 
 ### Compatibility
