@@ -55,7 +55,8 @@ public abstract class TextureMetadataHandlerMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/resources/model/"
-                            + "BakedModel;isCustomRenderer()Z"
+                            + "BakedModel;m_7521_()Z",
+                    remap = false
             )
     )
     private boolean vhaccelerator$skipKnownPlainAlias(BakedModel model) {
