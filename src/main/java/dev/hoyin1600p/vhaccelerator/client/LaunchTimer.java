@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
+import dev.hoyin1600p.vhaccelerator.client.shape.ShapeJoinProfiler;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,6 +43,7 @@ public final class LaunchTimer {
         }
 
         long elapsedMillis = elapsedMillis();
+        ShapeJoinProfiler.reportAndClear();
         RegistryLaunchProfiler.finish();
         LaunchEventProfiler.finish();
         if (VHAcceleratorConfig.instrumentationEnabled()) {
