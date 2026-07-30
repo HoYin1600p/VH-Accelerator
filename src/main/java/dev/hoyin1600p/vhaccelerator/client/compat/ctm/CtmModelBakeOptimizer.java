@@ -72,7 +72,11 @@ public final class CtmModelBakeOptimizer {
         Map<ResourceLocation, BakedModel> modelRegistry =
                 event.getModelRegistry();
         IdentityHashMap<UnbakedModel, Boolean> rootResults =
-                new IdentityHashMap<>();
+                new IdentityHashMap<>(Math.min(
+                        stateModels.size(),
+                        modelRegistry.size()
+                ));
+        TraversalScratch traversal = new TraversalScratch();
         int candidates = 0;
         int repeatedPlain = 0;
         int repeatedCtm = 0;
@@ -107,7 +111,8 @@ public final class CtmModelBakeOptimizer {
                             location,
                             rootModel,
                             loader,
-                            active.metadataLookup()
+                            active.metadataLookup(),
+                            traversal
                     );
                     rootResults.put(rootModel, shouldWrap);
                 }
@@ -156,10 +161,17 @@ public final class CtmModelBakeOptimizer {
             ResourceLocation rootLocation,
             UnbakedModel rootModel,
             ForgeModelBakery loader,
-            MethodHandle metadataLookup
+            MethodHandle metadataLookup,
+            TraversalScratch traversal
     ) {
-        ArrayDeque<ResourceLocation> dependencies = new ArrayDeque<>();
-        Set<ResourceLocation> seenModels = new HashSet<>();
+        ArrayDeque<ResourceLocation> dependencies =
+                traversal.dependencies();
+        Set<ResourceLocation> seenModels = traversal.seenModels();
+        Set<Pair<String, String>> missingTextureErrors =
+                traversal.missingTextureErrors();
+        dependencies.clear();
+        seenModels.clear();
+        missingTextureErrors.clear();
         dependencies.push(rootLocation);
         seenModels.add(rootLocation);
 
@@ -175,9 +187,10 @@ public final class CtmModelBakeOptimizer {
             }
 
             try {
+                missingTextureErrors.clear();
                 Collection<Material> materials = model.getMaterials(
                         loader::getModel,
-                        new HashSet<Pair<String, String>>()
+                        missingTextureErrors
                 );
                 for (Material material : materials) {
                     ResourceLocation texture = absoluteTexture(
@@ -217,6 +230,16 @@ public final class CtmModelBakeOptimizer {
             }
         }
         return false;
+    }
+
+    private record TraversalScratch(
+            ArrayDeque<ResourceLocation> dependencies,
+            Set<ResourceLocation> seenModels,
+            Set<Pair<String, String>> missingTextureErrors
+    ) {
+        private TraversalScratch() {
+            this(new ArrayDeque<>(), new HashSet<>(), new HashSet<>());
+        }
     }
 
     private static ResourceLocation absoluteTexture(ResourceLocation texture) {
