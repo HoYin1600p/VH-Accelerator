@@ -47,8 +47,9 @@ mod behavior remain on their established threads.
 | Java toolchain | Java 17 bytecode |
 | Vault Hunters Remastered | `20.0.3-remastered.6872` and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
+| Wold's Vaults | Pack `0.32.2` / Vault `3.21.5.6573` compile-verified baseline; runtime testing pending |
 | Custom MVP | `3.21.62` baseline |
-| JEI | `9.7.2.1001` and `10.2.1.1009` |
+| JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
 VH Accelerator can be installed on a client that connects to a server without
 the mod. It can also be installed on a dedicated server, where all client and
@@ -197,7 +198,7 @@ Build and run all compatibility checks:
 ```
 
 The reobfuscated release jar is written to `build/libs/`. The build compiles
-the same source against all five Vault profiles and verifies that both JEI
+the same source against all six Vault profiles and verifies that both JEI
 generations are present without bundling JEI, Vault Hunters, or any optional
 compatibility dependency.
 

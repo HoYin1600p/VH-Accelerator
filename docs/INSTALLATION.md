@@ -13,11 +13,14 @@ The same jar contains guarded support for:
 | Remastered current baseline | `20.0.3-remastered.6883` | `10.2.1.1009` |
 | Official previous | `3.21.5.6882` | `9.7.2.1001` |
 | Official current baseline | `3.21.6.6884` | `9.7.2.1001` |
+| Wold's Vaults 0.32.2 (compile-verified) | `3.21.5.6573` | `10.2.1.1006` |
 | Custom MVP | `3.21.62` | `9.7.2.1001` |
 
 The entries above are compile and test baselines, not hard dependencies.
 Unsupported Vault or JEI layouts leave their optional integration disabled
 instead of making those mods mandatory.
+
+Runtime testing of the Wold's Vaults profile is pending.
 
 ## Client installation
 

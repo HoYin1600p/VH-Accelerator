@@ -12,7 +12,9 @@ Git-ignored copies of:
 | The Vault custom MVP | `3.21.62` | Adjacent testing-pack repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
 | The Vault official | `3.21.5.6882` | CurseForge project `458203`, file `8508674` | `D0B330CA60D8193574B9C419F96C4BA7C444EFB606DF20973B5B0823D9586A10` |
 | The Vault official | `3.21.6.6884` | CurseForge project `458203`, file `8508967` | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
+| The Vault (Wold's Vaults 0.32.2) | `3.21.5.6573` | CurseForge project `458203`, file `7952001` | `58672F06C4B3564A3DAF4020A1492B05245F0CA13604CFC3519CAF3327F81EA3` |
 | JEI 10 | `10.2.1.1009` | Remastered compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
+| JEI 10 | `10.2.1.1006` | CurseForge project `238222`, file `5068328` | `3ECA7BA0911C733E1CE9B32EBFEEF6A66D1DECD6FE44618398B20901EFB608FE` |
 | JEI 9 | `9.7.2.1001` | Custom MVP compatibility instance | `B647023956683079A80DD31D3C42BDB4348A927B0441D507E24931501B8CCA9E` |
 | Powah | `3.0.8` | Read-only compatibility instance | `C1F87F2258DD623BADF70390D737BCA4B7151FDF76D44538B89BFB768ACF0366` |
 | JEITweaker | `3.0.0.9` | Read-only compatibility instance | `00BEBCDF16C086504CE70422B066AE307083960313BBDB1D845D936281CEBB7D` |
@@ -57,8 +59,9 @@ Relevant active mods observed in that instance include:
 
 Compatibility conclusions:
 
-- The same output jar supports all five Vault profiles. Vault-facing classes
-  and descriptors used by the mod are present in every target.
+- The same output jar compiles against all six Vault profiles. Vault-facing
+  classes and descriptors used by the mod are present in every target.
+- Wold's Vaults 0.32.2 is compile-verified; runtime testing is pending.
 - JEI 9 and JEI 10 internals live in separate packages inside VH Accelerator.
   Startup detection selects exactly one generation by checking JEI's class
   layout, and unsupported layouts leave the optional JEI mixins disabled.

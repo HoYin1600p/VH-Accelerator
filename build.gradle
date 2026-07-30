@@ -136,6 +136,11 @@ def compatibilityProfiles = [
                 vault  : 'the_vault-1.18.2-3.21.5.6882.jar',
                 jei    : 'jei-1.18.2-9.7.2.1001.jar',
                 exclude: '**/compat/jei/v10/**'
+        ],
+        woldsVaults: [
+                vault  : 'the_vault-1.18.2-3.21.5.6573.jar',
+                jei    : 'jei-1.18.2-forge-10.2.1.1006.jar',
+                exclude: '**/compat/jei/v9/**'
         ]
 ]
 

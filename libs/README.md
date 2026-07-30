@@ -8,7 +8,9 @@ files below in this directory before compiling:
 - `the_vault-1.18.2-3.21.62.jar`
 - `the_vault-1.18.2-3.21.5.6882.jar`
 - `the_vault-1.18.2-3.21.6.6884.jar`
+- `the_vault-1.18.2-3.21.5.6573.jar`
 - `jei-1.18.2-forge-10.2.1.1009.jar`
+- `jei-1.18.2-forge-10.2.1.1006.jar`
 - `jei-1.18.2-9.7.2.1001.jar`
 - `Powah-3.0.8.jar`
 - `JEITweaker-1.18.2-3.0.0.9.jar`
@@ -25,11 +27,13 @@ The current Remastered Vault jar is CurseForge project `458203`, file
 `8508678`; its immediately previous Remastered release is file `8502584`.
 The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
 previous standard release is file `8508674`. The 3.21.62 jar is the custom
-MVP target. These files are used only for compile-time compatibility checks
+MVP target. Wold's Vaults 0.32.2 pins Vault file `7952001` and JEI file
+`5068328`. These files are used only for compile-time compatibility checks
 and are not redistributed.
 
-JEI 10 is the Remastered target. JEI 9 is shared by the custom MVP and
-official 3.21.6 profiles. Both are compile-only and are not bundled.
+JEI 10 is used by the Remastered and Wold's Vaults targets. JEI 9 is shared
+by the custom MVP and official 3.21.6 profiles. All are compile-only and are
+not bundled.
 
 The Powah, JEITweaker, CraftTweaker, Thermal Foundation, Just Enough
 Resources, Iron Furnaces, Industrial Foregoing, and Sophisticated Core jars
