@@ -11,7 +11,7 @@ The same jar contains guarded support for:
 | --- | --- | --- |
 | Remastered previous | `20.0.3-remastered.6872` | `10.2.1.1009` |
 | Remastered current baseline | `20.0.3-remastered.6883` | `10.2.1.1009` |
-| Remastered VaultCrafters baseline | `20.0.3-remastered` | `10.2.1.1009` |
+| Remastered additional baseline | `20.0.3-remastered` | `10.2.1.1009` |
 | Official previous | `3.21.5.6882` | `9.7.2.1001` |
 | Official current baseline | `3.21.6.6884` | `9.7.2.1001` |
 | Wold's Vaults 0.32.2 | `3.21.5.6573` | `10.2.1.1006` |

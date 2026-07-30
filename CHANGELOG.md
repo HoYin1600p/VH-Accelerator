@@ -17,16 +17,66 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Compatibility
 
-- Added compile verification against Vault Hunters Remastered
-  `20.0.3-remastered.6883` while retaining `.6872` as a previous baseline.
-- Added the active VaultCrafters `20.0.3-remastered` jar as an independent
-  Remastered compatibility profile.
-- Added a Wold's Vaults 0.32.2 compile profile using Vault `3.21.5.6573`
-  and JEI `10.2.1.1006`.
-
 ### Server
 
 ### Removed
+
+## [1.0.6] - 2026-07-30
+
+### Added
+
+- Added guarded Wold's Vaults 0.32.2 compatibility using The Vault
+  `3.21.5.6573` and JEI `10.2.1.1006`.
+- Added a launch-scoped baked-model namespace index for compatible Mekanism,
+  Cable Tiers, Cloud Storage, and MEGA Cells callbacks that otherwise scan the
+  complete model registry independently.
+- Added an exact-version CTM model-bake optimizer that resolves shared live
+  unbaked-model graphs once while retaining CTM's normal wrapping and render
+  behavior.
+- Added an equivalent flat-array voxel-shape coordinate merger with randomized
+  equivalence tests and automatic coexistence with Lithium and Canary.
+- Added debug-only Forge registry, model-bake callback, and fragile
+  block-atlas sprite diagnostics for large-pack compatibility audits.
+
+### Changed
+
+- Persistent client asset fingerprints now ignore known session-only timing,
+  renderer, and sidebar state files that cannot alter model resources.
+- Asset fingerprinting now waits for short startup configuration-write bursts
+  to settle before accepting a stable cache key.
+- EveryCompat keeps its generated runtime resources in memory while skipping
+  its optional on-disk diagnostic resource-pack mirror on validated versions.
+- New early client options use their documented defaults until Forge attaches
+  the generated client configuration.
+
+### Fixed
+
+- JER menu preloading is deferred when KubeJS is present because its loot-table
+  scripts require an active server context; normal JER initialization remains
+  available at login.
+- Corrected the guarded CTM custom-renderer redirect and retained the original
+  CTM path whenever the validated layout cannot be bound.
+- Reduced false persistent-cache misses caused by client UI and renderer files
+  being rewritten during otherwise unchanged launches.
+
+### Performance
+
+- Reuses CTM graph decisions across model aliases without caching baked or
+  dynamic model state.
+- Avoids repeated whole-registry model scans in supported Wold's content mods.
+- Reuses model-bake index snapshots and CTM traversal scratch storage to reduce
+  launch-critical allocation.
+- Avoids repeated voxel-shape configuration lookups after the launch setting
+  has been captured.
+
+### Compatibility
+
+- Added compile and runtime verification for Wold's Vaults 0.32.2.
+- Added compile verification against Vault Hunters Remastered
+  `20.0.3-remastered.6883` while retaining `.6872` and
+  `20.0.3-remastered` as independent baselines.
+- The same release jar now passes all seven Vault and JEI compatibility
+  profiles.
 
 ## [1.0.5] - 2026-07-29
 
@@ -112,7 +162,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.2...v1.0.3

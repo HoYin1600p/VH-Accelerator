@@ -106,6 +106,7 @@ not part of the recommended release configuration.
 | `parallelBlockStateLoading` | `true` | Reads registered blockstate resource stacks concurrently while retaining original parsing semantics. |
 | `parallelAtlasStitching` | `true` | Prepares independent atlases in bounded batches; unsafe graphs use the original path. |
 | `parallelModelBaking` | `true` | Bakes eligible top-level models in bounded batches with whole-pass sequential recovery. |
+| `optimizeVoxelShapeMerging` | `true` | Uses an equivalent flat-array coordinate merger for complex voxel shapes; automatically yields to Lithium or Canary. |
 | `persistentModelJsonCache` | `true` | Stores fingerprinted raw model JSON; never stores parsed custom geometry or baked models. |
 | `prewarmPersistentPlainModels` | `true` | Parses eligible cached plain models before the initial reload barrier. |
 | `persistentBlockStateJsonCache` | `true` | Stores ordered raw blockstate resource layers and source names. |
@@ -125,6 +126,8 @@ not part of the recommended release configuration.
 | --- | --- | --- |
 | `protectDynamicModels` | `true` | Keeps Forge custom geometry and dynamic graphs on original paths. Do not disable for normal play. |
 | `indexModelBakeRegistries` | `true` | Builds namespace indexes for compatible callbacks that otherwise rescan the full baked-model registry. |
+| `memoizeCtmModelBakeTraversal` | `true` | Reuses CTM graph results only when baked keys share the same live unbaked-model object; unsupported CTM layouts retain their original path. |
+| `disableEveryCompatDebugResourceDump` | `true` | Keeps EveryCompat's live generated resources while skipping its optional on-disk diagnostic mirror on validated versions. |
 | `parallelJeiIngredientSorting` | `true` | Sorts JEI ingredients in an adaptive bounded pool while preserving JEI's completion barrier. |
 | `indexPowahWikiRecipes` | `true` | Groups crafting and smelting recipes once for Powah's wiki. |
 | `parallelJeiTweakerMatching` | `true` | Matches hidden ingredients against stable snapshots in a bounded pool. |
