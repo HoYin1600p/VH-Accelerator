@@ -1086,6 +1086,7 @@ public final class ClientAssetFingerprint {
                 || normalized.equals("oculus.properties")
                 || normalized.equals("powah.json5")
                 || normalized.equals("reforgium-renderer.properties")
+                || normalized.equals("sidebar_buttons.json")
                 || normalized.equals("vaultlootbeams.json")
                 || normalized.equals(
                         "modernstartupqol/startup_times.json"
