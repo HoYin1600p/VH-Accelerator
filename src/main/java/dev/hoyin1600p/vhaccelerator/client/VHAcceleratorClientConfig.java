@@ -76,6 +76,10 @@ public final class VHAcceleratorClientConfig {
             if (configured != null) {
                 return configured;
             }
+            Object defaultValue = value.getDefault();
+            if (defaultValue instanceof Boolean enabled) {
+                return enabled;
+            }
         }
         return value.get();
     }
