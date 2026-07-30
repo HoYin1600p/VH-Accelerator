@@ -146,6 +146,18 @@ Accelerator's profiler is independently implemented and scopes measurements
 to Forge client-loading phases, reload listeners, model subphases, connection
 work, and disconnect listeners.
 
+### Lithium and Canary
+
+- Original project:
+  [CaffeineMC/Lithium](https://github.com/CaffeineMC/lithium)
+- Forge port studied:
+  [AbdElAziz333/Canary](https://www.curseforge.com/minecraft/mc-mods/canary)
+
+Lithium's shape-merging research identified Minecraft's general coordinate
+merger as a worthwhile optimization boundary. VH Accelerator independently
+implements and randomized-tests an equivalent flat-array merger for Forge
+1.18.2, and yields that patch when Lithium or Canary is present.
+
 ## Projects reviewed for boundaries or future work
 
 These projects influenced design decisions, rejected approaches, coexistence

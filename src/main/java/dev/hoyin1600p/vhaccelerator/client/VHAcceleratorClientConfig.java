@@ -103,6 +103,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockStateLoading;
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
+        public final ForgeConfigSpec.BooleanValue optimizeVoxelShapeMerging;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
@@ -182,6 +183,13 @@ public final class VHAcceleratorClientConfig {
             parallelModelBaking = builder
                     .comment("Bakes top-level models in batches on Minecraft's background executor.")
                     .define("parallelModelBaking", true);
+            optimizeVoxelShapeMerging = builder
+                    .comment(
+                            "Uses a flat-array coordinate merger for complex voxel shapes.",
+                            "The output is equivalent to Minecraft's original merger and",
+                            "can reduce block-registration time in decoration-heavy packs.",
+                            "VH Accelerator yields this patch when Canary or Lithium is present.")
+                    .define("optimizeVoxelShapeMerging", true);
             persistentModelJsonCache = builder
                     .comment(
                             "Persists the resolved initial model JSON resource view as one",

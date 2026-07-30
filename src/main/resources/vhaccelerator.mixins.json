@@ -47,6 +47,7 @@
     "client.ParallelBlockModelShaperMixin",
     "client.ReloadListenerProfilerMixin",
     "client.SkullBlockEntityMixin",
+    "client.ShapesCoordinateMergerMixin",
     "client.BlockModelMixin",
     "client.ModelBakeryMixin",
     "client.TagNetworkPayloadAccessor",

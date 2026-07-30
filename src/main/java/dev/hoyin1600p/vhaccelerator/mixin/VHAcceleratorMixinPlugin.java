@@ -26,6 +26,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     );
 
     private boolean modernFixLoaded;
+    private boolean externalShapeOptimizerLoaded;
     private boolean jeiLoaded;
     private int jeiGeneration;
     private boolean vaultHuntersLoaded;
@@ -55,6 +56,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         try {
             LoadingModList modList = LoadingModList.get();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
+            externalShapeOptimizerLoaded = modList != null
+                    && (modList.getModFileById("canary") != null
+                    || modList.getModFileById("lithium") != null);
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
                 if (jeiLoaded
@@ -120,6 +124,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             }
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
+            externalShapeOptimizerLoaded = false;
             jeiLoaded = false;
             jeiGeneration = 0;
             vaultHuntersLoaded = false;
@@ -182,6 +187,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
+        }
+        if (mixinClassName.endsWith(
+                ".ShapesCoordinateMergerMixin"
+        )) {
+            return physicalClient && !externalShapeOptimizerLoaded;
         }
         if (mixinClassName.contains(".client.") || mixinClassName.contains(".compat.")) {
             if (!physicalClient) {

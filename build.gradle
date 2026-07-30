@@ -31,6 +31,9 @@ java {
 
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
+    accessTransformer = file(
+            'src/main/resources/META-INF/accesstransformer.cfg'
+    )
     copyIdeResources = true
 
     runs {
@@ -93,6 +96,7 @@ def localCompileDependency = { String fileName ->
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 
     // Optional at runtime. These jars expose only the APIs targeted by guarded
     // compatibility mixins and are deliberately not bundled in our output jar.
@@ -109,6 +113,10 @@ dependencies {
     compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
     compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
     compileOnly files(localCompileDependency('sophisticatedcore-1.18.2-0.6.4.604.jar'))
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 def compatibilityProfiles = [
