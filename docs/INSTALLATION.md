@@ -67,8 +67,7 @@ while testing.
 | VHClientOptimize | Disable. Its Vault and JEI patches overlap VH Accelerator. |
 | Lightspeed | Disable for an apples-to-apples test and to avoid duplicate resource/model caches. |
 | ModernFix | Supported and optional. VH Accelerator yields overlapping work automatically. |
-| LazyDFU | Its rule warm-up suppression is built into VH Accelerator's physical-client path; a separate copy is unnecessary there. |
-| FerriteCore, Fastload, Smooth Boot, Starlight, Embeddium | Not replaced by VH Accelerator; retain only if appropriate for the pack. |
+| LazyDFU, FerriteCore, Fastload, Smooth Boot, Starlight, Embeddium | Not replaced by VH Accelerator; retain only if appropriate for the pack. |
 
 When diagnosing a crash, test the smallest relevant combination rather than
 assuming every performance mod is composable.

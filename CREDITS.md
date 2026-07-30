@@ -102,15 +102,6 @@ resource compatibility, and the principle that two mods should not transform
 the same loading path simultaneously. VH Accelerator queries ModernFix's
 effective dynamic-resource choice and yields overlapping mixins.
 
-### LazyDFU — astei
-
-- Source: [astei/lazydfu](https://github.com/astei/lazydfu)
-
-LazyDFU established that DataFixerUpper's executor-backed all-rules warm-up is
-optional: migrations remain correct when individual rules compile on demand.
-VH Accelerator independently applies that boundary to its physical-client
-launch path so the warm-up cannot compete with mod and resource loading.
-
 ### DashLoader — alphaqu and contributors
 
 - Source: [alphaqu/DashLoader](https://github.com/alphaqu/DashLoader)

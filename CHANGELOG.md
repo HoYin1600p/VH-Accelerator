@@ -15,9 +15,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
-- Avoids DataFixerUpper's speculative all-rules background warm-up on the
-  physical client while preserving on-demand migration for old client data.
-
 ### Compatibility
 
 ### Server
