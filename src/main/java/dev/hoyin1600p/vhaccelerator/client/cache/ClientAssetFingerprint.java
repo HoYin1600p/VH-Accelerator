@@ -1086,6 +1086,9 @@ public final class ClientAssetFingerprint {
                 || normalized.equals("oculus.properties")
                 || normalized.equals("powah.json5")
                 || normalized.equals("vaultlootbeams.json")
+                || normalized.equals(
+                        "modernstartupqol/startup_times.json"
+                )
                 || normalized.startsWith("xaerominimap")
                 || normalized.startsWith("xaeroworldmap")
                 || normalized.startsWith("voicechat/")
