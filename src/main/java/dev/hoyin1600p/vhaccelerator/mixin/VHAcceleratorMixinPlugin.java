@@ -43,6 +43,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean refinedStorageLoaded;
     private boolean sophisticatedCoreLoaded;
     private boolean ctmCompatible;
+    private boolean mekanismModelBakeCompatible;
+    private boolean cableTiersModelBakeCompatible;
+    private boolean cloudStorageModelBakeCompatible;
+    private boolean megaCellsModelBakeCompatible;
     private boolean everyCompatDebugDumpCompatible;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
@@ -102,6 +106,26 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "ctm",
                         "1.18.2-1.1.5+5"
                 );
+                mekanismModelBakeCompatible = hasVersion(
+                        modList,
+                        "mekanism",
+                        "10.2.5"
+                );
+                cableTiersModelBakeCompatible = hasVersion(
+                        modList,
+                        "cabletiers",
+                        "1.18.2-0.56"
+                );
+                cloudStorageModelBakeCompatible = hasVersion(
+                        modList,
+                        "cloudstorage",
+                        "1.1.0"
+                );
+                megaCellsModelBakeCompatible = hasVersion(
+                        modList,
+                        "megacells",
+                        "1.4.2-1.18.2"
+                );
                 everyCompatDebugDumpCompatible = hasVersion(
                         modList,
                         "everycomp",
@@ -141,6 +165,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             refinedStorageLoaded = false;
             sophisticatedCoreLoaded = false;
             ctmCompatible = false;
+            mekanismModelBakeCompatible = false;
+            cableTiersModelBakeCompatible = false;
+            cloudStorageModelBakeCompatible = false;
+            megaCellsModelBakeCompatible = false;
             everyCompatDebugDumpCompatible = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
@@ -169,6 +197,19 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             LOGGER.info(
                     "Validated ConnectedTexturesMod model-bake "
                             + "compatibility"
+            );
+        }
+        if (mekanismModelBakeCompatible
+                || cableTiersModelBakeCompatible
+                || cloudStorageModelBakeCompatible
+                || megaCellsModelBakeCompatible) {
+            LOGGER.info(
+                    "Validated additional model-bake indexes: mekanism={}, "
+                            + "cabletiers={}, cloudstorage={}, megacells={}",
+                    mekanismModelBakeCompatible,
+                    cableTiersModelBakeCompatible,
+                    cloudStorageModelBakeCompatible,
+                    megaCellsModelBakeCompatible
             );
         }
         if (everyCompatDebugDumpCompatible) {
@@ -242,6 +283,18 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.endsWith(".Ae2ModelBakeMixin")) {
             return ae2Loaded;
+        }
+        if (mixinClassName.endsWith(".MekanismModelBakeMixin")) {
+            return mekanismModelBakeCompatible;
+        }
+        if (mixinClassName.endsWith(".CableTiersModelBakeMixin")) {
+            return cableTiersModelBakeCompatible;
+        }
+        if (mixinClassName.endsWith(".CloudStorageModelBakeMixin")) {
+            return cloudStorageModelBakeCompatible;
+        }
+        if (mixinClassName.endsWith(".MegaCellsModelBakeMixin")) {
+            return megaCellsModelBakeCompatible;
         }
         if (mixinClassName.endsWith(".ElevatorModelBakeMixin")) {
             return elevatorLoaded;

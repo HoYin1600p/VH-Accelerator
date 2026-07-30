@@ -4,11 +4,13 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.resources.ResourceLocation;
 
@@ -86,6 +88,37 @@ public final class ModelBakeRegistryIndex {
         filteredViews++;
         avoidedVisits += Math.max(0, registry.size() - keys.size());
         return entries;
+    }
+
+    public static synchronized void replaceAll(
+            Map<ResourceLocation, BakedModel> registry,
+            Collection<String> namespaces,
+            BiFunction<
+                    ? super ResourceLocation,
+                    ? super BakedModel,
+                    ? extends BakedModel
+                    > replacement
+    ) {
+        if (!enabled()) {
+            registry.replaceAll(replacement);
+            return;
+        }
+        ensureIndex(registry);
+
+        int visited = 0;
+        for (String namespace : namespaces) {
+            List<ResourceLocation> keys = namespaceKeys.get(namespace);
+            if (keys == null) {
+                continue;
+            }
+            for (ResourceLocation key : keys) {
+                BakedModel current = registry.get(key);
+                registry.put(key, replacement.apply(key, current));
+                visited++;
+            }
+        }
+        filteredViews++;
+        avoidedVisits += Math.max(0, registry.size() - visited);
     }
 
     public static synchronized void finish() {
