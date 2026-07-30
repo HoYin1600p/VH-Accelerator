@@ -38,9 +38,9 @@ public final class ClientAssetFingerprint {
     private static final int SCHEMA_VERSION = 5;
     private static final long MAX_CONFIG_HASH_BYTES = 32L * 1024L * 1024L;
     private static final int MAX_STABILITY_ATTEMPTS = 3;
-    private static final long CONFIG_EVENT_QUIET_MILLIS = 30L;
+    private static final long CONFIG_EVENT_QUIET_MILLIS = 100L;
     private static final long MAX_CONFIG_EVENT_WAIT_MILLIS = 750L;
-    private static final long POST_VALIDATION_QUIET_MILLIS = 10L;
+    private static final long POST_VALIDATION_QUIET_MILLIS = 50L;
     private static final long MAX_POST_VALIDATION_WAIT_MILLIS = 100L;
     private static final int MAX_MANIFEST_ENTRIES = 100_000;
     private static final long MAX_MANIFEST_BYTES = 16L * 1024L * 1024L;
