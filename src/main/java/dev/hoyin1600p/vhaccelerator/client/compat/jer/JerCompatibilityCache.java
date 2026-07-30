@@ -27,7 +27,7 @@ import net.minecraft.world.level.storage.loot.LootTables;
 import net.minecraft.world.level.storage.loot.PredicateManager;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.IModFileInfo;
-import net.minecraftforge.resource.PathResourcePack;
+import net.minecraftforge.resource.ResourcePackLoader;
 
 public final class JerCompatibilityCache {
     private static final Field JER_LOOT_TABLES = findLootTablesField();
@@ -59,6 +59,14 @@ public final class JerCompatibilityCache {
         }
 
         preloadAttempted = true;
+        if (ModList.get().isLoaded("kubejs")) {
+            VHAccelerator.LOGGER.debug(
+                    "Deferred JER menu preload because KubeJS loot-table "
+                            + "scripts require an active server context"
+            );
+            return;
+        }
+
         preloadStartedNanos = System.nanoTime();
         try {
             LootTables existing = getPublishedLootTables();
@@ -81,10 +89,13 @@ public final class JerCompatibilityCache {
                     "minecraft"
             ));
             for (IModFileInfo mod : ModList.get().getModFiles()) {
-                packs.add(new PathResourcePack(
-                        mod.getFile().getFileName(),
-                        mod.getFile().getFilePath()
-                ));
+                boolean minecraftContainer = mod.requiredLanguageLoaders()
+                        .stream()
+                        .anyMatch(loader ->
+                                "minecraft".equals(loader.languageName()));
+                if (!minecraftContainer) {
+                    packs.add(ResourcePackLoader.createPackForMod(mod));
+                }
             }
 
             pendingResourceManager.registerReloadListener(pendingLootTables);
