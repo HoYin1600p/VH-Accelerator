@@ -64,9 +64,10 @@ public abstract class TextureMetadataHandlerMixin {
             Object key,
             boolean defaultValue
     ) {
-        return CtmModelBakeMemoization.reuseResult(
-                results.getOrDefault(key, defaultValue)
-        );
+        Boolean cached = CtmModelBakeMemoization.cachedResult();
+        return cached != null
+                ? cached
+                : results.getOrDefault(key, defaultValue);
     }
 
     @Redirect(
@@ -99,7 +100,9 @@ public abstract class TextureMetadataHandlerMixin {
             Object key,
             boolean shouldWrap
     ) {
-        CtmModelBakeMemoization.recordResult(shouldWrap);
+        if (!CtmModelBakeMemoization.recordResult(shouldWrap)) {
+            return false;
+        }
         return results.put((ResourceLocation) key, shouldWrap);
     }
 

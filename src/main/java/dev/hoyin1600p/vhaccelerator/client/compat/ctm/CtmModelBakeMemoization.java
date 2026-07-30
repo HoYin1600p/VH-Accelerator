@@ -22,6 +22,7 @@ public final class CtmModelBakeMemoization {
     private static boolean skipCachedFalseTraversal;
     private static int repeatedTrue;
     private static int repeatedFalse;
+    private static int skippedPlainWrites;
 
     private CtmModelBakeMemoization() {
     }
@@ -32,6 +33,7 @@ public final class CtmModelBakeMemoization {
         skipCachedFalseTraversal = false;
         repeatedTrue = 0;
         repeatedFalse = 0;
+        skippedPlainWrites = 0;
         active = VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES
@@ -47,12 +49,12 @@ public final class CtmModelBakeMemoization {
         skipCachedFalseTraversal = false;
     }
 
-    public static boolean reuseResult(boolean original) {
+    public static Boolean cachedResult() {
         if (!active
                 || currentRoot == null
                 || !RESULTS.containsKey(currentRoot)) {
             skipCachedFalseTraversal = false;
-            return original;
+            return null;
         }
 
         boolean cached = Boolean.TRUE.equals(RESULTS.get(currentRoot));
@@ -69,12 +71,17 @@ public final class CtmModelBakeMemoization {
         return active && skipCachedFalseTraversal;
     }
 
-    public static void recordResult(boolean shouldWrap) {
+    public static boolean recordResult(boolean shouldWrap) {
         if (active && currentRoot != null) {
             RESULTS.putIfAbsent(currentRoot, shouldWrap);
         }
+        boolean keepPerKeyResult = !active || shouldWrap;
+        if (active && !shouldWrap) {
+            skippedPlainWrites++;
+        }
         currentRoot = null;
         skipCachedFalseTraversal = false;
+        return keepPerKeyResult;
     }
 
     public static void finishEvent() {
@@ -82,16 +89,19 @@ public final class CtmModelBakeMemoization {
             VHAccelerator.LOGGER.info(
                     "Memoized CTM model-bake traversal across {} unique "
                             + "unbaked model object(s); avoided {} repeated "
-                            + "graph scan(s) [{} CTM, {} plain]",
+                            + "graph scan(s) [{} CTM, {} plain] and {} "
+                            + "redundant plain-result map write(s)",
                     RESULTS.size(),
                     repeatedTrue + repeatedFalse,
                     repeatedTrue,
-                    repeatedFalse
+                    repeatedFalse,
+                    skippedPlainWrites
             );
         }
         active = false;
         currentRoot = null;
         skipCachedFalseTraversal = false;
+        skippedPlainWrites = 0;
         RESULTS.clear();
     }
 }
