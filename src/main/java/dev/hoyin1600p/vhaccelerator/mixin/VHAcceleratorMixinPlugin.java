@@ -42,6 +42,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean refinedStorageLoaded;
     private boolean sophisticatedCoreLoaded;
     private boolean ctmCompatible;
+    private boolean everyCompatDebugDumpCompatible;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -97,6 +98,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "ctm",
                         "1.18.2-1.1.5+5"
                 );
+                everyCompatDebugDumpCompatible = hasVersion(
+                        modList,
+                        "everycomp",
+                        "1.18.2-1.6.7"
+                ) && hasVersion(
+                        modList,
+                        "selene",
+                        "1.18.2-1.17.14"
+                );
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -126,6 +136,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             refinedStorageLoaded = false;
             sophisticatedCoreLoaded = false;
             ctmCompatible = false;
+            everyCompatDebugDumpCompatible = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -153,6 +164,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             LOGGER.info(
                     "Validated ConnectedTexturesMod model-bake "
                             + "compatibility"
+            );
+        }
+        if (everyCompatDebugDumpCompatible) {
+            LOGGER.info(
+                    "Validated EveryCompat generated-resource compatibility"
             );
         }
     }
@@ -189,6 +205,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.ctm.")) {
             return ctmCompatible;
+        }
+        if (mixinClassName.contains(".compat.everycomp.")) {
+            return everyCompatDebugDumpCompatible;
         }
         if (mixinClassName.contains(".compat.powah.")) {
             return powahLoaded;

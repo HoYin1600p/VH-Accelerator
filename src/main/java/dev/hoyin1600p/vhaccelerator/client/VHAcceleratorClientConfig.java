@@ -76,10 +76,17 @@ public final class VHAcceleratorClientConfig {
             if (configured != null) {
                 return configured;
             }
-            Object defaultValue = value.getDefault();
-            if (defaultValue instanceof Boolean enabled) {
-                return enabled;
-            }
+        }
+        return value.get();
+    }
+
+    public static boolean launchValue(
+            ForgeConfigSpec.BooleanValue value,
+            boolean defaultValue
+    ) {
+        if (!LaunchTimer.isFinished() && launchSnapshotCaptured) {
+            Boolean configured = launchBooleanSnapshot.get(value.getPath());
+            return configured != null ? configured : defaultValue;
         }
         return value.get();
     }
@@ -111,6 +118,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
+        public final ForgeConfigSpec.BooleanValue
+                disableEveryCompatDebugResourceDump;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -283,6 +292,22 @@ public final class VHAcceleratorClientConfig {
                             "Currently enabled only for the explicitly "
                                     + "validated CTM 1.18.2 build.")
                     .define("memoizeCtmModelBakeTraversal", true);
+            disableEveryCompatDebugResourceDump = builder
+                    .comment(
+                            "Keeps EveryCompat's generated client resources "
+                                    + "in memory without rewriting its large "
+                                    + "diagnostic resource-pack mirror to "
+                                    + "debug/generated_resource_pack on every "
+                                    + "launch.",
+                            "Runtime assets are generated normally; only the "
+                                    + "optional debug copy is disabled.",
+                            "Currently enabled only for the explicitly "
+                                    + "validated EveryCompat and Selene "
+                                    + "1.18.2 builds.")
+                    .define(
+                            "disableEveryCompatDebugResourceDump",
+                            true
+                    );
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",
