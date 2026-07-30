@@ -25,7 +25,6 @@
     "client.ForgeHooksClientModelBakeProfilerMixin",
     "client.ForgeLogoutTimingMixin",
     "client.ForgeRecipeEventTimingMixin",
-    "client.FmlModContainerRegistryProfilerMixin",
     "client.GameRendererTimingMixin",
     "client.GameDataRegistryProfilerMixin",
     "client.LevelRendererTimingMixin",

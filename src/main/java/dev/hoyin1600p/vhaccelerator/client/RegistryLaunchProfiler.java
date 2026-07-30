@@ -20,13 +20,44 @@ public final class RegistryLaunchProfiler {
             new ConcurrentHashMap<>();
     private static final Map<String, Timing> HOLDER_TIMINGS =
             new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, Long> REGISTRY_STARTS =
+            new ConcurrentHashMap<>();
+    private static final Map<String, Timing> TRANSITION_TIMINGS =
+            new ConcurrentHashMap<>();
     private static final AtomicBoolean FINISHED = new AtomicBoolean();
 
     private RegistryLaunchProfiler() {
     }
 
     public static long begin() {
-        return enabled() ? System.nanoTime() : 0L;
+        return active() ? System.nanoTime() : 0L;
+    }
+
+    public static boolean active() {
+        return !FINISHED.get()
+                && !LaunchTimer.isFinished()
+                && VHAcceleratorClientConfig.launchProfilingEnabled();
+    }
+
+    public static void beginRegistryTransition(
+            ResourceLocation registryName
+    ) {
+        if (active()) {
+            REGISTRY_STARTS.put(registryName, System.nanoTime());
+        }
+    }
+
+    public static void finishRegistryTransition(
+            ResourceLocation registryName
+    ) {
+        Long started = REGISTRY_STARTS.remove(registryName);
+        if (started != null) {
+            record(
+                    TRANSITION_TIMINGS,
+                    String.valueOf(registryName),
+                    started
+            );
+        }
     }
 
     public static void recordEvent(
@@ -58,16 +89,13 @@ public final class RegistryLaunchProfiler {
         }
         if (VHAcceleratorClientConfig.launchProfilingEnabled()) {
             report("registry callback", EVENT_TIMINGS, 20);
+            report("registry transition", TRANSITION_TIMINGS, 20);
             report("object-holder registry", HOLDER_TIMINGS, 20);
         }
         EVENT_TIMINGS.clear();
+        REGISTRY_STARTS.clear();
+        TRANSITION_TIMINGS.clear();
         HOLDER_TIMINGS.clear();
-    }
-
-    private static boolean enabled() {
-        return !FINISHED.get()
-                && !LaunchTimer.isFinished()
-                && VHAcceleratorClientConfig.launchProfilingEnabled();
     }
 
     private static void record(
