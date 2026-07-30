@@ -2,59 +2,57 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Locale;
-import net.minecraftforge.client.event.ModelBakeEvent;
-import net.minecraftforge.eventbus.api.Event;
 
 /**
- * Debug-only attribution for the Forge mod-bus portion of model baking.
+ * Debug-only attribution for Forge's model-bake phases.
  *
- * <p>Forge sends {@link ModelBakeEvent} to every mod container in sequence.
- * Measuring the container dispatches separately identifies the owner of slow
- * callbacks without changing listener order or execution.
+ * <p>The original calls remain synchronous and retain their ordering. This
+ * profiler only separates mod event dispatch from Forge's post-bake pass.
  */
 public final class ModelBakeEventProfiler {
-    private static final long REPORT_THRESHOLD_NANOS = 50_000L;
-    private static final List<ModSample> SAMPLES = new ArrayList<>();
-
     private static boolean active;
     private static long eventStartedNanos;
+    private static long eventDispatchNanos;
+    private static long postBakeNanos;
 
     private ModelBakeEventProfiler() {
     }
 
     public static synchronized void begin() {
         active = VHAcceleratorConfig.debugDiagnosticsEnabled();
-        SAMPLES.clear();
         eventStartedNanos = active ? System.nanoTime() : -1L;
+        eventDispatchNanos = 0L;
+        postBakeNanos = 0L;
     }
 
-    public static synchronized long beginContainer(Event event) {
-        return active && event instanceof ModelBakeEvent
-                ? System.nanoTime()
-                : -1L;
+    public static synchronized boolean isActive() {
+        return active;
     }
 
-    public static synchronized void finishContainer(
-            String modId,
-            long startedNanos
-    ) {
+    public static synchronized void recordEventDispatch(long startedNanos) {
         if (!active || startedNanos < 0L) {
             return;
         }
-        SAMPLES.add(new ModSample(
-                modId,
-                Math.max(0L, System.nanoTime() - startedNanos)
-        ));
+        eventDispatchNanos += Math.max(
+                0L,
+                System.nanoTime() - startedNanos
+        );
+    }
+
+    public static synchronized void recordPostBake(long startedNanos) {
+        if (!active || startedNanos < 0L) {
+            return;
+        }
+        postBakeNanos += Math.max(
+                0L,
+                System.nanoTime() - startedNanos
+        );
     }
 
     public static synchronized void finish() {
         if (!active || eventStartedNanos < 0L) {
             active = false;
-            SAMPLES.clear();
             return;
         }
 
@@ -62,36 +60,25 @@ public final class ModelBakeEventProfiler {
                 0L,
                 System.nanoTime() - eventStartedNanos
         );
-        long containerNanos = SAMPLES.stream()
-                .mapToLong(ModSample::elapsedNanos)
-                .sum();
-        long residualNanos = Math.max(0L, totalNanos - containerNanos);
+        long residualNanos = Math.max(
+                0L,
+                totalNanos - eventDispatchNanos - postBakeNanos
+        );
 
         VHAccelerator.LOGGER.info(
-                "Forge ModelBakeEvent attribution: {} mod container(s), "
-                        + "{} ms total, {} ms in container dispatch, "
-                        + "{} ms in Forge post-bake/dispatch overhead",
-                SAMPLES.size(),
+                "Forge model-bake attribution: {} ms total, "
+                        + "{} ms in mod event dispatch, "
+                        + "{} ms in Forge post-bake, {} ms other",
                 formatMillis(totalNanos),
-                formatMillis(containerNanos),
+                formatMillis(eventDispatchNanos),
+                formatMillis(postBakeNanos),
                 formatMillis(residualNanos)
         );
 
-        SAMPLES.stream()
-                .filter(sample ->
-                        sample.elapsedNanos() >= REPORT_THRESHOLD_NANOS)
-                .sorted(Comparator.comparingLong(
-                        ModSample::elapsedNanos
-                ).reversed())
-                .forEach(sample -> VHAccelerator.LOGGER.info(
-                        "Forge ModelBakeEvent owner {}: {} ms",
-                        sample.modId(),
-                        formatMillis(sample.elapsedNanos())
-                ));
-
         active = false;
         eventStartedNanos = -1L;
-        SAMPLES.clear();
+        eventDispatchNanos = 0L;
+        postBakeNanos = 0L;
     }
 
     private static String formatMillis(long nanos) {
@@ -100,8 +87,5 @@ public final class ModelBakeEventProfiler {
                 "%.3f",
                 nanos / 1_000_000.0
         );
-    }
-
-    private record ModSample(String modId, long elapsedNanos) {
     }
 }
