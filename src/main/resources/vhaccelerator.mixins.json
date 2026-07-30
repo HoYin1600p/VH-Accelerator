@@ -99,6 +99,7 @@
     "compat.sophisticated.StorageScreenBaseMixin",
     "compat.vaulthunters.AbstractTextureAtlasHolderMixin",
     "compat.vaulthunters.GroupUtilsMixin",
+    "compat.vaulthunters.TieredLootTableGeneratorCdfMixin",
     "compat.vaulthunters.TooltipConfigMixin"
   ],
   "injectors": {

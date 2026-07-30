@@ -15,6 +15,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Replaces Vault Hunters' quadratic tiered-loot CDF grouping map with
+  hash-based buckets while retaining its exact sorted cumulative output.
+
 ### Compatibility
 
 ### Server

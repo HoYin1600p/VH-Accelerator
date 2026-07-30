@@ -130,6 +130,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
         public final ForgeConfigSpec.IntValue jeiTweakerParallelThreshold;
         public final ForgeConfigSpec.BooleanValue stagedVaultGroupLoading;
+        public final ForgeConfigSpec.BooleanValue optimizeVaultLootCdf;
         public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
         public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
         public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
@@ -347,6 +348,13 @@ public final class VHAcceleratorClientConfig {
                             "Builds Vault block and entity groups in bounded main-thread slices.",
                             "Only complete group maps are published; no worker ever touches live entities.")
                     .define("stagedVaultGroupLoading", true);
+            optimizeVaultLootCdf = builder
+                    .comment(
+                            "Uses hash buckets while Vault Hunters builds tiered-loot",
+                            "cumulative distributions during the initial resource reload.",
+                            "The same permutations, heuristic ordering, probabilities,",
+                            "packed keys, and cumulative values are retained.")
+                    .define("optimizeVaultLootCdf", true);
             vaultGroupTickBudgetMillis = builder
                     .comment("Maximum main-thread time used by staged Vault group loading per client tick.")
                     .defineInRange("vaultGroupTickBudgetMillis", 4, 1, 25);
