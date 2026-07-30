@@ -41,6 +41,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean extraStorageLoaded;
     private boolean refinedStorageLoaded;
     private boolean sophisticatedCoreLoaded;
+    private boolean ctmCompatible;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -91,6 +92,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("refinedstorage") != null;
                 sophisticatedCoreLoaded = modList != null
                         && modList.getModFileById("sophisticatedcore") != null;
+                ctmCompatible = hasVersion(
+                        modList,
+                        "ctm",
+                        "1.18.2-1.1.5+5"
+                );
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -119,6 +125,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             extraStorageLoaded = false;
             refinedStorageLoaded = false;
             sophisticatedCoreLoaded = false;
+            ctmCompatible = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -140,6 +147,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     "Validated Xaero startup compatibility: minimap={}, worldmap={}",
                     xaeroMinimapCompatible,
                     xaeroWorldMapCompatible
+            );
+        }
+        if (ctmCompatible) {
+            LOGGER.info(
+                    "Validated ConnectedTexturesMod model-bake "
+                            + "compatibility"
             );
         }
     }
@@ -173,6 +186,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.sophisticated.")) {
             return vaultHuntersLoaded && sophisticatedCoreLoaded;
+        }
+        if (mixinClassName.contains(".compat.ctm.")) {
+            return ctmCompatible;
         }
         if (mixinClassName.contains(".compat.powah.")) {
             return powahLoaded;
