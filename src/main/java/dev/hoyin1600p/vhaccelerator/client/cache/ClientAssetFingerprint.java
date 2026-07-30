@@ -1085,6 +1085,7 @@ public final class ClientAssetFingerprint {
                 || normalized.equals("forge-client.toml")
                 || normalized.equals("oculus.properties")
                 || normalized.equals("powah.json5")
+                || normalized.equals("reforgium-renderer.properties")
                 || normalized.equals("vaultlootbeams.json")
                 || normalized.equals(
                         "modernstartupqol/startup_times.json"
