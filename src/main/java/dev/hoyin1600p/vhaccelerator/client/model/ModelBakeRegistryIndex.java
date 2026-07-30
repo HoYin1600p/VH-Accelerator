@@ -160,11 +160,13 @@ public final class ModelBakeRegistryIndex {
                     ignored -> new ArrayList<>()
             ).add(key);
         }
-        Map<String, List<ResourceLocation>> stable =
-                new LinkedHashMap<>(mutable.size());
-        mutable.forEach((namespace, keys) ->
-                stable.put(namespace, List.copyOf(keys)));
-        namespaceKeys = Map.copyOf(stable);
+        /*
+         * This index is private, launch-scoped state. Callers receive fresh
+         * sets or entries rather than these lists, so copying every one of
+         * the registry's million-plus keys into immutable snapshots only
+         * duplicates allocation during the model-bake critical path.
+         */
+        namespaceKeys = mutable;
         indexedSize = registry.size();
         fullIndexBuilds++;
         indexBuildNanos += System.nanoTime() - started;
