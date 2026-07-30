@@ -35,6 +35,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.internal.BrandingControl;
 
 public final class VHAcceleratorClient {
@@ -53,6 +54,9 @@ public final class VHAcceleratorClient {
                 VHAcceleratorClientConfig.SPEC,
                 ConfigMigration.CLIENT_CONFIG
         );
+        FMLJavaModLoadingContext.get()
+                .getModEventBus()
+                .addListener(ClientTextureSafetyAudit::onTextureStitched);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenOpened);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedOut);
