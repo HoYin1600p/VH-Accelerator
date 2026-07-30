@@ -135,12 +135,13 @@ public final class VHAcceleratorConfig {
     }
 
     public static boolean debugDiagnosticsEnabled() {
-        return COMMON.debug.get();
+        return BootstrapDebugDiagnostics.enabled();
     }
 
     public static void setDebugDiagnosticsEnabled(boolean enabled) {
         COMMON.debug.set(enabled);
         COMMON.debug.save();
+        BootstrapDebugDiagnostics.set(enabled);
     }
 
     public static boolean instrumentationEnabled() {
