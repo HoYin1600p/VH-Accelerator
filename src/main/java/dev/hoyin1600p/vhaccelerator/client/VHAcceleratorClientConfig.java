@@ -91,6 +91,10 @@ public final class VHAcceleratorClientConfig {
         return value.get();
     }
 
+    public static boolean launchSnapshotCaptured() {
+        return launchSnapshotCaptured;
+    }
+
     public static boolean optimizationsEnabled() {
         return !VHAcceleratorConfig.compareModeEnabled()
                 && launchValue(VALUES.enableClientOptimizations);

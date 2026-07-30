@@ -6,12 +6,16 @@ import it.unimi.dsi.fastutil.doubles.DoubleList;
 import net.minecraft.world.phys.shapes.IndexMerger;
 import net.minecraft.world.phys.shapes.Shapes;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Shapes.class)
 public abstract class ShapesCoordinateMergerMixin {
+    @Unique
+    private static volatile int vhaccelerator$enabled = -1;
+
     @Inject(
             method = "createIndexMerger",
             at = @At(
@@ -28,11 +32,7 @@ public abstract class ShapesCoordinateMergerMixin {
             boolean includeSecondOnly,
             CallbackInfoReturnable<IndexMerger> callback
     ) {
-        if (VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES
-                                .optimizeVoxelShapeMerging
-                )) {
+        if (vhaccelerator$enabled()) {
             callback.setReturnValue(new FastCoordinateMerger(
                     first,
                     second,
@@ -40,5 +40,24 @@ public abstract class ShapesCoordinateMergerMixin {
                     includeSecondOnly
             ));
         }
+    }
+
+    @Unique
+    private static boolean vhaccelerator$enabled() {
+        int cached = vhaccelerator$enabled;
+        if (cached >= 0) {
+            return cached == 1;
+        }
+        if (!VHAcceleratorClientConfig.launchSnapshotCaptured()) {
+            return false;
+        }
+
+        boolean enabled = VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
+                                .optimizeVoxelShapeMerging
+                );
+        vhaccelerator$enabled = enabled ? 1 : 0;
+        return enabled;
     }
 }
