@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeMemoization;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.Deque;
 import java.util.Map;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ModelBakeEvent;
@@ -47,6 +48,19 @@ public abstract class TextureMetadataHandlerMixin {
                 model instanceof UnbakedModel unbaked ? unbaked : null
         );
         return model;
+    }
+
+    @Redirect(
+            method = "onModelBake",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/resources/model/"
+                            + "BakedModel;isCustomRenderer()Z"
+            )
+    )
+    private boolean vhaccelerator$skipKnownPlainAlias(BakedModel model) {
+        return model.isCustomRenderer()
+                || CtmModelBakeMemoization.isKnownPlainRoot();
     }
 
     @Redirect(

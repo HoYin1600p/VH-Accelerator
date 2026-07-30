@@ -67,6 +67,27 @@ public final class CtmModelBakeMemoization {
         return cached;
     }
 
+    /**
+     * Returns whether CTM has already scanned the current live root and proved
+     * that its complete model graph contains no CTM metadata.
+     *
+     * <p>CTM checks the baked model's custom-renderer flag immediately before
+     * allocating its traversal collections. Treating a known-plain alias like
+     * a custom renderer at that one branch preserves CTM's existing early-exit
+     * behavior while avoiding the otherwise redundant loop body.
+     */
+    public static boolean isKnownPlainRoot() {
+        if (!active
+                || currentRoot == null
+                || !Boolean.FALSE.equals(RESULTS.get(currentRoot))) {
+            return false;
+        }
+        repeatedFalse++;
+        currentRoot = null;
+        skipCachedFalseTraversal = false;
+        return true;
+    }
+
     public static boolean shouldSkipTraversal() {
         return active && skipCachedFalseTraversal;
     }
