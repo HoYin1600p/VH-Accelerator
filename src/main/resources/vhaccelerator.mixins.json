@@ -21,6 +21,7 @@
     "client.ConnectionProtocolMixin",
     "client.ConnectionMixin",
     "client.ClientModLoaderProfilerMixin",
+    "client.DataFixerBuilderMixin",
     "client.ForgeConfigSyncMixin",
     "client.ForgeHooksClientModelBakeProfilerMixin",
     "client.ForgeLogoutTimingMixin",
