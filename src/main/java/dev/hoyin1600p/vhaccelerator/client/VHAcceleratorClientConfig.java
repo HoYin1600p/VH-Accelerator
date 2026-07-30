@@ -106,6 +106,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
+        public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -267,6 +268,17 @@ public final class VHAcceleratorClientConfig {
                             "the complete registry. Listener order and model-map",
                             "mutations remain on the render thread.")
                     .define("indexModelBakeRegistries", true);
+            memoizeCtmModelBakeTraversal = builder
+                    .comment(
+                            "Reuses ConnectedTexturesMod's model-graph result "
+                                    + "when multiple baked keys share the same "
+                                    + "live unbaked model object.",
+                            "The cache exists only during one ModelBakeEvent; "
+                                    + "CTM still wraps every matching model "
+                                    + "and resource reloads start fresh.",
+                            "Currently enabled only for the explicitly "
+                                    + "validated CTM 1.18.2 build.")
+                    .define("memoizeCtmModelBakeTraversal", true);
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",
