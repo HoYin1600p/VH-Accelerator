@@ -45,9 +45,9 @@ mod behavior remain on their established threads.
 | Minecraft | `1.18.2` |
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
-| Vault Hunters Remastered | `20.0.3-remastered.6872` and `.6883` baselines |
+| Vault Hunters Remastered | `20.0.3-remastered.6872`, `.6883`, and the active VaultCrafters `20.0.3` build |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wold's Vaults | Pack `0.32.2` / Vault `3.21.5.6573` compile-verified baseline; runtime testing pending |
+| Wold's Vaults | Pack `0.32.2` / Vault `3.21.5.6573`, compile and runtime verified |
 | Custom MVP | `3.21.62` baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 

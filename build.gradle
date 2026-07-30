@@ -125,6 +125,11 @@ def compatibilityProfiles = [
                 jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
                 exclude: '**/compat/jei/v9/**'
         ],
+        vaultCraftersRemastered: [
+                vault  : 'the_vault-1.18.2-20.0.3-remastered.vaultcrafters.jar',
+                jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
+                exclude: '**/compat/jei/v9/**'
+        ],
         previousRemastered: [
                 vault  : 'the_vault-1.18.2-20.0.3-remastered.6872.jar',
                 jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',

@@ -8,6 +8,7 @@ Git-ignored copies of:
 | Component | Version | Source | SHA-256 |
 | --- | --- | --- | --- |
 | The Vault Remastered | `20.0.3-remastered.6883` | CurseForge project `458203`, file `8508678` | `4DC35D93C06D2D15C552DCE9626CA072BC8DB5E0889F158C4EDDB71BA5BFF9E9` |
+| The Vault Remastered (VaultCrafters) | `20.0.3-remastered` | Read-only VaultCrafters instance | `95B8BA4932B11B02BD8E7CE5A201F8D561F95041F7431685BCB2E146D8005C9B` |
 | The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |
 | The Vault custom MVP | `3.21.62` | Adjacent testing-pack repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
 | The Vault official | `3.21.5.6882` | CurseForge project `458203`, file `8508674` | `D0B330CA60D8193574B9C419F96C4BA7C444EFB606DF20973B5B0823D9586A10` |
@@ -26,9 +27,13 @@ local filenames.
 ## Read-only VaultCrafters comparison
 
 The compatibility instance was inspected without modifying it. Its active
-baseline differs from the compile target in one important place:
+Remastered jar is now retained as a separate compile profile:
 
-- Instance: `the_vault-1.18.2-20.0.0-remastered.6864.jar`
+- Instance: `the_vault-1.18.2-20.0.3-remastered.jar`
+- Local compile name:
+  `the_vault-1.18.2-20.0.3-remastered.vaultcrafters.jar`
+- SHA-256:
+  `95B8BA4932B11B02BD8E7CE5A201F8D561F95041F7431685BCB2E146D8005C9B`
 - Current compile target: `the_vault-1.18.2-20.0.3-remastered.6883.jar`
 - Previous compatibility target: `the_vault-1.18.2-20.0.3-remastered.6872.jar`
 
@@ -59,9 +64,9 @@ Relevant active mods observed in that instance include:
 
 Compatibility conclusions:
 
-- The same output jar compiles against all six Vault profiles. Vault-facing
+- The same output jar compiles against all seven Vault profiles. Vault-facing
   classes and descriptors used by the mod are present in every target.
-- Wold's Vaults 0.32.2 is compile-verified; runtime testing is pending.
+- Wold's Vaults 0.32.2 is compile-verified and runtime-tested.
 - JEI 9 and JEI 10 internals live in separate packages inside VH Accelerator.
   Startup detection selects exactly one generation by checking JEI's class
   layout, and unsupported layouts leave the optional JEI mixins disabled.

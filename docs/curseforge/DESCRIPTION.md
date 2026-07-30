@@ -33,9 +33,10 @@ activate only when the matching mod and supported class layout are present.
 
 - **Minecraft:** 1.18.2
 - **Mod loader:** Forge 40.3.11 or newer in the Forge 40.x line
-- **Vault Hunters:** Remastered `20.0.3-remastered.6872` and `.6883`; official
-  `3.21.5.6882` and `3.21.6.6884`; Wold's Vaults 0.32.2
-  (`3.21.5.6573`, compile-verified); custom MVP `3.21.62`
+- **Vault Hunters:** Remastered `20.0.3-remastered.6872`, `.6883`, and the
+  active VaultCrafters `20.0.3` build; official `3.21.5.6882` and
+  `3.21.6.6884`; Wold's Vaults 0.32.2 (`3.21.5.6573`, runtime-verified);
+  custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
 
 The Vault and JEI versions above are tested compatibility baselines, not hard

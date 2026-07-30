@@ -19,6 +19,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Added compile verification against Vault Hunters Remastered
   `20.0.3-remastered.6883` while retaining `.6872` as a previous baseline.
+- Added the active VaultCrafters `20.0.3-remastered` jar as an independent
+  Remastered compatibility profile.
 - Added a Wold's Vaults 0.32.2 compile profile using Vault `3.21.5.6573`
   and JEI `10.2.1.1006`.
 
