@@ -3,6 +3,7 @@
 Binary mod dependencies are intentionally excluded from Git. Put the pinned
 files below in this directory before compiling:
 
+- `the_vault-1.18.2-20.0.3-remastered.6883.jar`
 - `the_vault-1.18.2-20.0.3-remastered.6872.jar`
 - `the_vault-1.18.2-3.21.62.jar`
 - `the_vault-1.18.2-3.21.5.6882.jar`
@@ -20,7 +21,8 @@ files below in this directory before compiling:
 - `XaerosWorldMap_1.39.12_Forge_1.18.2.jar`
 - `sophisticatedcore-1.18.2-0.6.4.604.jar`
 
-The Remastered Vault jar is CurseForge project `458203`, file `8502584`.
+The current Remastered Vault jar is CurseForge project `458203`, file
+`8508678`; its immediately previous Remastered release is file `8502584`.
 The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
 previous standard release is file `8508674`. The 3.21.62 jar is the custom
 MVP target. These files are used only for compile-time compatibility checks

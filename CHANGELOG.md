@@ -17,6 +17,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Compatibility
 
+- Added compile verification against Vault Hunters Remastered
+  `20.0.3-remastered.6883` while retaining `.6872` as a previous baseline.
+
 ### Server
 
 ### Removed

@@ -45,7 +45,7 @@ mod behavior remain on their established threads.
 | Minecraft | `1.18.2` |
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
-| Vault Hunters Remastered | `20.0.3-remastered.6872` baseline |
+| Vault Hunters Remastered | `20.0.3-remastered.6872` and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
 | Custom MVP | `3.21.62` baseline |
 | JEI | `9.7.2.1001` and `10.2.1.1009` |
@@ -197,7 +197,7 @@ Build and run all compatibility checks:
 ```
 
 The reobfuscated release jar is written to `build/libs/`. The build compiles
-the same source against all four Vault profiles and verifies that both JEI
+the same source against all five Vault profiles and verifies that both JEI
 generations are present without bundling JEI, Vault Hunters, or any optional
 compatibility dependency.
 
