@@ -75,7 +75,6 @@
     "compat.crafttweaker.ScriptRunManagerMixin",
     "compat.crafttweaker.ScriptRunnerMixin",
     "compat.crafttweaker.ThroughRecipeScriptRunManagerMixin",
-    "compat.ctm.ResourceUtilMixin",
     "compat.ctm.TextureMetadataHandlerMixin",
     "compat.thermal.SingleItemFuelManagerAccessor",
     "compat.thermal.StirlingFuelManagerMixin",
