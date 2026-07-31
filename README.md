@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.0.6-7b68ee)](docs/releases/1.0.6.md)
+[![Release](https://img.shields.io/badge/Release-1.0.7-7b68ee)](docs/releases/1.0.7.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 clients. It reduces work on the client-launch and multiplayer-login critical
@@ -32,6 +32,12 @@ target mod and supported class layout are present.
 - Automatic ownership handoff for overlapping ModernFix features.
 - One universal jar containing isolated JEI 9 and JEI 10 compatibility
   modules.
+- Guarded large-pack launch improvements for CTM, generated model registries,
+  voxel-shape merging, and optional FerriteCore table sizing.
+- Reduced client DataFixerUpper warm-up contention while retaining on-demand
+  migration for old client data.
+- Faster Vault tiered-loot probability setup without changing its generated
+  cumulative results.
 
 The safety rule is simple: work may be prepared concurrently in private
 memory, but live game or mod state is published only at a defined completion
@@ -45,17 +51,16 @@ mod behavior remain on their established threads.
 | Minecraft | `1.18.2` |
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
+| Environment | Client; dedicated-server testing is not yet complete |
 | Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wold's Vaults | Pack `0.32.2` / Vault `3.21.5.6573`, compile and runtime verified |
+| Wolds Vaults | Pack `0.32.2` / Vault `3.21.5.6573`, compile and runtime verified |
 | Custom MVP | `3.21.62` baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
-VH Accelerator can be installed on a client that connects to a server without
-the mod. It can also be installed on a dedicated server, where all client and
-optional-mod compatibility classes are excluded. Version 1.0.2 includes a
-server launch timer and conservative shared resource indexing; broader
-server-side optimization is planned and will be documented separately.
+VH Accelerator is currently released and tested as a client mod. It does not
+need to be installed on the remote server. Dedicated-server support will be
+documented separately after its testing pass is complete.
 
 See [Installation](docs/INSTALLATION.md) for placement, upgrade, conflicting
 mods, and first-launch expectations.
@@ -65,7 +70,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.0.6.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.0.7.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -173,6 +178,7 @@ Current compatibility details:
 | [Configuration and commands](docs/CONFIGURATION.md) | Every option, default, command, and permission |
 | [Testing and benchmarking](docs/TESTING.md) | Compare Mode and repeatable launch/login testing |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Safe isolation and issue-reporting steps |
+| [Release notes 1.0.7](docs/releases/1.0.7.md) | Client launch efficiency and optional FerriteCore integration |
 | [Release notes 1.0.6](docs/releases/1.0.6.md) | Wold's Compatibility pass and large-pack launch improvements |
 | [Release notes 1.0.5](docs/releases/1.0.5.md) | Dynamic block-atlas texture registration correction |
 | [Release notes 1.0.3](docs/releases/1.0.3.md) | Sophisticated Storage slot-texture correction |
@@ -199,7 +205,7 @@ Build and run all compatibility checks:
 ```
 
 The reobfuscated release jar is written to `build/libs/`. The build compiles
-the same source against all six Vault profiles and verifies that both JEI
+the same source against all seven Vault profiles and verifies that both JEI
 generations are present without bundling JEI, Vault Hunters, or any optional
 compatibility dependency.
 

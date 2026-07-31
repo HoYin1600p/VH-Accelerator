@@ -2,7 +2,7 @@
 
 ## Supported environment
 
-VH Accelerator 1.0.6 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
+VH Accelerator 1.0.7 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
 the 40.x line. It produces Java 17-compatible bytecode.
 
 The same jar contains guarded support for:
@@ -14,14 +14,14 @@ The same jar contains guarded support for:
 | Remastered additional baseline | `20.0.3-remastered` | `10.2.1.1009` |
 | Official previous | `3.21.5.6882` | `9.7.2.1001` |
 | Official current baseline | `3.21.6.6884` | `9.7.2.1001` |
-| Wold's Vaults 0.32.2 | `3.21.5.6573` | `10.2.1.1006` |
+| Wolds Vaults 0.32.2 | `3.21.5.6573` | `10.2.1.1006` |
 | Custom MVP | `3.21.62` | `9.7.2.1001` |
 
 The entries above are compile and test baselines, not hard dependencies.
 Unsupported Vault or JEI layouts leave their optional integration disabled
 instead of making those mods mandatory.
 
-The Wold's Vaults profile has completed repeated launch and texture-safety
+The Wolds Vaults profile has completed repeated launch and texture-safety
 runtime testing.
 
 ## Client installation
@@ -30,34 +30,20 @@ runtime testing.
 2. Back up the instance.
 3. Remove or disable any older VH Accelerator jar.
 4. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize.
-5. Copy `VH-Accelerator-1.0.6.jar` into the instance's `mods` directory.
+5. Copy `VH-Accelerator-1.0.7.jar` into the instance's `mods` directory.
 6. Start the client and allow the first launch to build its caches.
-7. Confirm the Mods screen reports version `1.0.6`.
+7. Confirm the Mods screen reports version `1.0.7`.
 
 VH Accelerator works client-side when connecting to a server that does not
 have the mod. This is the expected deployment for public or otherwise
 uncontrolled servers.
 
-## Dedicated-server installation
+## Dedicated-server status
 
-The jar is physically side-safe and may be placed in a dedicated server's
-`mods` directory. Client, JEI, Vault GUI, model, texture, and map classes are
-not loaded there.
-
-Version 1.0.2 provides:
-
-- a dedicated-server launch timer;
-- immutable jar-resource indexing;
-- a reload-result cache where ModernFix is not already responsible for it;
-- experimental common switches that remain disabled by default.
-
-This is limited server support, not a claim that the complete server startup
-pipeline has been optimized. Server datapack, Vault configuration, and
-cluster-specific work remain future profiling targets. See
-[Dedicated-server safety](SERVER_SAFETY.md).
-
-If both client and server install VH Accelerator, use the same release version
-while testing.
+The public release is currently supported as a client mod. Dedicated-server
+testing has not yet been completed, so server installation is not part of the
+published support list. A separate server pass and deployment guide will be
+published after that work is verified.
 
 ## Overlap with other performance mods
 

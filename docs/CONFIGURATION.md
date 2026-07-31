@@ -111,6 +111,7 @@ not part of the recommended release configuration.
 | `prewarmPersistentPlainModels` | `true` | Parses eligible cached plain models before the initial reload barrier. |
 | `persistentBlockStateJsonCache` | `true` | Stores ordered raw blockstate resource layers and source names. |
 | `preSizeModelCaches` | `true` | Sizes large ModelBakery maps from registry counts to avoid repeated rehashing. |
+| `preSizeFerriteCoreQuadCache` | `true` | When FerriteCore is present, learns only its temporary baked-quad table size and pre-sizes that launch-local table on later launches. |
 | `promoteCachedTopLevelModels` | `true` | Publishes already-loaded unbaked models directly into the top-level map. |
 | `asyncUserApiService` | `true` | Creates the online profile service asynchronously behind a retained proxy. |
 | `memoizeModelMaterials` | `true` | Reuses material dependency walks for safe model instances within a reload. |
@@ -133,6 +134,7 @@ not part of the recommended release configuration.
 | `parallelJeiTweakerMatching` | `true` | Matches hidden ingredients against stable snapshots in a bounded pool. |
 | `jeiTweakerParallelThreshold` | `256` | Minimum ingredient count for parallel JEITweaker matching; range `32..100000`. |
 | `stagedVaultGroupLoading` | `true` | Builds Vault block/entity groups in bounded main-thread slices and publishes complete maps only. |
+| `optimizeVaultLootCdf` | `true` | Uses hash buckets for Vault's tiered-loot cumulative distribution while retaining its exact ordering and values. |
 | `vaultGroupTickBudgetMillis` | `4` | Main-thread budget per client tick for Vault group construction; range `1..25`. |
 | `asyncJeiSearchIndex` | `true` | Builds an unpublished JEI search index on workers, then swaps it on the client thread. |
 | `parallelJeiSearchPrefixes` | `true` | Populates independent search-prefix stores in parallel inside the private JEI index. |

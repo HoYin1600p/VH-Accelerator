@@ -7,6 +7,9 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
+The current 1.0.7 release also supports Wolds Vaults 0.32.2 and includes the
+compatibility and texture-safety work added since the original 1.0.0 release.
+
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
 fingerprints, and completed data is published back to the game on the correct
@@ -23,19 +26,35 @@ thread. Dynamic models and other unsafe work stay on their normal path.
   the first playable world frame.
 - Testing and troubleshooting through built-in launch, login, transfer,
   post-login, and disconnect timers.
+- Large-pack model loading through guarded CTM, generated-model,
+  voxel-shape, Vault loot, and optional FerriteCore improvements.
 
-The mod includes targeted compatibility for Vault Hunters, JEI, JEITweaker,
+The mod includes targeted compatibility for Vault Hunters, Wolds Vaults, JEI, JEITweaker,
 CraftTweaker, JER, Powah, Thermal, Iron Furnaces, Industrial Foregoing, Xaero's
 maps, Sophisticated Storage, Every Compat, and ModernFix. Optional integrations
 activate only when the matching mod and supported class layout are present.
+
+## Improvements since 1.0.0
+
+- Expanded the universal jar to newer official and Remastered Vault versions,
+  both supported JEI generations, and Wolds Vaults 0.32.2.
+- Hardened dynamic model and texture handling for Vault gear, Sophisticated
+  Storage placeholders, Vault workstations, Curios, Comforts, and generated
+  Every Compat content.
+- Reduced repeated CTM, model-registry, voxel-shape, asset-fingerprint, and
+  recipe preparation work in large packs.
+- Reduced speculative client data-migration warm-up, accelerated Vault's
+  tiered-loot setup, and added safe learned table sizing when FerriteCore is
+  installed.
 
 ## Compatibility
 
 - **Minecraft:** 1.18.2
 - **Mod loader:** Forge 40.3.11 or newer in the Forge 40.x line
+- **Environment:** Client
 - **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, and `.6883`;
   official `3.21.5.6882` and
-  `3.21.6.6884`; Wold's Vaults 0.32.2 (`3.21.5.6573`, runtime-verified);
+  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`, runtime-verified);
   custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
 
@@ -43,9 +62,8 @@ The Vault and JEI versions above are tested compatibility baselines, not hard
 dependencies. One VH Accelerator jar contains guarded support for both JEI
 generations and all listed Vault layouts.
 
-VH Accelerator works as a **client-only mod** when connecting to a server that
-does not have it. The same jar is safe to place on a dedicated server, although
-version 1.0.0 provides only conservative server launch/resource improvements.
+VH Accelerator is currently published and tested as a **client mod**. The
+remote server does not need to have it installed.
 
 ## Installation
 
@@ -53,7 +71,7 @@ version 1.0.0 provides only conservative server launch/resource improvements.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.0.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.7.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
@@ -79,8 +97,7 @@ Each setting also accepts `status`, and `/vha compare`, `/vha timers`, or
 `/vha debug` reports that setting without changing it.
 
 These are client commands in multiplayer and do not require the mod on the
-server. On a dedicated server, the commands are available from the console or
-to operators with permission level 2 or higher.
+remote server.
 
 ## First-run expectations
 

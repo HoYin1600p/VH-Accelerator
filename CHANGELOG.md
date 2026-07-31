@@ -15,16 +15,37 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
-- Replaces Vault Hunters' quadratic tiered-loot CDF grouping map with
-  hash-based buckets while retaining its exact sorted cumulative output.
-- Avoids DataFixerUpper's speculative all-rules background warm-up on the
-  physical client while preserving on-demand migration for old client data.
-
 ### Compatibility
 
 ### Server
 
 ### Removed
+
+## [1.0.7] - 2026-07-30
+
+### Added
+
+- Added an optional FerriteCore integration that learns only the temporary
+  baked-quad table size and pre-sizes the next launch's table without
+  persisting model or quad data.
+
+### Performance
+
+- Replaces Vault Hunters' quadratic tiered-loot CDF grouping map with
+  hash-based buckets while retaining its exact sorted cumulative output.
+- Avoids DataFixerUpper's speculative all-rules background warm-up on the
+  physical client while preserving on-demand migration for old client data.
+- Pre-sizes FerriteCore's launch-local baked-quad deduplication table after a
+  successful learning launch, avoiding repeated growth across millions of
+  entries in large packs.
+
+### Compatibility
+
+- FerriteCore remains optional. Its integration is presence-gated, verifies
+  the expected runtime layout, and falls back to FerriteCore's original growth
+  path on any mismatch.
+- Retains the seven Vault and three JEI compile baselines introduced through
+  1.0.6.
 
 ## [1.0.6] - 2026-07-30
 
@@ -167,7 +188,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.3...v1.0.4
