@@ -13,6 +13,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Prevented an early DataFixerUpper startup crash caused by the no-warm-up
+  executor being read before a merged mixin static field was initialized.
 - NBT-less Vault Sigils remembered in Sophisticated Backpacks now use the
   neutral Sigil placeholder in the dedicated settings screen as well as the
   normal backpack inventory.

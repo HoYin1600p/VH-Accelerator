@@ -19,9 +19,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(DataFixers.class)
 public abstract class DataFixerRuleWarmupMixin {
-    private static final Executor VHA_NO_RULE_WARMUP = command -> {
-    };
-
     @Redirect(
             method = "createFixerUpper",
             at = @At(
@@ -38,7 +35,12 @@ public abstract class DataFixerRuleWarmupMixin {
             Executor original
     ) {
         if (!VHAcceleratorConfig.compareModeEnabled()) {
-            return builder.build(VHA_NO_RULE_WARMUP);
+            // Keep this executor local. A static mixin field is initialized
+            // after DataFixers may call createFixerUpper() from its own
+            // class initializer, allowing the redirect to observe null.
+            Executor noRuleWarmupExecutor = command -> {
+            };
+            return builder.build(noRuleWarmupExecutor);
         }
         return builder.build(original);
     }
