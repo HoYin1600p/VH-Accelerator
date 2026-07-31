@@ -400,8 +400,84 @@ tasks.register('verifyMixinPackageLayout') {
     }
 }
 
+tasks.register('verifyMixinInitializationSafety') {
+    group = 'verification'
+    description = 'Rejects static initializers in configured mixins.'
+    dependsOn tasks.named('classes')
+
+    doLast {
+        def mixinConfigFile = file(
+                'src/main/resources/vhaccelerator.mixins.json'
+        )
+        def mixinConfig = new groovy.json.JsonSlurper().parse(
+                mixinConfigFile,
+                'UTF-8'
+        )
+        def packagePath = mixinConfig.package.replace('.', '/')
+        def configuredMixins = (
+                (mixinConfig.mixins ?: []) +
+                        (mixinConfig.client ?: []) +
+                        (mixinConfig.server ?: [])
+        )
+        def classesRoot = layout.buildDirectory.dir(
+                'classes/java/main'
+        ).get().asFile
+        byte[] classInitializerMarker = '<clinit>'.getBytes('UTF-8')
+        def containsMarker = { byte[] classBytes ->
+            for (int offset = 0;
+                 offset <= classBytes.length - classInitializerMarker.length;
+                 offset++) {
+                boolean matches = true
+                for (int index = 0;
+                     index < classInitializerMarker.length;
+                     index++) {
+                    if (classBytes[offset + index]
+                            != classInitializerMarker[index]) {
+                        matches = false
+                        break
+                    }
+                }
+                if (matches) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        def missingClasses = []
+        def staticInitializers = []
+        configuredMixins.each { mixinName ->
+            def classFile = new File(
+                    classesRoot,
+                    "${packagePath}/${mixinName.replace('.', '/')}.class"
+            )
+            if (!classFile.isFile()) {
+                missingClasses << mixinName
+            } else if (containsMarker(classFile.bytes)) {
+                staticInitializers << mixinName
+            }
+        }
+
+        if (!missingClasses.isEmpty()) {
+            throw new GradleException(
+                    'Configured mixin classes are missing: ' +
+                            missingClasses.sort().join(', ')
+            )
+        }
+        if (!staticInitializers.isEmpty()) {
+            throw new GradleException(
+                    'Configured mixins must not emit <clinit>; move initialized ' +
+                            'static state to a normal holder class or use safe ' +
+                            'JVM defaults: ' +
+                            staticInitializers.sort().join(', ')
+            )
+        }
+    }
+}
+
 tasks.named('check').configure {
     dependsOn tasks.named('verifyMixinPackageLayout')
+    dependsOn tasks.named('verifyMixinInitializationSafety')
     dependsOn compatibilityCompileTasks
     dependsOn tasks.named('verifyUnifiedCompatibilityJar')
 }
