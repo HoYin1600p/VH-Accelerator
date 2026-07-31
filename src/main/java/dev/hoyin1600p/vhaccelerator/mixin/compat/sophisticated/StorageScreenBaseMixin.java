@@ -2,13 +2,12 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.sophisticated;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.hoyin1600p.vhaccelerator.client.compat.sophisticated.VaultSigilSlotRenderer;
 import java.util.Optional;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.utils.GuiHelper;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
@@ -25,14 +24,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = StorageScreenBase.class, remap = false)
 public abstract class StorageScreenBaseMixin {
-    private static final ResourceLocation SIGIL =
-            new ResourceLocation("the_vault", "sigil");
-    private static final ResourceLocation SIGIL_PLACEHOLDER =
-            new ResourceLocation(
-                    "the_vault",
-                    "textures/gui/slot/sigil_no_item.png"
-            );
-
     @Inject(
             method = "renderSlotBackground",
             at = @At("HEAD"),
@@ -54,24 +45,11 @@ public abstract class StorageScreenBaseMixin {
         ItemStack displayStack = memorized.orElseGet(
                 () -> menu.getSlotFilterItem(slot.index)
         );
-        if (!isNbtlessVaultSigil(displayStack)) {
+        if (!VaultSigilSlotRenderer.isNbtlessVaultSigil(displayStack)) {
             return;
         }
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, SIGIL_PLACEHOLDER);
-        GuiComponent.blit(
-                poseStack,
-                x,
-                y,
-                100,
-                0.0F,
-                0.0F,
-                16,
-                16,
-                16,
-                16
-        );
+        VaultSigilSlotRenderer.renderPlaceholder(poseStack, x, y);
 
         poseStack.pushPose();
         RenderSystem.disableDepthTest();
@@ -96,14 +74,4 @@ public abstract class StorageScreenBaseMixin {
         callback.cancel();
     }
 
-    private static boolean isNbtlessVaultSigil(ItemStack stack) {
-        if (stack.isEmpty()
-                || !SIGIL.equals(
-                        ForgeRegistries.ITEMS.getKey(stack.getItem())
-                )) {
-            return false;
-        }
-        return stack.getTag() == null
-                || !stack.getTag().contains("SigilModel", 8);
-    }
 }

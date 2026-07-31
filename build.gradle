@@ -252,6 +252,8 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroMinimapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/xaero/XaeroWorldMapOnlineChecksMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/sophisticated/StorageScreenBaseMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/mixin/compat/sophisticated/SettingsScreenMixin.class',
+                    'dev/hoyin1600p/vhaccelerator/client/compat/sophisticated/VaultSigilSlotRenderer.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ConnectionProtocolMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelBakingMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModernFixCompatibleModelJsonCacheMixin.class',
