@@ -42,7 +42,9 @@ public abstract class GroupUtilsMixin {
     @Unique
     private static VaultGroupBuild vhaccelerator$build;
     @Unique
-    private static long vhaccelerator$workToken = -1L;
+    private static long vhaccelerator$workToken;
+    @Unique
+    private static boolean vhaccelerator$workTracked;
 
     @Inject(method = "setup", at = @At("HEAD"), cancellable = true)
     private static void vhaccelerator$stageGroupSetup(
@@ -75,6 +77,7 @@ public abstract class GroupUtilsMixin {
                             ClientWorkSession.current(),
                             "staged Vault group construction"
                     );
+            vhaccelerator$workTracked = vhaccelerator$workToken >= 0L;
             VHAccelerator.LOGGER.info("Started staged Vault group construction");
         }
 
@@ -93,14 +96,31 @@ public abstract class GroupUtilsMixin {
                 vhaccelerator$build.elapsedMillis()
         );
         vhaccelerator$build = null;
-        PostLoginWorkTimer.markWorkCompleted(vhaccelerator$workToken);
-        vhaccelerator$workToken = -1L;
+        vhaccelerator$completeTrackedWork();
     }
 
     @Unique
     private static void vhaccelerator$cancelBuild() {
         vhaccelerator$build = null;
-        PostLoginWorkTimer.cancel(vhaccelerator$workToken);
-        vhaccelerator$workToken = -1L;
+        if (vhaccelerator$workTracked) {
+            PostLoginWorkTimer.cancel(vhaccelerator$workToken);
+        }
+        vhaccelerator$clearTrackedWork();
+    }
+
+    @Unique
+    private static void vhaccelerator$completeTrackedWork() {
+        if (vhaccelerator$workTracked) {
+            PostLoginWorkTimer.markWorkCompleted(vhaccelerator$workToken);
+        }
+        vhaccelerator$clearTrackedWork();
+    }
+
+    @Unique
+    private static void vhaccelerator$clearTrackedWork() {
+        // Default JVM values represent "no token" so this remains correct if
+        // the target is initialized before any Mixin-added code can run.
+        vhaccelerator$workToken = 0L;
+        vhaccelerator$workTracked = false;
     }
 }

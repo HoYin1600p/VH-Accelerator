@@ -2,7 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin;
 
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.ParallelBlockStateInitializer;
-import java.util.concurrent.atomic.AtomicInteger;
+import dev.hoyin1600p.vhaccelerator.RegistryValidationState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistry;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,12 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ForgeRegistry.class, remap = false)
 public abstract class ForgeRegistryMixin {
-    @Unique
-    private static final ResourceLocation LAUNCHFASTERTOO$BLOCK_REGISTRY =
-            ResourceLocation.fromNamespaceAndPath("minecraft", "block");
-    @Unique
-    private static final AtomicInteger LAUNCHFASTERTOO$VALIDATION_CALLS = new AtomicInteger();
-
     @Shadow
     private ResourceLocation name;
 
@@ -36,7 +30,7 @@ public abstract class ForgeRegistryMixin {
         // Compatibility implementation of LaunchFaster's behavior. This is
         // intentionally disabled by default because the calls are global, not
         // three consecutive calls on the same registry instance.
-        if (LAUNCHFASTERTOO$VALIDATION_CALLS.incrementAndGet() % 3 != 0) {
+        if (RegistryValidationState.shouldSkipCurrentCall()) {
             callback.cancel();
         }
     }
@@ -55,7 +49,7 @@ public abstract class ForgeRegistryMixin {
     @Inject(method = "bake", at = @At("HEAD"))
     private void vhaccelerator$beginBlockStateCollection(CallbackInfo callback) {
         if (!VHAcceleratorConfig.commonOptimizationsEnabled()
-                || !LAUNCHFASTERTOO$BLOCK_REGISTRY.equals(name)) {
+                || !vhaccelerator$isBlockRegistry()) {
             return;
         }
 
@@ -67,7 +61,7 @@ public abstract class ForgeRegistryMixin {
 
     @Inject(method = "bake", at = @At("TAIL"))
     private void vhaccelerator$finishBlockStateCollection(CallbackInfo callback) {
-        if (!LAUNCHFASTERTOO$BLOCK_REGISTRY.equals(name)) {
+        if (!vhaccelerator$isBlockRegistry()) {
             return;
         }
 
@@ -79,5 +73,12 @@ public abstract class ForgeRegistryMixin {
         } else {
             ParallelBlockStateInitializer.discardCollectedStates();
         }
+    }
+
+    @Unique
+    private boolean vhaccelerator$isBlockRegistry() {
+        return name != null
+                && "minecraft".equals(name.getNamespace())
+                && "block".equals(name.getPath());
     }
 }

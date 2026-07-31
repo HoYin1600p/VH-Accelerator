@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Shapes.class)
 public abstract class ShapesCoordinateMergerMixin {
     @Unique
-    private static volatile int vhaccelerator$enabled = -1;
+    private static volatile int vhaccelerator$state;
 
     @Inject(
             method = "createIndexMerger",
@@ -44,9 +44,9 @@ public abstract class ShapesCoordinateMergerMixin {
 
     @Unique
     private static boolean vhaccelerator$enabled() {
-        int cached = vhaccelerator$enabled;
-        if (cached >= 0) {
-            return cached == 1;
+        int cached = vhaccelerator$state;
+        if (cached != 0) {
+            return cached == 2;
         }
         if (!VHAcceleratorClientConfig.launchSnapshotCaptured()) {
             return false;
@@ -57,7 +57,10 @@ public abstract class ShapesCoordinateMergerMixin {
                         VHAcceleratorClientConfig.VALUES
                                 .optimizeVoxelShapeMerging
                 );
-        vhaccelerator$enabled = enabled ? 1 : 0;
+        // Zero is deliberately the uncaptured state. Mixin can merge fields
+        // after the target's own static initializer, so this decision must be
+        // safe before any Mixin-added initializer could have run.
+        vhaccelerator$state = enabled ? 2 : 1;
         return enabled;
     }
 }
