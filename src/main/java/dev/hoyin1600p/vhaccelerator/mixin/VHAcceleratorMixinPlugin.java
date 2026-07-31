@@ -26,6 +26,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     );
 
     private boolean modernFixLoaded;
+    private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
     private boolean jeiLoaded;
     private int jeiGeneration;
@@ -60,6 +61,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         try {
             LoadingModList modList = LoadingModList.get();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
+            ferriteCoreLoaded = modList != null
+                    && modList.getModFileById("ferritecore") != null;
             externalShapeOptimizerLoaded = modList != null
                     && (modList.getModFileById("canary") != null
                     || modList.getModFileById("lithium") != null);
@@ -148,6 +151,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             }
         } catch (RuntimeException exception) {
             modernFixLoaded = false;
+            ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
             jeiLoaded = false;
             jeiGeneration = 0;
@@ -233,6 +237,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 ".ShapesCoordinateMergerMixin"
         )) {
             return physicalClient && !externalShapeOptimizerLoaded;
+        }
+        if (mixinClassName.endsWith(
+                ".FerriteCoreQuadCacheCapacityMixin"
+        )) {
+            return physicalClient && ferriteCoreLoaded;
         }
         if (mixinClassName.contains(".client.") || mixinClassName.contains(".compat.")) {
             if (!physicalClient) {

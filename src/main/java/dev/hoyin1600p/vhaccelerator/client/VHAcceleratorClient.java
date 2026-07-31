@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorCommand;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
@@ -42,6 +43,7 @@ public final class VHAcceleratorClient {
     private static boolean ironFurnacesLoaded;
     private static boolean jerLoaded;
     private static boolean thermalLoaded;
+    private static boolean ferriteCoreLoaded;
 
     private VHAcceleratorClient() {
     }
@@ -68,6 +70,7 @@ public final class VHAcceleratorClient {
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");
+        ferriteCoreLoaded = ModList.get().isLoaded("ferritecore");
         if (VHAcceleratorClientConfig.optimizationsEnabled()) {
             AdaptiveJeiWorkScheduler.initialize();
             PersistentModelJsonCache.prewarm();
@@ -77,6 +80,9 @@ public final class VHAcceleratorClient {
             PersistentRecipeValidationCache.prewarm();
             PersistentJeiRecipeIndexCache.prewarm();
             ClientAssetFingerprint.prewarm();
+            if (ferriteCoreLoaded) {
+                FerriteCoreQuadCacheCapacity.prewarm();
+            }
             if (thermalLoaded) {
                 PersistentStirlingFuelCache.prewarm();
             }

@@ -3,15 +3,14 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import com.mojang.math.Transformation;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.ModelCacheSizing;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.UnbakedModel;
-import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.level.block.Block;
 import org.apache.commons.lang3.tuple.Triple;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -64,7 +63,7 @@ public abstract class ModelBakeryCapacityMixin {
             return;
         }
 
-        int topLevelEstimate = vhaccelerator$topLevelEstimate();
+        int topLevelEstimate = ModelCacheSizing.topLevelEstimate();
         int unbakedEstimate = vhaccelerator$saturatingAdd(
                 topLevelEstimate,
                 Math.max(4_096, topLevelEstimate / 16)
@@ -119,20 +118,6 @@ public abstract class ModelBakeryCapacityMixin {
                 replaced,
                 topLevelEstimate
         );
-    }
-
-    @Unique
-    private static int vhaccelerator$topLevelEstimate() {
-        long estimate = Registry.ITEM.size() + 64L;
-        for (Block block : Registry.BLOCK) {
-            estimate += block.getStateDefinition()
-                    .getPossibleStates()
-                    .size();
-            if (estimate >= Integer.MAX_VALUE - 8L) {
-                return Integer.MAX_VALUE - 8;
-            }
-        }
-        return (int) estimate;
     }
 
     @Unique

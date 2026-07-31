@@ -112,6 +112,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue preSizeModelCaches;
+        public final ForgeConfigSpec.BooleanValue
+                preSizeFerriteCoreQuadCache;
         public final ForgeConfigSpec.BooleanValue promoteCachedTopLevelModels;
         public final ForgeConfigSpec.BooleanValue asyncUserApiService;
         public final ForgeConfigSpec.BooleanValue memoizeModelMaterials;
@@ -227,6 +229,14 @@ public final class VHAcceleratorClientConfig {
                             "in packs with hundreds of thousands of generated model states.",
                             "A map replaced by another mod is detected and left untouched.")
                     .define("preSizeModelCaches", true);
+            preSizeFerriteCoreQuadCache = builder
+                    .comment(
+                            "Learns FerriteCore's temporary baked-quad table size per pack",
+                            "and pre-sizes it on later launches to avoid multi-million-entry",
+                            "rehashes. Only the entry count is cached; quad and model data",
+                            "remain launch-local and under FerriteCore's normal ownership.",
+                            "This setting does nothing when FerriteCore is absent.")
+                    .define("preSizeFerriteCoreQuadCache", true);
             promoteCachedTopLevelModels = builder
                     .comment(
                             "Publishes an already-loaded unbaked model directly into the",

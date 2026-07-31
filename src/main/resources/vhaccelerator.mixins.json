@@ -26,6 +26,7 @@
     "client.ForgeHooksClientModelBakeProfilerMixin",
     "client.ForgeLogoutTimingMixin",
     "client.ForgeRecipeEventTimingMixin",
+    "client.FerriteCoreQuadCacheCapacityMixin",
     "client.GameRendererTimingMixin",
     "client.GameDataRegistryProfilerMixin",
     "client.LevelRendererTimingMixin",

@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeEventProfiler;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeRegistryIndex;
 import java.util.Map;
@@ -166,6 +167,9 @@ public abstract class ModelManagerApplyProfilerMixin {
             ProfilerFiller profiler,
             CallbackInfo callback
     ) {
+        if (!LaunchTimer.isFinished()) {
+            FerriteCoreQuadCacheCapacity.record();
+        }
         if (!vhaccelerator$profileApply
                 || vhaccelerator$applyStarted == 0L) {
             return;
