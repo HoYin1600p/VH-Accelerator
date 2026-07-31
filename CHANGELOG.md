@@ -13,6 +13,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Prevented a client-launch crash when DataFixer warm-up suppression ran
+  before the mixin's merged static fields had been initialized.
+
 ### Performance
 
 ### Compatibility
