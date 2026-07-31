@@ -13,12 +13,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Prevented an early DataFixerUpper startup crash caused by the no-warm-up
-  executor being read before a merged mixin static field was initialized.
-- NBT-less Vault Sigils remembered in Sophisticated Backpacks now use the
-  neutral Sigil placeholder in the dedicated settings screen as well as the
-  normal backpack inventory.
-
 ### Performance
 
 ### Compatibility
@@ -26,6 +20,27 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Server
 
 ### Removed
+
+## [1.0.8] - 2026-07-31
+
+### Changed
+
+- Removed static initialization logic from all configured mixins. Mutable
+  registry and model-preparation state now lives in normally initialized
+  holder classes, while early decisions use safe JVM default values.
+- Added a build-time verification rule that rejects any configured mixin that
+  introduces a class initializer, preventing this startup-order failure class
+  from returning unnoticed.
+
+### Fixed
+
+- Prevented an early DataFixerUpper startup crash caused by the no-warm-up
+  executor being read before a merged mixin static field was initialized.
+- NBT-less Vault Sigils remembered in Sophisticated Backpacks now use the
+  neutral Sigil placeholder in the dedicated settings screen as well as the
+  normal backpack inventory.
+- Hardened voxel-shape configuration capture and staged Vault group work-token
+  tracking against unusual class initialization and transformation order.
 
 ## [1.0.7] - 2026-07-30
 
