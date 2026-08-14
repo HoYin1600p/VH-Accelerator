@@ -7,8 +7,9 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
-The current 1.0.7 release also supports Wolds Vaults 0.32.2 and includes the
-compatibility and texture-safety work added since the original 1.0.0 release.
+The current 1.0.9 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
+the compatibility, startup-reliability, texture-safety, and JEI recovery work
+added since the original 1.0.0 release.
 
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
@@ -26,6 +27,8 @@ thread. Dynamic models and other unsafe work stay on their normal path.
   the first playable world frame.
 - Testing and troubleshooting through built-in launch, login, transfer,
   post-login, and disconnect timers.
+- In-world JEI recovery when a synchronized recipe or ingredient is missing
+  only from JEI's visible lists.
 - Large-pack model loading through guarded CTM, generated-model,
   voxel-shape, Vault loot, and optional FerriteCore improvements.
 
@@ -37,10 +40,14 @@ activate only when the matching mod and supported class layout are present.
 ## Improvements since 1.0.0
 
 - Expanded the universal jar to newer official and Remastered Vault versions,
-  both supported JEI generations, and Wolds Vaults 0.32.2.
+  both supported JEI generations, and Wolds Vaults 0.32.2 and 0.33.0.
 - Hardened dynamic model and texture handling for Vault gear, Sophisticated
   Storage placeholders, Vault workstations, Curios, Comforts, and generated
   Every Compat content.
+- Added `/vha reload_jei` so players can rebuild JEI from the currently
+  synchronized recipes and tags without disconnecting.
+- Hardened early startup mixins against unusual class-loading order and added
+  build checks that prevent the same startup failure class from returning.
 - Reduced repeated CTM, model-registry, voxel-shape, asset-fingerprint, and
   recipe preparation work in large packs.
 - Reduced speculative client data-migration warm-up, accelerated Vault's
@@ -54,7 +61,8 @@ activate only when the matching mod and supported class layout are present.
 - **Environment:** Client
 - **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, and `.6883`;
   official `3.21.5.6882` and
-  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`, runtime-verified);
+  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`) and 0.33.0
+  (`3.21.6.6884`);
   custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
 
@@ -71,7 +79,7 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.7.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.9.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
@@ -92,12 +100,14 @@ default.
 | `/vha timers off` | Hide visible timers and routine timing logs. |
 | `/vha debug on` | Enable detailed diagnostic profiling. |
 | `/vha debug off` | Stop new detailed diagnostic profiling. |
+| `/vha reload_jei` | Rebuild JEI from the recipes and tags already synchronized to the client. |
 
 Each setting also accepts `status`, and `/vha compare`, `/vha timers`, or
 `/vha debug` reports that setting without changing it.
 
 These are client commands in multiplayer and do not require the mod on the
-remote server.
+remote server. `/vha reload_jei` requires an active world or server connection
+and may pause the client briefly while JEI rebuilds.
 
 ## First-run expectations
 
