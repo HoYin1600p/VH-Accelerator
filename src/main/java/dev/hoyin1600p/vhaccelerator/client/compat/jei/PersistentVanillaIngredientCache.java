@@ -219,7 +219,8 @@ public final class PersistentVanillaIngredientCache {
     }
 
     private static boolean enabled() {
-        return VHAcceleratorClientConfig.optimizationsEnabled()
+        return JeiRecoveryReload.optimizationsAllowed()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .persistentVanillaIngredientCache
                         .get();

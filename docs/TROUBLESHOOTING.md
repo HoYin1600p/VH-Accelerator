@@ -48,6 +48,20 @@ parallel path merely to improve the launch timer.
 When reporting the issue, include the affected item/block IDs and whether they
 are broken in-world, in JEI, or both.
 
+## A recipe or ingredient is missing only from JEI
+
+First confirm the recipe still works in a crafting grid or another recipe
+viewer. Without disconnecting, run:
+
+```text
+/vha reload_jei
+```
+
+This rebuilds JEI from the live recipe and tag state and bypasses VHA's core
+JEI caches and parallel index paths for that recovery pass. If the entry is
+still absent, retain `logs/latest.log` before restarting so the failed session
+can be diagnosed.
+
 ## JEI appears late or the first world frames lag
 
 The post-login timer should finish without a large untracked gameplay stall.

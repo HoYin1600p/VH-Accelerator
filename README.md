@@ -97,10 +97,12 @@ as does its `status` form.
 | `/vha debug on` | Enables detailed profiling; reconnect or restart for complete samples. |
 | `/vha debug off` | Stops new detailed diagnostic sampling. |
 | `/vha debug status` | Reports detailed diagnostic state. |
+| `/vha reload_jei` | Rebuilds JEI from the currently synchronized recipes and tags, bypassing VHA's core JEI caches and parallel index paths for that recovery reload. |
 
 These are client commands in multiplayer and require no server permission.
-The same commands are available to a dedicated-server console and to operators
-with permission level 2 or higher.
+The setting commands are also available to a dedicated-server console and to
+operators with permission level 2 or higher. `reload_jei` is client-only and
+must be run while connected to a world or server.
 
 The complete behavior and permission reference is in
 [Configuration and commands](docs/CONFIGURATION.md).

@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.v9.RecipeMapIndexAccess;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -145,7 +146,8 @@ public abstract class RecipeManagerInternalIndexMixin {
             RecipeTypeData<T> recipeTypeData,
             Collection<T> recipes
     ) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+        if (!JeiRecoveryReload.optimizationsAllowed()
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES
                         .persistentJeiRecipeIndexCache
                         .get()

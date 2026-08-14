@@ -6,6 +6,7 @@ import com.blamejared.jeitweaker.jei.JeiTweakerPlugin;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -28,7 +29,8 @@ public abstract class JeiTweakerPluginMixin {
             IngredientType<T, U> type,
             CallbackInfo ci
     ) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+        if (!JeiRecoveryReload.optimizationsAllowed()
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.parallelJeiTweakerMatching.get()) {
             return;
         }

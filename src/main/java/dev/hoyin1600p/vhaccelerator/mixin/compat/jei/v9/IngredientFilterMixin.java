@@ -7,6 +7,7 @@ import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.DeferredIngredientMutations;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.InitialJeiVisibilityFastPath;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.ParallelJeiPrefixIndexer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,7 +105,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IListElementInfo<?> info
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && vhaccelerator$optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES.asyncJeiSearchIndex.get()
                 && ignoredReceiver instanceof ElementSearch) {
             if (vhaccelerator$initialIngredients == null) {
@@ -134,7 +135,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IListElement<?> element
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && vhaccelerator$optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()
@@ -158,7 +159,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IngredientFilter instance
     ) {
         if (vhaccelerator$constructing
-                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && vhaccelerator$optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()) {
@@ -181,7 +182,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void vhaccelerator$startIsolatedIndexBuild(CallbackInfo ci) {
-        if (VHAcceleratorClientConfig.optimizationsEnabled()
+        if (vhaccelerator$optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .optimizeJeiIngredientFilterConstruction
                         .get()) {
@@ -393,7 +394,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             Comparator<IListElementInfo<?>> comparator,
             CallbackInfoReturnable<List<IListElementInfo<?>>> cir
     ) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+        if (!vhaccelerator$optimizationsEnabled()
                 || !VHAcceleratorClientConfig.VALUES.parallelJeiIngredientSorting.get()
                 || vhaccelerator$indexing) {
             return;
@@ -422,5 +423,11 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
                     exception
             );
         }
+    }
+
+    @Unique
+    private static boolean vhaccelerator$optimizationsEnabled() {
+        return JeiRecoveryReload.optimizationsAllowed()
+                && VHAcceleratorClientConfig.optimizationsEnabled();
     }
 }

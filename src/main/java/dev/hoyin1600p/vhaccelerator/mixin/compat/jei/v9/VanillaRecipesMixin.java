@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.VanillaRecipeValidation;
 import java.util.List;
@@ -271,7 +272,8 @@ public abstract class VanillaRecipesMixin {
 
     @Unique
     private static boolean vhaccelerator$enabled() {
-        return VHAcceleratorClientConfig.optimizationsEnabled()
+        return JeiRecoveryReload.optimizationsAllowed()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .parallelVanillaRecipeValidation
                         .get();

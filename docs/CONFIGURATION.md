@@ -36,8 +36,11 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha debug on` | Saves detailed diagnostics as enabled. Reconnect and restart for complete samples. |
 | `/vha debug off` | Saves detailed diagnostics as disabled and stops new sampling. |
 | `/vha debug status` | Reports detailed diagnostic state. |
+| `/vha reload_jei` | Runs JEI's native stop/start lifecycle against the currently synchronized recipes and tags. VHA's core JEI caches and parallel index paths are bypassed for this recovery reload. |
 
-The dedicated-server console uses the same command without the leading slash.
+The dedicated-server console uses the setting commands without the leading
+slash. `reload_jei` is client-only, requires an active world or server
+connection, and can briefly pause the client while JEI rebuilds.
 
 ### Compare Mode
 
@@ -66,6 +69,19 @@ signals needed to keep optimizations safe.
 Debug mode enables detailed launch phases, reload listener attribution, model
 pipeline measurements, connection packets, post-login work, and disconnect
 listener timings. It adds logging and sampling overhead and is off by default.
+
+### JEI recovery reload
+
+Use `/vha reload_jei` when Minecraft still has a recipe but JEI's visible
+recipe or ingredient lists appear incomplete. The command does not disconnect,
+request new server data, or reload client resources. It asks JEI to discard its
+current runtime and rebuild from the recipe and tag state already synchronized
+to the client.
+
+The recovery pass intentionally avoids VHA's persistent vanilla ingredient
+cache, persistent recipe-index plans, parallel vanilla recipe validation,
+parallel JEI search construction, and parallel JEITweaker matching. Normal VHA
+settings resume as soon as the recovery rebuild finishes.
 
 ## Common configuration
 

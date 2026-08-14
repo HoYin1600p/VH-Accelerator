@@ -9,6 +9,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added the client-side `/vha reload_jei` recovery command. It runs JEI's
+  native stop/start lifecycle from the live synchronized recipe and tag state
+  without requiring a disconnect.
+
 ### Changed
 
 ### Fixed
@@ -16,6 +20,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Performance
 
 ### Compatibility
+
+- The JEI recovery command supports both bundled JEI 9 and JEI 10
+  compatibility generations. Core VHA JEI caches and parallel index paths are
+  bypassed only for the recovery rebuild.
 
 ### Server
 

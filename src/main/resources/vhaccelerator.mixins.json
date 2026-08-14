@@ -28,6 +28,7 @@
     "client.ForgeRecipeEventTimingMixin",
     "client.FerriteCoreQuadCacheCapacityMixin",
     "client.GameRendererTimingMixin",
+    "client.JeiStartEventObserverMixin",
     "client.GameDataRegistryProfilerMixin",
     "client.LevelRendererTimingMixin",
     "client.LoadingOverlayMixin",

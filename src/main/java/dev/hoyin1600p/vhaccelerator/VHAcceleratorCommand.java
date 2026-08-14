@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import java.util.function.ToIntFunction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
@@ -17,7 +18,22 @@ public final class VHAcceleratorCommand {
             CommandDispatcher<CommandSourceStack> dispatcher,
             boolean requireAdministrator
     ) {
-        dispatcher.register(
+        register(dispatcher, requireAdministrator, null);
+    }
+
+    public static void registerClient(
+            CommandDispatcher<CommandSourceStack> dispatcher,
+            ToIntFunction<CommandSourceStack> reloadJei
+    ) {
+        register(dispatcher, false, reloadJei);
+    }
+
+    private static void register(
+            CommandDispatcher<CommandSourceStack> dispatcher,
+            boolean requireAdministrator,
+            ToIntFunction<CommandSourceStack> reloadJei
+    ) {
+        LiteralArgumentBuilder<CommandSourceStack> root =
                 Commands.literal("vha")
                         .requires(source ->
                                 !requireAdministrator
@@ -55,8 +71,15 @@ public final class VHAcceleratorCommand {
                                 "debug",
                                 VHAcceleratorCommand::setDebug,
                                 VHAcceleratorCommand::reportDebug
-                        ))
-        );
+                        ));
+        if (reloadJei != null) {
+            root.then(Commands.literal("reload_jei")
+                    .executes(context ->
+                            reloadJei.applyAsInt(
+                                    context.getSource()
+                            )));
+        }
+        dispatcher.register(root);
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> toggleCommand(

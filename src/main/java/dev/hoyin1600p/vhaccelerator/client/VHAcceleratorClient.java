@@ -13,6 +13,7 @@ import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
@@ -26,6 +27,7 @@ import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
@@ -97,7 +99,41 @@ public final class VHAcceleratorClient {
     private static void onRegisterClientCommands(
             RegisterClientCommandsEvent event
     ) {
-        VHAcceleratorCommand.register(event.getDispatcher(), false);
+        VHAcceleratorCommand.registerClient(
+                event.getDispatcher(),
+                VHAcceleratorClient::reloadJei
+        );
+    }
+
+    private static int reloadJei(
+            CommandSourceStack source
+    ) {
+        source.sendSuccess(
+                new TextComponent(
+                        "[VH Accelerator] Rebuilding JEI from the live "
+                                + "recipe and tag state. The game may pause "
+                                + "briefly."
+                ).withStyle(ChatFormatting.YELLOW),
+                false
+        );
+        JeiRecoveryReload.Result result = JeiRecoveryReload.reload();
+        if (!result.successful()) {
+            source.sendFailure(new TextComponent(
+                    "[VH Accelerator] " + result.failureMessage()
+            ));
+            return 0;
+        }
+
+        source.sendSuccess(
+                new TextComponent(String.format(
+                        "[VH Accelerator] JEI rebuilt from live data in "
+                                + "%.2fs. VHA's JEI caches and parallel "
+                                + "index paths were bypassed for this reload.",
+                        result.elapsedMillis() / 1000.0
+                )).withStyle(ChatFormatting.GREEN),
+                false
+        );
+        return 1;
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
