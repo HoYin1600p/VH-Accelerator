@@ -9,10 +9,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Added the client-side `/vha reload_jei` recovery command. It runs JEI's
-  native stop/start lifecycle from the live synchronized recipe and tag state
-  without requiring a disconnect.
-
 ### Changed
 
 ### Fixed
@@ -21,13 +17,23 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Compatibility
 
-- The JEI recovery command supports both bundled JEI 9 and JEI 10
-  compatibility generations. Core VHA JEI caches and parallel index paths are
-  bypassed only for the recovery rebuild.
-
 ### Server
 
 ### Removed
+
+## [1.0.9] - 2026-08-14
+
+### Added
+
+- Added the client-side `/vha reload_jei` recovery command. It runs JEI's
+  native stop/start lifecycle from the live synchronized recipe and tag state
+  without requiring a disconnect.
+
+### Compatibility
+
+- The JEI recovery command supports both bundled JEI 9 and JEI 10
+  compatibility generations. Core VHA JEI caches and parallel index paths are
+  bypassed only for the recovery rebuild.
 
 ## [1.0.8] - 2026-07-31
 
@@ -217,7 +223,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.8...v1.0.9
+[1.0.8]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.4...v1.0.5
