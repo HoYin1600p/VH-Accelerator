@@ -31,8 +31,9 @@ The additional `20.0.3-remastered` compatibility profile uses a local
 The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
 previous standard release is file `8508674`. The 3.21.62 jar is the custom
 MVP target. Wold's Vaults 0.32.2 pins Vault file `7952001` and JEI file
-`5068328`. These files are used only for compile-time compatibility checks
-and are not redistributed.
+`5068328`; Wolds Vaults 0.33.0 reuses official Vault file `8508967` with the
+same JEI file as a distinct build profile. These files are used only for
+compile-time compatibility checks and are not redistributed.
 
 JEI 10 is used by the Remastered and Wold's Vaults targets. JEI 9 is shared
 by the custom MVP and official 3.21.6 profiles. All are compile-only and are

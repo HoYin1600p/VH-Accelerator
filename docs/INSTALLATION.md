@@ -2,7 +2,7 @@
 
 ## Supported environment
 
-VH Accelerator 1.0.7 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
+VH Accelerator 1.0.9 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
 the 40.x line. It produces Java 17-compatible bytecode.
 
 The same jar contains guarded support for:
@@ -15,6 +15,7 @@ The same jar contains guarded support for:
 | Official previous | `3.21.5.6882` | `9.7.2.1001` |
 | Official current baseline | `3.21.6.6884` | `9.7.2.1001` |
 | Wolds Vaults 0.32.2 | `3.21.5.6573` | `10.2.1.1006` |
+| Wolds Vaults 0.33.0 | `3.21.6.6884` | `10.2.1.1006` |
 | Custom MVP | `3.21.62` | `9.7.2.1001` |
 
 The entries above are compile and test baselines, not hard dependencies.

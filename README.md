@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.0.7-7b68ee)](docs/releases/1.0.7.md)
+[![Release](https://img.shields.io/badge/Release-1.0.9-7b68ee)](docs/releases/1.0.9.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 clients. It reduces work on the client-launch and multiplayer-login critical
@@ -29,6 +29,8 @@ target mod and supported class layout are present.
   timers.
 - Compare Mode for disabling every optimization without losing measurement
   tools.
+- An in-world `/vha reload_jei` recovery command that rebuilds JEI from the
+  live synchronized recipe and tag state without disconnecting.
 - Automatic ownership handoff for overlapping ModernFix features.
 - One universal jar containing isolated JEI 9 and JEI 10 compatibility
   modules.
@@ -54,7 +56,7 @@ mod behavior remain on their established threads.
 | Environment | Client; dedicated-server testing is not yet complete |
 | Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wolds Vaults | Pack `0.32.2` / Vault `3.21.5.6573`, compile and runtime verified |
+| Wolds Vaults | Packs `0.32.2` and `0.33.0`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
 | Custom MVP | `3.21.62` baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
@@ -70,7 +72,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.0.7.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.0.9.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -176,6 +178,8 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
+| [Release notes 1.0.9](docs/releases/1.0.9.md) | In-world JEI recovery and Wolds Vaults 0.33.0 verification |
+| [Release notes 1.0.8](docs/releases/1.0.8.md) | Startup reliability and mixin initialization hardening |
 | [Installation](docs/INSTALLATION.md) | Supported placement, upgrades, conflicts, and removal |
 | [Configuration and commands](docs/CONFIGURATION.md) | Every option, default, command, and permission |
 | [Testing and benchmarking](docs/TESTING.md) | Compare Mode and repeatable launch/login testing |
@@ -207,7 +211,7 @@ Build and run all compatibility checks:
 ```
 
 The reobfuscated release jar is written to `build/libs/`. The build compiles
-the same source against all seven Vault profiles and verifies that both JEI
+the same source against all eight Vault profiles and verifies that both JEI
 generations are present without bundling JEI, Vault Hunters, or any optional
 compatibility dependency.
 

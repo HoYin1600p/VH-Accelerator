@@ -34,6 +34,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - The JEI recovery command supports both bundled JEI 9 and JEI 10
   compatibility generations. Core VHA JEI caches and parallel index paths are
   bypassed only for the recovery rebuild.
+- Added compile and release-jar verification for the Wolds Vaults `0.33.0`
+  profile using Vault `3.21.6.6884` and JEI `10.2.1.1006`.
 
 ## [1.0.8] - 2026-07-31
 
