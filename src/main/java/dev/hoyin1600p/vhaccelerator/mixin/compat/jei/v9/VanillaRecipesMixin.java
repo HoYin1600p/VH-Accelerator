@@ -84,7 +84,7 @@ public abstract class VanillaRecipesMixin {
             return;
         }
         try {
-            Map<Boolean, List<CraftingRecipe>> validated = parallel
+            List<CraftingRecipe> inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
                                     .filter(recipe ->
@@ -92,16 +92,16 @@ public abstract class VanillaRecipesMixin {
                                                     recipe,
                                                     9
                                             ))
-                                    .collect(Collectors.partitioningBy(
-                                            category::isHandled
-                                    ))
+                                    .toList()
                     )
                     : recipes.stream()
                             .filter(recipe ->
                                     VanillaRecipeValidation.isValid(recipe, 9))
-                            .collect(Collectors.partitioningBy(
-                                    category::isHandled
-                            ));
+                            .toList();
+            // JEI categories may consult shared identity maps while answering.
+            // Keep those lookups on the calling thread.
+            Map<Boolean, List<CraftingRecipe>> validated = inputValid.stream()
+                    .collect(Collectors.partitioningBy(category::isHandled));
             PersistentRecipeValidationCache.recordCrafting(
                     fingerprint,
                     recipes.size(),
@@ -226,15 +226,14 @@ public abstract class VanillaRecipesMixin {
             return;
         }
         try {
-            List<T> validated = parallel
+            List<T> inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
                                     .filter(recipe ->
                                             VanillaRecipeValidation.isValid(
                                                     recipe,
                                                     maxInputs
-                                            )
-                                                    && category.isHandled(recipe))
+                                            ))
                                     .toList()
                     )
                     : recipes.stream()
@@ -242,9 +241,11 @@ public abstract class VanillaRecipesMixin {
                                     VanillaRecipeValidation.isValid(
                                             recipe,
                                             maxInputs
-                                    )
-                                            && category.isHandled(recipe))
+                                    ))
                             .toList();
+            List<T> validated = inputValid.stream()
+                    .filter(category::isHandled)
+                    .toList();
             PersistentRecipeValidationCache.record(
                     fingerprint,
                     label,

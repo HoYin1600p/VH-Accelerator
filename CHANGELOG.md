@@ -13,6 +13,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Prevented JEI 9 and JEI 10 recipe validation from calling category handlers
+  concurrently. Input validation remains parallel, while JEI-owned category
+  lookups now run on the calling thread to avoid startup hangs in shared
+  identity-map state.
+
 ### Performance
 
 ### Compatibility
