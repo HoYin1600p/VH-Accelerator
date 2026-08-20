@@ -7,9 +7,9 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
-The current 1.0.9 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
-the compatibility, startup-reliability, texture-safety, and JEI recovery work
-added since the original 1.0.0 release.
+The current 1.0.10 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
+the compatibility, startup-reliability, texture-safety, JEI recovery, and JEI
+recipe-cache correctness work added since the original 1.0.0 release.
 
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
@@ -23,6 +23,8 @@ thread. Dynamic models and other unsafe work stay on their normal path.
 - Multiplayer login and server/world transfers, including JEI search and
   recipe preparation.
 - Repeated launches and connections through validated caches.
+- Faster repeated JEI recipe preparation without trusting stale category or
+  incomplete recipe-list results.
 - Post-login responsiveness by keeping unfinished background work away from
   the first playable world frame.
 - Testing and troubleshooting through built-in launch, login, transfer,
@@ -46,6 +48,8 @@ activate only when the matching mod and supported class layout are present.
   Every Compat content.
 - Added `/vha reload_jei` so players can rebuild JEI from the currently
   synchronized recipes and tags without disconnecting.
+- Corrected persistent JEI recipe caching so late recipe batches cannot hide
+  normal crafting-table recipes, while keeping the warm-login speedup.
 - Hardened early startup mixins against unusual class-loading order and added
   build checks that prevent the same startup failure class from returning.
 - Reduced repeated CTM, model-registry, voxel-shape, asset-fingerprint, and
@@ -79,7 +83,7 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.9.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.10.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
