@@ -13,6 +13,33 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+### Performance
+
+### Compatibility
+
+### Server
+
+### Removed
+
+## [1.0.10] - 2026-08-20
+
+### Changed
+
+- Reworked persistent JEI recipe-index identity around the synchronized
+  recipe state that determines what JEI displays. Recipe semantics now cover
+  recipe IDs, serializers, recipe classes, special/group properties, outputs,
+  ordered ingredient slots, candidate choices, and canonical NBT.
+- Persisted JEI recipe indexes as independent category and batch records. A
+  smaller late registration batch can no longer replace a complete crafting,
+  stonecutting, or furnace index from the same login.
+- Canonicalized ingredient candidates so harmless packet or tag iteration
+  order changes do not invalidate an otherwise identical warm cache.
+- Changed cache-failure handling to disable persistent recipe-index reuse for
+  the affected connection instead of accepting a weaker or nondeterministic
+  fingerprint.
+
+### Fixed
+
 - Prevented JEI 9 and JEI 10 recipe validation from calling category handlers
   concurrently. Input validation remains parallel, while JEI-owned category
   lookups now run on the calling thread to avoid startup hangs in shared
@@ -23,14 +50,33 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   login from hiding ordinary crafting recipes on later sessions.
 - Invalidated recipe validation and recipe index caches created by older
   builds so unsafe results cannot survive an update.
+- Prevented late JEI recipe batches from hiding normal crafting-table recipes
+  after a warm login. Live recipe objects and category ownership are resolved
+  again for every connection.
 
 ### Performance
 
+- Retained parallel structural recipe validation while moving only JEI-owned
+  category classification back to the calling thread.
+- Avoided starting or preloading the persistent validation-cache reader when
+  that optional cache is disabled, which remains the release default because
+  bounded fresh validation was faster in the tested Remastered profile.
+- Removed redundant raw recipe-payload hashing and temporary fingerprint
+  diagnostics after semantic cache identity was verified.
+
 ### Compatibility
+
+- Applied the JEI ownership and cache corrections to both bundled JEI 9 and
+  JEI 10 compatibility modules.
+- Verified the unified jar against all eight Vault/JEI compatibility profiles
+  used by the project build.
 
 ### Server
 
 ### Removed
+
+- Removed the obsolete raw recipe fingerprint implementation and its fallback
+  path.
 
 ## [1.0.9] - 2026-08-14
 
@@ -236,7 +282,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.9...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.10...HEAD
+[1.0.10]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.6...v1.0.7

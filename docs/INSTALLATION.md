@@ -2,7 +2,7 @@
 
 ## Supported environment
 
-VH Accelerator 1.0.9 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
+VH Accelerator 1.0.10 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
 the 40.x line. It produces Java 17-compatible bytecode.
 
 The same jar contains guarded support for:
@@ -31,9 +31,9 @@ runtime testing.
 2. Back up the instance.
 3. Remove or disable any older VH Accelerator jar.
 4. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize.
-5. Copy `VH-Accelerator-1.0.7.jar` into the instance's `mods` directory.
+5. Copy `VH-Accelerator-1.0.10.jar` into the instance's `mods` directory.
 6. Start the client and allow the first launch to build its caches.
-7. Confirm the Mods screen reports version `1.0.7`.
+7. Confirm the Mods screen reports version `1.0.10`.
 
 VH Accelerator works client-side when connecting to a server that does not
 have the mod. This is the expected deployment for public or otherwise
