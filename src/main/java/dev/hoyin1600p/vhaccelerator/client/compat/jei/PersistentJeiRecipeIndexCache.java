@@ -203,7 +203,7 @@ public final class PersistentJeiRecipeIndexCache {
         String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
                 jeiGeneration,
-                fingerprint.value()
+                fingerprint.recipes().value()
         );
         Manifest next;
         synchronized (PersistentJeiRecipeIndexCache.class) {
@@ -213,7 +213,7 @@ public final class PersistentJeiRecipeIndexCache {
                     new LinkedHashMap<>();
             if (current != null
                     && current.fingerprint.equals(
-                            fingerprint.value()
+                            fingerprint.recipes().value()
                     )) {
                 categories.putAll(current.categories);
             }
@@ -243,7 +243,7 @@ public final class PersistentJeiRecipeIndexCache {
             }
             next = new Manifest(
                     cacheKey,
-                    fingerprint.value(),
+                    fingerprint.recipes().value(),
                     Map.copyOf(categories)
             );
             loaded.put(cacheKey, next);
@@ -269,7 +269,7 @@ public final class PersistentJeiRecipeIndexCache {
         String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
                 jeiGeneration,
-                fingerprint.value()
+                fingerprint.recipes().value()
         );
         Manifest manifest = preload.join().get(cacheKey);
         if (manifest == null) {
@@ -279,7 +279,9 @@ public final class PersistentJeiRecipeIndexCache {
             );
             return null;
         }
-        if (!manifest.fingerprint.equals(fingerprint.value())) {
+        if (!manifest.fingerprint.equals(
+                fingerprint.recipes().value()
+        )) {
             reportMiss(
                     cacheKey,
                     "recipes, tags, configs, mods, or cache schema changed"
