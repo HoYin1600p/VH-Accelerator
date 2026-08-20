@@ -32,6 +32,7 @@ import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ConfigTracker;
 import net.minecraftforge.fml.config.ModConfig;
@@ -49,7 +50,7 @@ public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 4;
+    private static final int RECIPE_SCHEMA_VERSION = 5;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -123,6 +124,12 @@ public final class LoginStateFingerprint {
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
+        String canonical = canonicalRecipePayload(packet);
+        if (canonical != null) {
+            recipePayloadHash = canonical;
+            recipePayloadExact = true;
+            return;
+        }
         if (recipePayloadExact && recipePayloadHash != null) {
             return;
         }
@@ -199,6 +206,65 @@ public final class LoginStateFingerprint {
                     exception
             );
         }
+    }
+
+    private static String canonicalRecipePayload(
+            ClientboundUpdateRecipesPacket packet
+    ) {
+        try {
+            return CanonicalRecipePayloadFingerprint.digest(
+                    packet.getRecipes(),
+                    recipe -> recipe.getId().toString(),
+                    recipe -> {
+                        ResourceLocation serializerId =
+                                Registry.RECIPE_SERIALIZER.getKey(
+                                        recipe.getSerializer()
+                                );
+                        if (serializerId == null) {
+                            throw new IllegalStateException(
+                                    "Recipe serializer is not registered: "
+                                            + recipe.getId()
+                            );
+                        }
+                        return serializerId.toString();
+                    },
+                    LoginStateFingerprint::serializeRecipe
+            );
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not build the canonical synchronized recipe "
+                            + "fingerprint; retaining the raw packet "
+                            + "fingerprint",
+                    failure
+            );
+            return null;
+        }
+    }
+
+    private static byte[] serializeRecipe(Recipe<?> recipe) {
+        ByteBuf storage = Unpooled.buffer();
+        try {
+            FriendlyByteBuf buffer = new FriendlyByteBuf(storage);
+            writeRecipe(
+                    recipe.getSerializer(),
+                    buffer,
+                    recipe
+            );
+            byte[] payload = new byte[storage.readableBytes()];
+            storage.getBytes(storage.readerIndex(), payload);
+            return payload;
+        } finally {
+            storage.release();
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void writeRecipe(
+            RecipeSerializer serializer,
+            FriendlyByteBuf buffer,
+            Recipe recipe
+    ) {
+        serializer.toNetwork(buffer, recipe);
     }
 
     public static void captureTagPacket(ClientboundUpdateTagsPacket packet) {
