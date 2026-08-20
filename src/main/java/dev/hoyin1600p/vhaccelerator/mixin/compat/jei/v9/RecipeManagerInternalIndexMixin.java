@@ -126,7 +126,7 @@ public abstract class RecipeManagerInternalIndexMixin {
                 fingerprint,
                 "jei9",
                 categoryUid.toString(),
-                recipes.size(),
+                recipes,
                 prepared
         );
         VHAccelerator.LOGGER.info(

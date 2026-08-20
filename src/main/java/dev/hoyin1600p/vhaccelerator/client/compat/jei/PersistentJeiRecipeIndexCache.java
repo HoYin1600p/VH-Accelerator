@@ -43,9 +43,11 @@ import net.minecraftforge.fml.loading.FMLPaths;
  */
 public final class PersistentJeiRecipeIndexCache {
     private static final int MAGIC = 0x56484A49;
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int MAX_FILES = 64;
     private static final int MAX_CATEGORIES = 128;
+    private static final int MAX_BATCHES_PER_CATEGORY = 64;
+    private static final int MAX_TOTAL_BATCHES = 512;
     private static final int MAX_RECIPES_PER_CATEGORY = 250_000;
     private static final int MAX_TOTAL_RECIPES = 500_000;
     private static final int MAX_TOTAL_UIDS = 10_000_000;
@@ -115,11 +117,6 @@ public final class PersistentJeiRecipeIndexCache {
         if (manifest == null) {
             return null;
         }
-        CategoryPlan category = manifest.categories.get(categoryUid);
-        if (category == null
-                || category.sourceCount != sourceRecipes.size()) {
-            return null;
-        }
 
         Map<String, T> activeById =
                 new HashMap<>(sourceRecipes.size() * 2);
@@ -132,12 +129,25 @@ public final class PersistentJeiRecipeIndexCache {
                 return null;
             }
         }
+        CategoryBatches category = manifest.categories.get(categoryUid);
+        if (category == null) {
+            return null;
+        }
+        String batchKey = JeiRecipeIndexIdentity.batchKey(
+                categoryUid,
+                activeById.keySet()
+        );
+        CategoryPlan batch = category.batches.get(batchKey);
+        if (batch == null
+                || batch.sourceCount != sourceRecipes.size()) {
+            return null;
+        }
 
         List<ActiveRecipe<T>> restored =
-                new ArrayList<>(category.recipes.size());
+                new ArrayList<>(batch.recipes.size());
         Set<String> acceptedIds =
-                new HashSet<>(category.recipes.size() * 2);
-        for (RecipePlan plan : category.recipes) {
+                new HashSet<>(batch.recipes.size() * 2);
+        for (RecipePlan plan : batch.recipes) {
             if (!acceptedIds.add(plan.recipeId)) {
                 return null;
             }
@@ -157,11 +167,13 @@ public final class PersistentJeiRecipeIndexCache {
             LoginStateFingerprint.Snapshot fingerprint,
             String jeiGeneration,
             String categoryUid,
-            int sourceCount,
+            java.util.Collection<?> sourceRecipes,
             List<? extends ActiveRecipe<?>> acceptedRecipes
     ) {
         if (!enabled()
                 || fingerprint == null
+                || sourceRecipes.size()
+                        > MAX_RECIPES_PER_CATEGORY
                 || acceptedRecipes.size()
                         > MAX_RECIPES_PER_CATEGORY) {
             return;
@@ -178,17 +190,26 @@ public final class PersistentJeiRecipeIndexCache {
                     freezeRoleGroups(accepted.roleGroups)
             ));
         }
+        Set<String> sourceIds = recipeIds(sourceRecipes);
+        if (sourceIds == null) {
+            return;
+        }
+        String batchKey = JeiRecipeIndexIdentity.batchKey(
+                categoryUid,
+                sourceIds
+        );
 
         prewarm();
-        String cacheKey = cacheKey(
+        String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
-                jeiGeneration
+                jeiGeneration,
+                fingerprint.value()
         );
         Manifest next;
         synchronized (PersistentJeiRecipeIndexCache.class) {
             Map<String, Manifest> loaded = preload.join();
             Manifest current = loaded.get(cacheKey);
-            Map<String, CategoryPlan> categories =
+            Map<String, CategoryBatches> categories =
                     new LinkedHashMap<>();
             if (current != null
                     && current.fingerprint.equals(
@@ -196,14 +217,28 @@ public final class PersistentJeiRecipeIndexCache {
                     )) {
                 categories.putAll(current.categories);
             }
-            categories.put(
-                    categoryUid,
-                    new CategoryPlan(
-                            sourceCount,
-                            List.copyOf(recipes)
-                    )
-            );
+            Map<String, CategoryPlan> batches = new LinkedHashMap<>();
+            CategoryBatches currentCategory = categories.get(categoryUid);
+            if (currentCategory != null) {
+                batches.putAll(currentCategory.batches);
+            }
+            batches.put(batchKey, new CategoryPlan(
+                    sourceRecipes.size(),
+                    List.copyOf(recipes)
+            ));
+            if (batches.size() > MAX_BATCHES_PER_CATEGORY) {
+                return;
+            }
+            categories.put(categoryUid, new CategoryBatches(
+                    Map.copyOf(batches)
+            ));
             if (categories.size() > MAX_CATEGORIES) {
+                return;
+            }
+            int totalBatches = categories.values().stream()
+                    .mapToInt(category -> category.batches.size())
+                    .sum();
+            if (totalBatches > MAX_TOTAL_BATCHES) {
                 return;
             }
             next = new Manifest(
@@ -231,9 +266,10 @@ public final class PersistentJeiRecipeIndexCache {
             String jeiGeneration
     ) {
         prewarm();
-        String cacheKey = cacheKey(
+        String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
-                jeiGeneration
+                jeiGeneration,
+                fingerprint.value()
         );
         Manifest manifest = preload.join().get(cacheKey);
         if (manifest == null) {
@@ -251,6 +287,19 @@ public final class PersistentJeiRecipeIndexCache {
             return null;
         }
         return manifest;
+    }
+
+    private static Set<String> recipeIds(
+            java.util.Collection<?> sourceRecipes
+    ) {
+        Set<String> ids = new HashSet<>(sourceRecipes.size() * 2);
+        for (Object candidate : sourceRecipes) {
+            if (!(candidate instanceof Recipe<?> recipe)
+                    || !ids.add(recipe.getId().toString())) {
+                return null;
+            }
+        }
+        return ids;
     }
 
     private static synchronized void reportMiss(
@@ -296,8 +345,12 @@ public final class PersistentJeiRecipeIndexCache {
                     .filter(path -> path.getFileName()
                             .toString()
                             .endsWith(".bin"))
-                    .sorted(Comparator.comparing(path ->
-                            path.getFileName().toString()))
+                    .sorted(Comparator
+                            .comparingLong(
+                                    PersistentJeiRecipeIndexCache
+                                            ::lastModifiedMillis
+                            )
+                            .reversed())
                     .limit(MAX_FILES)
                     .forEach(path -> {
                         Manifest manifest = read(path);
@@ -332,91 +385,110 @@ public final class PersistentJeiRecipeIndexCache {
                     MAX_CATEGORIES,
                     "category count"
             );
-            Map<String, CategoryPlan> categories =
+            Map<String, CategoryBatches> categories =
                     new LinkedHashMap<>();
             int totalRecipes = 0;
             int totalUids = 0;
+            int totalBatches = 0;
             for (int categoryIndex = 0;
                  categoryIndex < categoryCount;
                  categoryIndex++) {
                 String categoryUid = input.readUTF();
-                int sourceCount = bounded(
+                int batchCount = bounded(
                         input.readInt(),
-                        MAX_RECIPES_PER_CATEGORY,
-                        "source recipe count"
+                        MAX_BATCHES_PER_CATEGORY,
+                        "recipe batch count"
                 );
-                int recipeCount = bounded(
-                        input.readInt(),
-                        MAX_RECIPES_PER_CATEGORY,
-                        "accepted recipe count"
-                );
-                totalRecipes += recipeCount;
-                if (totalRecipes > MAX_TOTAL_RECIPES) {
+                totalBatches += batchCount;
+                if (totalBatches > MAX_TOTAL_BATCHES) {
                     throw new IOException(
-                            "JEI recipe index has too many total recipes"
+                            "JEI recipe index has too many total batches"
                     );
                 }
-                List<RecipePlan> recipes =
-                        new ArrayList<>(recipeCount);
-                for (int recipeIndex = 0;
-                     recipeIndex < recipeCount;
-                     recipeIndex++) {
-                    String recipeId = input.readUTF();
-                    int roleCount = bounded(
+                Map<String, CategoryPlan> batches = new LinkedHashMap<>();
+                for (int batchIndex = 0;
+                     batchIndex < batchCount;
+                     batchIndex++) {
+                    String batchKey = input.readUTF();
+                    int sourceCount = bounded(
                             input.readInt(),
-                            MAX_ROLES_PER_RECIPE,
-                            "recipe role count"
+                            MAX_RECIPES_PER_CATEGORY,
+                            "source recipe count"
                     );
-                    Map<String, List<List<String>>> roles =
-                            new LinkedHashMap<>();
-                    for (int roleIndex = 0;
-                         roleIndex < roleCount;
-                         roleIndex++) {
-                        String role = input.readUTF();
-                        int groupCount = bounded(
-                                input.readInt(),
-                                MAX_GROUPS_PER_ROLE,
-                                "ingredient group count"
+                    int recipeCount = bounded(
+                            input.readInt(),
+                            MAX_RECIPES_PER_CATEGORY,
+                            "accepted recipe count"
+                    );
+                    totalRecipes += recipeCount;
+                    if (totalRecipes > MAX_TOTAL_RECIPES) {
+                        throw new IOException(
+                                "JEI recipe index has too many total recipes"
                         );
-                        List<List<String>> groups =
-                                new ArrayList<>(groupCount);
-                        for (int groupIndex = 0;
-                             groupIndex < groupCount;
-                             groupIndex++) {
-                            int uidCount = bounded(
-                                    input.readInt(),
-                                    MAX_UIDS_PER_GROUP,
-                                    "ingredient UID count"
-                            );
-                            totalUids += uidCount;
-                            if (totalUids > MAX_TOTAL_UIDS) {
-                                throw new IOException(
-                                        "JEI recipe index has too many "
-                                                + "total ingredient UIDs"
-                                );
-                            }
-                            List<String> uids =
-                                    new ArrayList<>(uidCount);
-                            for (int uidIndex = 0;
-                                 uidIndex < uidCount;
-                                 uidIndex++) {
-                                uids.add(input.readUTF());
-                            }
-                            groups.add(List.copyOf(uids));
-                        }
-                        roles.put(role, List.copyOf(groups));
                     }
-                    recipes.add(new RecipePlan(
-                            recipeId,
-                            Map.copyOf(roles)
+                    List<RecipePlan> recipes =
+                            new ArrayList<>(recipeCount);
+                    for (int recipeIndex = 0;
+                         recipeIndex < recipeCount;
+                         recipeIndex++) {
+                        String recipeId = input.readUTF();
+                        int roleCount = bounded(
+                                input.readInt(),
+                                MAX_ROLES_PER_RECIPE,
+                                "recipe role count"
+                        );
+                        Map<String, List<List<String>>> roles =
+                                new LinkedHashMap<>();
+                        for (int roleIndex = 0;
+                             roleIndex < roleCount;
+                             roleIndex++) {
+                            String role = input.readUTF();
+                            int groupCount = bounded(
+                                    input.readInt(),
+                                    MAX_GROUPS_PER_ROLE,
+                                    "ingredient group count"
+                            );
+                            List<List<String>> groups =
+                                    new ArrayList<>(groupCount);
+                            for (int groupIndex = 0;
+                                 groupIndex < groupCount;
+                                 groupIndex++) {
+                                int uidCount = bounded(
+                                        input.readInt(),
+                                        MAX_UIDS_PER_GROUP,
+                                        "ingredient UID count"
+                                );
+                                totalUids += uidCount;
+                                if (totalUids > MAX_TOTAL_UIDS) {
+                                    throw new IOException(
+                                            "JEI recipe index has too many "
+                                                    + "total ingredient UIDs"
+                                    );
+                                }
+                                List<String> uids =
+                                        new ArrayList<>(uidCount);
+                                for (int uidIndex = 0;
+                                     uidIndex < uidCount;
+                                     uidIndex++) {
+                                    uids.add(input.readUTF());
+                                }
+                                groups.add(List.copyOf(uids));
+                            }
+                            roles.put(role, List.copyOf(groups));
+                        }
+                        recipes.add(new RecipePlan(
+                                recipeId,
+                                Map.copyOf(roles)
+                        ));
+                    }
+                    batches.put(batchKey, new CategoryPlan(
+                            sourceCount,
+                            List.copyOf(recipes)
                     ));
                 }
                 categories.put(
                         categoryUid,
-                        new CategoryPlan(
-                                sourceCount,
-                                List.copyOf(recipes)
-                        )
+                        new CategoryBatches(Map.copyOf(batches))
                 );
             }
             Manifest manifest = new Manifest(
@@ -473,27 +545,34 @@ public final class PersistentJeiRecipeIndexCache {
                                 .toList();
                 output.writeInt(categoryUids.size());
                 for (String categoryUid : categoryUids) {
-                    CategoryPlan category =
+                    CategoryBatches category =
                             manifest.categories.get(categoryUid);
                     output.writeUTF(categoryUid);
-                    output.writeInt(category.sourceCount);
-                    output.writeInt(category.recipes.size());
-                    for (RecipePlan recipe : category.recipes) {
-                        output.writeUTF(recipe.recipeId);
-                        List<String> roles =
-                                recipe.roleGroups.keySet().stream()
+                    List<String> batchKeys = category.batches.keySet()
+                            .stream().sorted().toList();
+                    output.writeInt(batchKeys.size());
+                    for (String batchKey : batchKeys) {
+                        CategoryPlan batch = category.batches.get(batchKey);
+                        output.writeUTF(batchKey);
+                        output.writeInt(batch.sourceCount);
+                        output.writeInt(batch.recipes.size());
+                        for (RecipePlan recipe : batch.recipes) {
+                            output.writeUTF(recipe.recipeId);
+                            List<String> roles =
+                                    recipe.roleGroups.keySet().stream()
                                         .sorted()
                                         .toList();
-                        output.writeInt(roles.size());
-                        for (String role : roles) {
-                            output.writeUTF(role);
-                            List<List<String>> groups =
-                                    recipe.roleGroups.get(role);
-                            output.writeInt(groups.size());
-                            for (List<String> group : groups) {
-                                output.writeInt(group.size());
-                                for (String uid : group) {
-                                    output.writeUTF(uid);
+                            output.writeInt(roles.size());
+                            for (String role : roles) {
+                                output.writeUTF(role);
+                                List<List<String>> groups =
+                                        recipe.roleGroups.get(role);
+                                output.writeInt(groups.size());
+                                for (List<String> group : groups) {
+                                    output.writeInt(group.size());
+                                    for (String uid : group) {
+                                        output.writeUTF(uid);
+                                    }
                                 }
                             }
                         }
@@ -502,13 +581,20 @@ public final class PersistentJeiRecipeIndexCache {
                 output.writeUTF(manifestHash(manifest));
             }
             moveAtomically(temporary, target);
+            pruneOldFiles();
             int recipeCount = manifest.categories.values().stream()
-                    .mapToInt(category -> category.recipes.size())
+                    .flatMap(category -> category.batches.values().stream())
+                    .mapToInt(batch -> batch.recipes.size())
+                    .sum();
+            int batchCount = manifest.categories.values().stream()
+                    .mapToInt(category -> category.batches.size())
                     .sum();
             VHAccelerator.LOGGER.info(
-                    "Persisted {} JEI recipe index plans across {} categories",
+                    "Persisted {} JEI recipe index plans across {} "
+                            + "categories and {} batches",
                     recipeCount,
-                    manifest.categories.size()
+                    manifest.categories.size(),
+                    batchCount
             );
         } catch (IOException | RuntimeException exception) {
             VHAccelerator.LOGGER.warn(
@@ -536,34 +622,46 @@ public final class PersistentJeiRecipeIndexCache {
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(categoryEntry -> {
                         update(digest, categoryEntry.getKey());
-                        CategoryPlan category =
+                        CategoryBatches category =
                                 categoryEntry.getValue();
-                        update(
-                                digest,
-                                Integer.toString(category.sourceCount)
-                        );
-                        for (RecipePlan recipe : category.recipes) {
-                            update(digest, recipe.recipeId);
-                            recipe.roleGroups.entrySet().stream()
-                                    .sorted(Map.Entry.comparingByKey())
-                                    .forEach(roleEntry -> {
+                        category.batches.entrySet().stream()
+                                .sorted(Map.Entry.comparingByKey())
+                                .forEach(batchEntry -> {
+                                    update(digest, batchEntry.getKey());
+                                    CategoryPlan batch =
+                                            batchEntry.getValue();
+                                    update(
+                                            digest,
+                                            Integer.toString(
+                                                    batch.sourceCount
+                                            )
+                                    );
+                                    for (RecipePlan recipe : batch.recipes) {
                                         update(
                                                 digest,
-                                                roleEntry.getKey()
+                                                recipe.recipeId
                                         );
-                                        for (List<String> group :
-                                                roleEntry.getValue()) {
-                                            update(
-                                                    digest,
-                                                    Integer.toString(
-                                                            group.size()
-                                                    )
-                                            );
-                                            group.forEach(uid ->
-                                                    update(digest, uid));
-                                        }
-                                    });
-                        }
+                                        recipe.roleGroups.entrySet().stream()
+                                                .sorted(Map.Entry.comparingByKey())
+                                                .forEach(roleEntry -> {
+                                                    update(
+                                                            digest,
+                                                            roleEntry.getKey()
+                                                    );
+                                                    for (List<String> group :
+                                                            roleEntry.getValue()) {
+                                                        update(
+                                                                digest,
+                                                                Integer.toString(
+                                                                        group.size()
+                                                                )
+                                                        );
+                                                        group.forEach(uid ->
+                                                                update(digest, uid));
+                                                    }
+                                                });
+                                    }
+                                });
                     });
             return java.util.HexFormat.of().formatHex(
                     digest.digest()
@@ -619,11 +717,38 @@ public final class PersistentJeiRecipeIndexCache {
         }
     }
 
-    private static String cacheKey(
-            String serverKey,
-            String jeiGeneration
-    ) {
-        return serverKey + "-" + jeiGeneration;
+    private static long lastModifiedMillis(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            return Long.MIN_VALUE;
+        }
+    }
+
+    private static void pruneOldFiles() {
+        try (Stream<Path> paths = Files.list(DIRECTORY)) {
+            List<Path> stale = paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName()
+                            .toString()
+                            .endsWith(".bin"))
+                    .sorted(Comparator
+                            .comparingLong(
+                                    PersistentJeiRecipeIndexCache
+                                            ::lastModifiedMillis
+                            )
+                            .reversed())
+                    .skip(MAX_FILES)
+                    .toList();
+            for (Path path : stale) {
+                Files.deleteIfExists(path);
+            }
+        } catch (IOException exception) {
+            VHAccelerator.LOGGER.debug(
+                    "Could not prune old JEI recipe index caches",
+                    exception
+            );
+        }
     }
 
     private static boolean enabled() {
@@ -657,10 +782,15 @@ public final class PersistentJeiRecipeIndexCache {
     ) {
     }
 
+    private record CategoryBatches(
+            Map<String, CategoryPlan> batches
+    ) {
+    }
+
     private record Manifest(
             String cacheKey,
             String fingerprint,
-            Map<String, CategoryPlan> categories
+            Map<String, CategoryBatches> categories
     ) {
     }
 }
