@@ -35,7 +35,6 @@ import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ConfigTracker;
 import net.minecraftforge.fml.config.ModConfig;
@@ -215,9 +214,6 @@ public final class LoginStateFingerprint {
             ClientboundUpdateRecipesPacket packet
     ) {
         try {
-            List<CanonicalRecipeEntry> entries = new ArrayList<>();
-            List<RecipeFingerprintDiagnostics.Entry> diagnostics =
-                    new ArrayList<>();
             List<CanonicalRecipeSemantics.Entry> semanticEntries =
                     new ArrayList<>();
             for (Recipe<?> recipe : packet.getRecipes()) {
@@ -231,18 +227,6 @@ public final class LoginStateFingerprint {
                                     + recipe.getId()
                     );
                 }
-                byte[] payload = serializeRecipe(recipe);
-                CanonicalRecipeEntry entry = new CanonicalRecipeEntry(
-                        recipe.getId().toString(),
-                        serializerId.toString(),
-                        payload
-                );
-                entries.add(entry);
-                diagnostics.add(RecipeFingerprintDiagnostics.entry(
-                        entry.id(),
-                        entry.serializer(),
-                        payload
-                ));
                 List<List<String>> ingredients = new ArrayList<>();
                 for (Ingredient ingredient : recipe.getIngredients()) {
                     if (ingredient == null) {
@@ -256,8 +240,8 @@ public final class LoginStateFingerprint {
                             .toList());
                 }
                 semanticEntries.add(new CanonicalRecipeSemantics.Entry(
-                        entry.id(),
-                        entry.serializer(),
+                        recipe.getId().toString(),
+                        serializerId.toString(),
                         recipe.getClass().getName(),
                         recipe.isSpecial(),
                         recipe.getGroup() == null ? "" : recipe.getGroup(),
@@ -265,7 +249,6 @@ public final class LoginStateFingerprint {
                         ingredients
                 ));
             }
-            RecipeFingerprintDiagnostics.compare(diagnostics);
             return CanonicalRecipeSemantics.digest(semanticEntries);
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
@@ -275,23 +258,6 @@ public final class LoginStateFingerprint {
                     failure
             );
             return null;
-        }
-    }
-
-    private static byte[] serializeRecipe(Recipe<?> recipe) {
-        ByteBuf storage = Unpooled.buffer();
-        try {
-            FriendlyByteBuf buffer = new FriendlyByteBuf(storage);
-            writeRecipe(
-                    recipe.getSerializer(),
-                    buffer,
-                    recipe
-            );
-            byte[] payload = new byte[storage.readableBytes()];
-            storage.getBytes(storage.readerIndex(), payload);
-            return payload;
-        } finally {
-            storage.release();
         }
     }
 
@@ -329,22 +295,6 @@ public final class LoginStateFingerprint {
             return value.append(']').toString();
         }
         return tag.getId() + ":" + tag;
-    }
-
-    private record CanonicalRecipeEntry(
-            String id,
-            String serializer,
-            byte[] payload
-    ) {
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static void writeRecipe(
-            RecipeSerializer serializer,
-            FriendlyByteBuf buffer,
-            Recipe recipe
-    ) {
-        serializer.toNetwork(buffer, recipe);
     }
 
     public static void captureTagPacket(ClientboundUpdateTagsPacket packet) {
