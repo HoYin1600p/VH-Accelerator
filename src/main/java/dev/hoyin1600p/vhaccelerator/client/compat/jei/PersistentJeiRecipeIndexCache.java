@@ -43,7 +43,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
  */
 public final class PersistentJeiRecipeIndexCache {
     private static final int MAGIC = 0x56484A49;
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
     private static final int MAX_FILES = 64;
     private static final int MAX_CATEGORIES = 128;
     private static final int MAX_RECIPES_PER_CATEGORY = 250_000;

@@ -31,13 +31,14 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 /**
- * Persists only the IDs that passed JEI's vanilla recipe validation. Recipe
- * objects are always resolved from the active world's RecipeManager, so this
- * cache cannot retain objects from a disconnected world.
+ * Persists only the IDs that passed JEI's structural input/output validation.
+ * Recipe objects are always resolved from the active world's RecipeManager,
+ * so this cache cannot retain objects from a disconnected world. Category
+ * ownership is deliberately not cached because JEI category extensions are
+ * live runtime state and must only be queried on the lifecycle thread.
  */
 public final class PersistentRecipeValidationCache {
-    public static final String CRAFTING_HANDLED = "crafting-handled";
-    public static final String CRAFTING_UNHANDLED = "crafting-unhandled";
+    public static final String CRAFTING = "crafting";
     public static final String STONECUTTING = "stonecutting";
     public static final String SMELTING = "smelting";
     public static final String SMOKING = "smoking";
@@ -46,12 +47,11 @@ public final class PersistentRecipeValidationCache {
     public static final String SMITHING = "smithing";
 
     private static final int MAGIC = 0x56484152;
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int MAX_CATEGORIES = 32;
     private static final int MAX_RECIPES_PER_CATEGORY = 250_000;
     private static final Set<String> COMPLETE_CATEGORY_SET = Set.of(
-            CRAFTING_HANDLED,
-            CRAFTING_UNHANDLED,
+            CRAFTING,
             STONECUTTING,
             SMELTING,
             SMOKING,
@@ -97,45 +97,6 @@ public final class PersistentRecipeValidationCache {
         reportedMissKey = null;
     }
 
-    public static <T extends Recipe<?>> CraftingResult<T> restoreCrafting(
-            LoginStateFingerprint.Snapshot fingerprint,
-            List<T> recipes
-    ) {
-        CachedManifest manifest = find(fingerprint);
-        if (manifest == null) {
-            return null;
-        }
-        CategoryEntry handled = manifest.categories().get(CRAFTING_HANDLED);
-        CategoryEntry unhandled = manifest.categories().get(CRAFTING_UNHANDLED);
-        if (!matchesSourceSize(handled, recipes)
-                || !matchesSourceSize(unhandled, recipes)) {
-            return null;
-        }
-
-        Set<String> handledIds = validatedIds(handled, recipes);
-        Set<String> unhandledIds = validatedIds(unhandled, recipes);
-        if (handledIds == null
-                || unhandledIds == null
-                || !java.util.Collections.disjoint(handledIds, unhandledIds)) {
-            return null;
-        }
-
-        List<T> restoredHandled = new ArrayList<>(handledIds.size());
-        List<T> restoredUnhandled = new ArrayList<>(unhandledIds.size());
-        for (T recipe : recipes) {
-            String id = recipe.getId().toString();
-            if (handledIds.contains(id)) {
-                restoredHandled.add(recipe);
-            } else if (unhandledIds.contains(id)) {
-                restoredUnhandled.add(recipe);
-            }
-        }
-        return new CraftingResult<>(
-                List.copyOf(restoredHandled),
-                List.copyOf(restoredUnhandled)
-        );
-    }
-
     public static <T extends Recipe<?>> List<T> restore(
             LoginStateFingerprint.Snapshot fingerprint,
             String category,
@@ -161,27 +122,6 @@ public final class PersistentRecipeValidationCache {
             }
         }
         return List.copyOf(restored);
-    }
-
-    public static synchronized void recordCrafting(
-            LoginStateFingerprint.Snapshot fingerprint,
-            int sourceCount,
-            List<? extends Recipe<?>> handled,
-            List<? extends Recipe<?>> unhandled
-    ) {
-        if (fingerprint == null) {
-            return;
-        }
-        PendingManifest current = pendingFor(fingerprint);
-        current.categories().put(
-                CRAFTING_HANDLED,
-                new CategoryEntry(sourceCount, recipeIds(handled))
-        );
-        current.categories().put(
-                CRAFTING_UNHANDLED,
-                new CategoryEntry(sourceCount, recipeIds(unhandled))
-        );
-        saveIfComplete(current);
     }
 
     public static synchronized void record(
@@ -573,12 +513,6 @@ public final class PersistentRecipeValidationCache {
         digest.update((byte) (encoded.length >>> 8));
         digest.update((byte) encoded.length);
         digest.update(encoded);
-    }
-
-    public record CraftingResult<T>(
-            List<T> handled,
-            List<T> unhandled
-    ) {
     }
 
     private record CategoryEntry(

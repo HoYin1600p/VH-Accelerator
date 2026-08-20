@@ -55,26 +55,25 @@ public abstract class VanillaRecipesMixin {
         LoginStateFingerprint.Snapshot fingerprint =
                 vhaccelerator$fingerprint();
         long started = System.nanoTime();
-        PersistentRecipeValidationCache.CraftingResult<CraftingRecipe> restored =
-                fingerprint == null
-                        ? null
-                        : PersistentRecipeValidationCache.restoreCrafting(
-                                fingerprint,
-                                recipes
-                        );
-        if (restored != null) {
+        List<CraftingRecipe> inputValid = fingerprint == null
+                ? null
+                : PersistentRecipeValidationCache.restore(
+                        fingerprint,
+                        PersistentRecipeValidationCache.CRAFTING,
+                        recipes
+                );
+        if (inputValid != null) {
+            Map<Boolean, List<CraftingRecipe>> validated =
+                    inputValid.stream().collect(
+                            Collectors.partitioningBy(category::isHandled)
+                    );
             VHAccelerator.LOGGER.info(
-                    "Restored {} JEI 9 crafting validation results from "
+                    "Restored {} JEI 9 crafting input-validation results from "
                             + "the persistent cache in {} ms",
-                    restored.handled().size() + restored.unhandled().size(),
+                    inputValid.size(),
                     (System.nanoTime() - started) / 1_000_000L
             );
-            cir.setReturnValue(Map.of(
-                    Boolean.TRUE,
-                    restored.handled(),
-                    Boolean.FALSE,
-                    restored.unhandled()
-            ));
+            cir.setReturnValue(validated);
             return;
         }
 
@@ -84,7 +83,7 @@ public abstract class VanillaRecipesMixin {
             return;
         }
         try {
-            List<CraftingRecipe> inputValid = parallel
+            inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
                                     .filter(recipe ->
@@ -102,11 +101,11 @@ public abstract class VanillaRecipesMixin {
             // Keep those lookups on the calling thread.
             Map<Boolean, List<CraftingRecipe>> validated = inputValid.stream()
                     .collect(Collectors.partitioningBy(category::isHandled));
-            PersistentRecipeValidationCache.recordCrafting(
+            PersistentRecipeValidationCache.record(
                     fingerprint,
+                    PersistentRecipeValidationCache.CRAFTING,
                     recipes.size(),
-                    validated.get(Boolean.TRUE),
-                    validated.get(Boolean.FALSE)
+                    inputValid
             );
             if (parallel) {
                 VHAccelerator.LOGGER.info(
@@ -201,22 +200,25 @@ public abstract class VanillaRecipesMixin {
         LoginStateFingerprint.Snapshot fingerprint =
                 vhaccelerator$fingerprint();
         long started = System.nanoTime();
-        List<T> restored = fingerprint == null
+        List<T> inputValid = fingerprint == null
                 ? null
                 : PersistentRecipeValidationCache.restore(
                         fingerprint,
                         label,
                         recipes
                 );
-        if (restored != null) {
+        if (inputValid != null) {
+            List<T> validated = inputValid.stream()
+                    .filter(category::isHandled)
+                    .toList();
             VHAccelerator.LOGGER.info(
-                    "Restored {} JEI 9 {} validation results from "
+                    "Restored {} JEI 9 {} input-validation results from "
                             + "the persistent cache in {} ms",
-                    restored.size(),
+                    inputValid.size(),
                     label,
                     (System.nanoTime() - started) / 1_000_000L
             );
-            cir.setReturnValue(restored);
+            cir.setReturnValue(validated);
             return;
         }
 
@@ -226,7 +228,7 @@ public abstract class VanillaRecipesMixin {
             return;
         }
         try {
-            List<T> inputValid = parallel
+            inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
                             recipes.parallelStream()
                                     .filter(recipe ->
@@ -250,7 +252,7 @@ public abstract class VanillaRecipesMixin {
                     fingerprint,
                     label,
                     recipes.size(),
-                    validated
+                    inputValid
             );
             if (parallel) {
                 VHAccelerator.LOGGER.info(

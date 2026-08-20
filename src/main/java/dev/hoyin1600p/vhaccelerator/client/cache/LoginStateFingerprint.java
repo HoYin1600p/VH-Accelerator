@@ -49,7 +49,7 @@ public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 3;
+    private static final int RECIPE_SCHEMA_VERSION = 4;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 

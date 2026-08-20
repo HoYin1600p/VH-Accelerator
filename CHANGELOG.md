@@ -17,6 +17,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   concurrently. Input validation remains parallel, while JEI-owned category
   lookups now run on the calling thread to avoid startup hangs in shared
   identity-map state.
+- Stopped persisting JEI category handled/unhandled decisions. Warm-cache
+  logins now restore only structural recipe validation and reclassify every
+  recipe against the live JEI runtime on the client thread, preventing a bad
+  login from hiding ordinary crafting recipes on later sessions.
+- Invalidated recipe validation and recipe index caches created by older
+  builds so unsafe results cannot survive an update.
 
 ### Performance
 
