@@ -2,12 +2,9 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.mixin.client.TagNetworkPayloadAccessor;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +21,6 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.core.Registry;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -57,7 +53,6 @@ public final class LoginStateFingerprint {
             new ConcurrentHashMap<>();
 
     private static volatile String recipePayloadHash;
-    private static volatile boolean recipePayloadExact;
     private static volatile CompletableFuture<String> tagPayloadHash;
     private static volatile CompletableFuture<String> localCodeHash;
     private static volatile CompletableFuture<String> localConfigHash;
@@ -67,7 +62,6 @@ public final class LoginStateFingerprint {
 
     public static void beginConnection() {
         recipePayloadHash = null;
-        recipePayloadExact = false;
         tagPayloadHash = null;
         SERVER_CONFIGS.clear();
     }
@@ -100,114 +94,10 @@ public final class LoginStateFingerprint {
         }
     }
 
-    public static void captureRecipePayload(ByteBuf buffer) {
-        recipePayloadHash = digestReadableBytes(buffer);
-        recipePayloadExact = recipePayloadHash != null;
-    }
-
-    public static void captureRecipePayloadHash(String payloadHash) {
-        if (payloadHash == null) {
-            return;
-        }
-        recipePayloadHash = payloadHash;
-        recipePayloadExact = true;
-    }
-
-    public static String fingerprintPayload(ByteBuf buffer) {
-        return digestReadableBytes(buffer);
-    }
-
-    public static void captureTagPayload(ByteBuf buffer) {
-        tagPayloadHash = CompletableFuture.completedFuture(
-                digestReadableBytes(buffer)
-        );
-    }
-
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
-        String canonical = canonicalRecipePayload(packet);
-        if (canonical != null) {
-            recipePayloadHash = canonical;
-            recipePayloadExact = true;
-            return;
-        }
-        if (recipePayloadExact && recipePayloadHash != null) {
-            return;
-        }
-        String serialized = digestPacket(packet::write);
-        if (serialized != null) {
-            recipePayloadHash = serialized;
-            recipePayloadExact = true;
-            return;
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            List<Recipe<?>> recipes = new ArrayList<>(packet.getRecipes());
-            recipes.sort(Comparator.comparing(
-                    recipe -> recipe.getId().toString()
-            ));
-            updateDigest(digest, "recipe-count=" + recipes.size());
-            for (Recipe<?> recipe : recipes) {
-                updateDigest(digest, "id=" + recipe.getId());
-                updateDigest(
-                        digest,
-                        "serializer=" + Registry.RECIPE_SERIALIZER.getKey(
-                                recipe.getSerializer()
-                        )
-                );
-                updateDigest(digest, "class=" + recipe.getClass().getName());
-                updateDigest(digest, "special=" + recipe.isSpecial());
-
-                ItemStack result = recipe.getResultItem();
-                if (result == null) {
-                    updateDigest(digest, "result=null");
-                } else {
-                    updateDigest(
-                            digest,
-                            "result=" + Registry.ITEM.getKey(result.getItem())
-                    );
-                    updateDigest(
-                            digest,
-                            "result-count=" + result.getCount()
-                    );
-                }
-
-                List<Ingredient> ingredients = recipe.getIngredients();
-                if (ingredients == null) {
-                    updateDigest(digest, "ingredients=null");
-                    continue;
-                }
-                updateDigest(
-                        digest,
-                        "ingredient-count=" + ingredients.size()
-                );
-                for (Ingredient ingredient : ingredients) {
-                    updateDigest(
-                            digest,
-                            "ingredient-class="
-                                    + (ingredient == null
-                                    ? "null"
-                                    : ingredient.getClass().getName())
-                    );
-                }
-            }
-            recipePayloadHash = toHex(digest.digest());
-            recipePayloadExact = false;
-        } catch (RuntimeException exception) {
-            VHAccelerator.LOGGER.warn(
-                    "Could not build the structural synchronized recipe "
-                            + "fingerprint; falling back to packet serialization",
-                    exception
-            );
-            recipePayloadHash = digestPacket(packet::write);
-            recipePayloadExact = recipePayloadHash != null;
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(
-                    "SHA-256 is unavailable",
-                    exception
-            );
-        }
+        recipePayloadHash = canonicalRecipePayload(packet);
     }
 
     private static String canonicalRecipePayload(
@@ -295,12 +185,6 @@ public final class LoginStateFingerprint {
             return value.append(']').toString();
         }
         return tag.getId() + ":" + tag;
-    }
-
-    public static void captureTagPacket(ClientboundUpdateTagsPacket packet) {
-        tagPayloadHash = CompletableFuture.completedFuture(
-                digestPacket(packet::write)
-        );
     }
 
     public static void captureCanonicalItemTags(
@@ -448,46 +332,6 @@ public final class LoginStateFingerprint {
             return "integrated-server";
         }
         return null;
-    }
-
-    private static String digestReadableBytes(ByteBuf buffer) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            int index = buffer.readerIndex();
-            int length = buffer.readableBytes();
-            for (ByteBuffer region : buffer.nioBuffers(index, length)) {
-                digest.update(region);
-            }
-            return toHex(digest.digest());
-        } catch (RuntimeException exception) {
-            VHAccelerator.LOGGER.warn(
-                    "Could not fingerprint a synchronized server payload",
-                    exception
-            );
-            return null;
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
-
-    private static String digestPacket(
-            java.util.function.Consumer<FriendlyByteBuf> writer
-    ) {
-        ByteBuf storage = Unpooled.buffer();
-        try {
-            FriendlyByteBuf buffer = new FriendlyByteBuf(storage);
-            writer.accept(buffer);
-            return digestReadableBytes(buffer);
-        } catch (RuntimeException exception) {
-            VHAccelerator.LOGGER.warn(
-                    "Could not serialize a synchronized server payload "
-                            + "for cache validation",
-                    exception
-            );
-            return null;
-        } finally {
-            storage.release();
-        }
     }
 
     private static String digestStrings(List<String> values) {

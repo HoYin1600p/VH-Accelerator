@@ -2,10 +2,8 @@ package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 
 /**
  * Measures unusually large packet deserialization without retaining packet
@@ -31,8 +29,7 @@ public final class PacketDecodeProfiler {
                 buffer.readableBytes(),
                 VHAcceleratorConfig.debugDiagnosticsEnabled()
                         ? System.nanoTime()
-                        : -1L,
-                LoginStateFingerprint.fingerprintPayload(buffer)
+                        : -1L
         ));
     }
 
@@ -41,11 +38,6 @@ public final class PacketDecodeProfiler {
         ACTIVE.remove();
         if (sample == null) {
             return;
-        }
-        if (packet instanceof ClientboundUpdateRecipesPacket) {
-            LoginStateFingerprint.captureRecipePayloadHash(
-                    sample.payloadHash()
-            );
         }
         if (sample.bytes() < LARGE_PACKET_BYTES
                 || !VHAcceleratorConfig.debugDiagnosticsEnabled()) {
@@ -68,8 +60,7 @@ public final class PacketDecodeProfiler {
     private record Sample(
             int packetId,
             int bytes,
-            long startedNanos,
-            String payloadHash
+            long startedNanos
     ) {
     }
 }
