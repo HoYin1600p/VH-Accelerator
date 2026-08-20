@@ -409,10 +409,10 @@ public final class VHAcceleratorClientConfig {
             persistentVanillaRecipeValidationCache = builder
                     .comment(
                             "Persists the IDs that passed JEI's vanilla recipe validation.",
-                            "Disabled by default because fingerprinting a large synchronized",
-                            "recipe set can cost more than parallel validation saves.",
+                            "Disabled by default because restoring and resolving a large accepted-ID",
+                            "manifest can cost more than bounded parallel validation saves.",
                             "Recipe objects are always resolved from the active world; cached IDs",
-                            "are accepted only when the server recipe/tag payloads, synchronized",
+                            "are accepted only when the semantic recipe state, synchronized tags,",
                             "server configs, and installed mod files match.",
                             "Volatile UI and per-world client settings are intentionally excluded",
                             "because they do not define the server-synchronized recipe set.")
@@ -420,10 +420,11 @@ public final class VHAcceleratorClientConfig {
             persistentJeiRecipeIndexCache = builder
                     .comment(
                             "Persists JEI's deterministic vanilla recipe-to-ingredient index.",
-                            "Cached string plans are restored only when the exact recipe payload,",
-                            "item tags, server and local configs, installed mod files, server,",
+                            "Cached string plans are restored only when the semantic recipe state,",
+                            "item tags, server configs, installed mod files, server,",
                             "and JEI generation match. Recipe objects always come from the active world.",
-                            "A miss builds JEI's original layouts before recording the result.")
+                            "Ingredient-choice ordering and packet-map ordering do not cause false misses.",
+                            "A miss builds JEI's original layouts before recording independent batches.")
                     .define("persistentJeiRecipeIndexCache", true);
             cacheJerCompatibility = builder
                     .comment(

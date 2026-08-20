@@ -75,7 +75,8 @@ a time:
 - the relevant plugin-specific cache
 
 Do not enable `persistentVanillaRecipeValidationCache` as a general fix; its
-fingerprinting cost can exceed its saved work.
+large accepted-ID manifest can take longer to resolve than the default bounded
+parallel validation pass.
 
 ## Cache misses every launch
 

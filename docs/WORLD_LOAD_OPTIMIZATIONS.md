@@ -132,9 +132,11 @@ frame, and replaces the stored cache; fuel work is never deferred into
 gameplay.
 
 This dependency fingerprint is intended to support other deterministic caches.
-Recipe-derived caches must include the full recipe payload hash, so any recipe
-addition, removal, or content change pushed by the server invalidates only
-products that depend on recipes.
+Recipe-derived caches use a stable semantic fingerprint containing recipe IDs,
+serializers, ordered ingredient slots, order-independent ingredient choices,
+outputs, and canonical item NBT. Any JEI-relevant recipe addition, removal, or
+content change pushed by the server invalidates recipe products, while harmless
+packet-map and ingredient-choice ordering differences do not create false misses.
 
 Runtime JEI additions and removals that arrive while the private search index
 is being built are deferred until the complete index is published. This keeps

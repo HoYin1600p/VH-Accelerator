@@ -157,8 +157,8 @@ not part of the recommended release configuration.
 | `optimizeJeiIngredientFilterConstruction` | `true` | Batches invalidation and avoids empty-blacklist UID work during initial filter construction. |
 | `persistentVanillaIngredientCache` | `true` | Persists JEI's completed vanilla item list behind exact login-state validation. |
 | `parallelVanillaRecipeValidation` | `true` | Validates vanilla crafting, furnace, smoking, blasting, campfire, stonecutting, and smithing groups concurrently with ordered output. |
-| `persistentVanillaRecipeValidationCache` | `false` | Persists accepted recipe IDs. Off because hashing large recipe payloads can cost more than validation saves. |
-| `persistentJeiRecipeIndexCache` | `true` | Persists deterministic recipe-to-ingredient index plans while resolving live recipe objects each login. |
+| `persistentVanillaRecipeValidationCache` | `false` | Persists accepted recipe IDs. Off because resolving its large manifest can cost more than bounded parallel validation. |
+| `persistentJeiRecipeIndexCache` | `true` | Persists independent deterministic recipe-to-ingredient index batches behind semantic recipe, tag, server-config, mod-file, server, and JEI-generation validation while resolving live recipe objects each login. |
 | `cacheJerCompatibility` | `true` | Reuses JER's completed pack-local compatibility state for later JEI rebuilds. |
 | `parallelCraftTweakerTagBinding` | `true` | Decodes independent synchronized CraftTweaker tag registries in worker-owned memory. |
 | `compactCraftTweakerClientReplayLogging` | `true` | Compacts repetitive successful replay entries while preserving warnings, errors, filenames, and lifecycle messages. |
