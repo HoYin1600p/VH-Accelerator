@@ -79,7 +79,11 @@ public final class VHAcceleratorClient {
             PersistentModelMaterialCache.prewarm();
             PersistentBlockStateJsonCache.prewarm();
             PersistentVanillaIngredientCache.prewarm();
-            PersistentRecipeValidationCache.prewarm();
+            if (VHAcceleratorClientConfig.VALUES
+                    .persistentVanillaRecipeValidationCache
+                    .get()) {
+                PersistentRecipeValidationCache.prewarm();
+            }
             PersistentJeiRecipeIndexCache.prewarm();
             ClientAssetFingerprint.prewarm();
             if (ferriteCoreLoaded) {
