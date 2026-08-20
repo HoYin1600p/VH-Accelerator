@@ -28,6 +28,9 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -50,7 +53,7 @@ public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 5;
+    private static final int RECIPE_SCHEMA_VERSION = 6;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -215,6 +218,8 @@ public final class LoginStateFingerprint {
             List<CanonicalRecipeEntry> entries = new ArrayList<>();
             List<RecipeFingerprintDiagnostics.Entry> diagnostics =
                     new ArrayList<>();
+            List<CanonicalRecipeSemantics.Entry> semanticEntries =
+                    new ArrayList<>();
             for (Recipe<?> recipe : packet.getRecipes()) {
                 ResourceLocation serializerId =
                         Registry.RECIPE_SERIALIZER.getKey(
@@ -238,14 +243,30 @@ public final class LoginStateFingerprint {
                         entry.serializer(),
                         payload
                 ));
+                List<List<String>> ingredients = new ArrayList<>();
+                for (Ingredient ingredient : recipe.getIngredients()) {
+                    if (ingredient == null) {
+                        ingredients.add(List.of("null"));
+                        continue;
+                    }
+                    ingredients.add(java.util.Arrays.stream(
+                                    ingredient.getItems()
+                            )
+                            .map(LoginStateFingerprint::stackSemantics)
+                            .toList());
+                }
+                semanticEntries.add(new CanonicalRecipeSemantics.Entry(
+                        entry.id(),
+                        entry.serializer(),
+                        recipe.getClass().getName(),
+                        recipe.isSpecial(),
+                        recipe.getGroup() == null ? "" : recipe.getGroup(),
+                        stackSemantics(recipe.getResultItem()),
+                        ingredients
+                ));
             }
             RecipeFingerprintDiagnostics.compare(diagnostics);
-            return CanonicalRecipePayloadFingerprint.digest(
-                    entries,
-                    CanonicalRecipeEntry::id,
-                    CanonicalRecipeEntry::serializer,
-                    CanonicalRecipeEntry::payload
-            );
+            return CanonicalRecipeSemantics.digest(semanticEntries);
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
                     "Could not build the canonical synchronized recipe "
@@ -272,6 +293,42 @@ public final class LoginStateFingerprint {
         } finally {
             storage.release();
         }
+    }
+
+    private static String stackSemantics(ItemStack stack) {
+        if (stack == null) {
+            return "null";
+        }
+        ResourceLocation itemId = Registry.ITEM.getKey(stack.getItem());
+        return (itemId == null ? "unregistered" : itemId.toString())
+                + "|" + stack.getCount()
+                + "|" + stack.getDamageValue()
+                + "|" + canonicalTag(stack.getTag());
+    }
+
+    private static String canonicalTag(Tag tag) {
+        if (tag == null) {
+            return "null";
+        }
+        if (tag instanceof CompoundTag compound) {
+            StringBuilder value = new StringBuilder("{");
+            compound.getAllKeys().stream().sorted().forEach(key -> value
+                    .append(key.length())
+                    .append(':')
+                    .append(key)
+                    .append('=')
+                    .append(canonicalTag(compound.get(key)))
+                    .append(';'));
+            return value.append('}').toString();
+        }
+        if (tag instanceof ListTag list) {
+            StringBuilder value = new StringBuilder("[");
+            for (int index = 0; index < list.size(); index++) {
+                value.append(canonicalTag(list.get(index))).append(';');
+            }
+            return value.append(']').toString();
+        }
+        return tag.getId() + ":" + tag;
     }
 
     private record CanonicalRecipeEntry(
