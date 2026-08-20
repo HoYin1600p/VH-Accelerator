@@ -212,23 +212,39 @@ public final class LoginStateFingerprint {
             ClientboundUpdateRecipesPacket packet
     ) {
         try {
+            List<CanonicalRecipeEntry> entries = new ArrayList<>();
+            List<RecipeFingerprintDiagnostics.Entry> diagnostics =
+                    new ArrayList<>();
+            for (Recipe<?> recipe : packet.getRecipes()) {
+                ResourceLocation serializerId =
+                        Registry.RECIPE_SERIALIZER.getKey(
+                                recipe.getSerializer()
+                        );
+                if (serializerId == null) {
+                    throw new IllegalStateException(
+                            "Recipe serializer is not registered: "
+                                    + recipe.getId()
+                    );
+                }
+                byte[] payload = serializeRecipe(recipe);
+                CanonicalRecipeEntry entry = new CanonicalRecipeEntry(
+                        recipe.getId().toString(),
+                        serializerId.toString(),
+                        payload
+                );
+                entries.add(entry);
+                diagnostics.add(RecipeFingerprintDiagnostics.entry(
+                        entry.id(),
+                        entry.serializer(),
+                        payload
+                ));
+            }
+            RecipeFingerprintDiagnostics.compare(diagnostics);
             return CanonicalRecipePayloadFingerprint.digest(
-                    packet.getRecipes(),
-                    recipe -> recipe.getId().toString(),
-                    recipe -> {
-                        ResourceLocation serializerId =
-                                Registry.RECIPE_SERIALIZER.getKey(
-                                        recipe.getSerializer()
-                                );
-                        if (serializerId == null) {
-                            throw new IllegalStateException(
-                                    "Recipe serializer is not registered: "
-                                            + recipe.getId()
-                            );
-                        }
-                        return serializerId.toString();
-                    },
-                    LoginStateFingerprint::serializeRecipe
+                    entries,
+                    CanonicalRecipeEntry::id,
+                    CanonicalRecipeEntry::serializer,
+                    CanonicalRecipeEntry::payload
             );
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
@@ -256,6 +272,13 @@ public final class LoginStateFingerprint {
         } finally {
             storage.release();
         }
+    }
+
+    private record CanonicalRecipeEntry(
+            String id,
+            String serializer,
+            byte[] payload
+    ) {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
