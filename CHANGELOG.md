@@ -13,10 +13,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Prevented Create 0.5.1.i from passing an unbound Ponder key code (`-1`) to
-  GLFW while rendering tooltips, eliminating repeated OpenGL error 65539
-  reports without changing bound-key behavior.
-
 ### Performance
 
 ### Compatibility

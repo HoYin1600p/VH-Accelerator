@@ -127,7 +127,6 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
         public final ForgeConfigSpec.BooleanValue
                 disableEveryCompatDebugResourceDump;
-        public final ForgeConfigSpec.BooleanValue fixCreateUnboundKeyPolling;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -332,16 +331,6 @@ public final class VHAcceleratorClientConfig {
                             "disableEveryCompatDebugResourceDump",
                             true
                     );
-            fixCreateUnboundKeyPolling = builder
-                    .comment(
-                            "Prevents Create 0.5.1.i from polling GLFW with",
-                            "an unbound Ponder key code (-1) while tooltips",
-                            "are rendered. This avoids repeated OpenGL error",
-                            "65539 without changing any bound-key behavior.",
-                            "The mixin loads only for the explicitly validated",
-                            "Create version."
-                    )
-                    .define("fixCreateUnboundKeyPolling", true);
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",
