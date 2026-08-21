@@ -49,6 +49,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean cloudStorageModelBakeCompatible;
     private boolean megaCellsModelBakeCompatible;
     private boolean everyCompatDebugDumpCompatible;
+    private boolean createUnboundKeyPollingCompatible;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -138,6 +139,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "selene",
                         "1.18.2-1.17.14"
                 );
+                createUnboundKeyPollingCompatible = hasVersion(
+                        modList,
+                        "create",
+                        "0.5.1.i"
+                );
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -174,6 +180,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             cloudStorageModelBakeCompatible = false;
             megaCellsModelBakeCompatible = false;
             everyCompatDebugDumpCompatible = false;
+            createUnboundKeyPollingCompatible = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -220,6 +227,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             LOGGER.info(
                     "Validated EveryCompat generated-resource compatibility"
             );
+        }
+        if (createUnboundKeyPollingCompatible) {
+            LOGGER.info("Validated Create unbound-key polling compatibility");
         }
     }
 
@@ -268,6 +278,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.everycomp.")) {
             return everyCompatDebugDumpCompatible;
+        }
+        if (mixinClassName.contains(".compat.create.")) {
+            return createUnboundKeyPollingCompatible;
         }
         if (mixinClassName.contains(".compat.powah.")) {
             return powahLoaded;

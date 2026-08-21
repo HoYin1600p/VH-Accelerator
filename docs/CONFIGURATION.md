@@ -145,6 +145,7 @@ not part of the recommended release configuration.
 | `indexModelBakeRegistries` | `true` | Builds namespace indexes for compatible callbacks that otherwise rescan the full baked-model registry. |
 | `memoizeCtmModelBakeTraversal` | `true` | Reuses CTM graph results only when baked keys share the same live unbaked-model object; unsupported CTM layouts retain their original path. |
 | `disableEveryCompatDebugResourceDump` | `true` | Keeps EveryCompat's live generated resources while skipping its optional on-disk diagnostic mirror on validated versions. |
+| `fixCreateUnboundKeyPolling` | `true` | Prevents validated Create 0.5.1.i builds from polling GLFW with an unbound Ponder key (`-1`) while rendering tooltips. |
 | `parallelJeiIngredientSorting` | `true` | Sorts JEI ingredients in an adaptive bounded pool while preserving JEI's completion barrier. |
 | `indexPowahWikiRecipes` | `true` | Groups crafting and smelting recipes once for Powah's wiki. |
 | `parallelJeiTweakerMatching` | `true` | Matches hidden ingredients against stable snapshots in a bounded pool. |
