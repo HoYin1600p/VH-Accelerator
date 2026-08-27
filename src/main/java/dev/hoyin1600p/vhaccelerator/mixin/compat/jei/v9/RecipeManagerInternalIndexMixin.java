@@ -1,8 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.CachedRecipeOutputReconciler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.v9.RecipeMapIndexAccess;
@@ -12,6 +14,8 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.IIngredientHelper;
 import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.subtypes.UidContext;
@@ -25,6 +29,7 @@ import mezz.jei.recipes.RecipeManagerInternal;
 import mezz.jei.recipes.RecipeMap;
 import mezz.jei.recipes.RecipeTypeData;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -89,15 +94,45 @@ public abstract class RecipeManagerInternalIndexMixin {
                         recipes
                 );
         if (restored != null) {
+            PersistentJeiRecipeIndexCache.ReconciledPlans<T> reconciled;
+            try {
+                reconciled = vhaccelerator$reconcile(
+                        category,
+                        recipes,
+                        restored.recipes()
+                );
+            } catch (RuntimeException | LinkageError failure) {
+                VHAccelerator.LOGGER.warn(
+                        "Could not reconcile the cached JEI 9 {} recipe "
+                                + "index; running JEI's original indexer",
+                        categoryUid,
+                        failure
+                );
+                return;
+            }
             vhaccelerator$apply(
                     category.getRecipeType(),
                     recipeTypeData,
-                    restored.recipes()
+                    reconciled.plans()
             );
+            if (reconciled.rebuiltCount() > 0
+                    || reconciled.cachedCount()
+                            != restored.cachedRecipeCount()) {
+                PersistentJeiRecipeIndexCache.record(
+                        fingerprint,
+                        "jei9",
+                        categoryUid.toString(),
+                        recipes,
+                        reconciled.plans()
+                );
+            }
             VHAccelerator.LOGGER.info(
-                    "Restored {} JEI 9 {} recipe index plans in {} ms",
-                    restored.recipes().size(),
+                    "Restored {} of {} cached JEI 9 {} recipe index plans "
+                            + "and rebuilt {} live plan(s) in {} ms",
+                    reconciled.cachedCount(),
+                    restored.cachedRecipeCount(),
                     categoryUid,
+                    reconciled.rebuiltCount(),
                     (System.nanoTime() - started) / 1_000_000L
             );
             callback.cancel();
@@ -176,45 +211,56 @@ public abstract class RecipeManagerInternalIndexMixin {
             if (!category.isHandled(recipe)) {
                 continue;
             }
-            IIngredientSupplier supplier =
-                    IngredientSupplierHelper.getIngredientSupplier(
-                            recipe,
-                            category,
-                            registeredIngredients
-                    );
-            if (supplier == null) {
-                continue;
-            }
-            Map<String, List<List<String>>> roles =
-                    new LinkedHashMap<>();
-            boolean valid = true;
-            try {
-                for (RecipeIngredientRole role :
-                        RecipeIngredientRole.values()) {
-                    List<List<String>> groups =
-                            vhaccelerator$uidGroups(supplier, role);
-                    if (!groups.isEmpty()) {
-                        roles.put(role.name(), groups);
-                    }
-                }
-            } catch (RuntimeException | LinkageError failure) {
-                valid = false;
-                VHAccelerator.LOGGER.debug(
-                        "Skipping a JEI 9 recipe index plan that failed "
-                                + "ingredient UID generation",
-                        failure
-                );
-            }
-            if (valid) {
-                prepared.add(
-                        PersistentJeiRecipeIndexCache.activeRecipe(
-                                recipe,
-                                roles
-                        )
-                );
+            PersistentJeiRecipeIndexCache.ActiveRecipe<T> plan =
+                    vhaccelerator$prepareRecipe(category, recipe);
+            if (plan != null) {
+                prepared.add(plan);
             }
         }
         return List.copyOf(prepared);
+    }
+
+    @Unique
+    private <T> PersistentJeiRecipeIndexCache.ActiveRecipe<T>
+            vhaccelerator$prepareRecipe(
+                    IRecipeCategory<T> category,
+                    T recipe
+            ) {
+        IIngredientSupplier supplier =
+                IngredientSupplierHelper.getIngredientSupplier(
+                        recipe,
+                        category,
+                        registeredIngredients
+                );
+        if (supplier == null) {
+            return null;
+        }
+        Map<String, List<List<String>>> roles = new LinkedHashMap<>();
+        boolean valid = true;
+        try {
+            for (RecipeIngredientRole role :
+                    RecipeIngredientRole.values()) {
+                List<List<String>> groups =
+                        vhaccelerator$uidGroups(supplier, role);
+                if (!groups.isEmpty()) {
+                    roles.put(role.name(), groups);
+                }
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            valid = false;
+            VHAccelerator.LOGGER.debug(
+                    "Skipping a JEI 9 recipe index plan that failed "
+                            + "ingredient UID generation",
+                    failure
+            );
+        }
+        if (valid) {
+            return PersistentJeiRecipeIndexCache.activeRecipe(
+                    recipe,
+                    roles
+            );
+        }
+        return null;
     }
 
     @Unique
@@ -278,5 +324,166 @@ public abstract class RecipeManagerInternalIndexMixin {
             recipeTypeData.addRecipes(accepted);
             recipeCategoriesVisibleCache = null;
         }
+    }
+
+    @Unique
+    private <T> PersistentJeiRecipeIndexCache.ReconciledPlans<T>
+            vhaccelerator$reconcile(
+            IRecipeCategory<T> category,
+            Collection<T> recipes,
+            List<PersistentJeiRecipeIndexCache.ActiveRecipe<T>> cachedPlans
+    ) {
+        Map<String, PersistentJeiRecipeIndexCache.ActiveRecipe<T>> cachedById =
+                new LinkedHashMap<>(cachedPlans.size() * 2);
+        for (PersistentJeiRecipeIndexCache.ActiveRecipe<T> plan : cachedPlans) {
+            Recipe<?> recipe = (Recipe<?>) plan.recipe();
+            cachedById.put(recipe.getId().toString(), plan);
+        }
+        List<PersistentJeiRecipeIndexCache.ActiveRecipe<T>> reconciled =
+                new ArrayList<>(recipes.size());
+        int cachedCount = 0;
+        int rebuiltCount = 0;
+        for (T recipe : recipes) {
+            if (!category.isHandled(recipe)) {
+                continue;
+            }
+            String recipeId = ((Recipe<?>) recipe).getId().toString();
+            PersistentJeiRecipeIndexCache.ActiveRecipe<T> cached =
+                    cachedById.get(recipeId);
+            CachedRecipeOutputReconciler.Result output = cached == null
+                    ? null
+                    : vhaccelerator$reconcileCachedOutput(cached);
+            if (output != null && output.accepted()) {
+                PersistentJeiRecipeIndexCache.ActiveRecipe<T> accepted = cached;
+                if (output.rebound()) {
+                    accepted = new PersistentJeiRecipeIndexCache.ActiveRecipe<>(
+                            cached.recipe(),
+                            output.roleGroups()
+                    );
+                    if (VHAcceleratorConfig.jeiRecipeAuditEnabled()) {
+                        vhaccelerator$auditPlan(
+                                recipeId,
+                                "rebound",
+                                "transient_output_uid_identity",
+                                cached,
+                                accepted
+                        );
+                    }
+                }
+                reconciled.add(accepted);
+                cachedCount++;
+                continue;
+            }
+            PersistentJeiRecipeIndexCache.ActiveRecipe<T> rebuilt =
+                    vhaccelerator$prepareRecipe(category, recipe);
+            if (rebuilt != null) {
+                reconciled.add(rebuilt);
+                rebuiltCount++;
+            }
+            if (VHAcceleratorConfig.jeiRecipeAuditEnabled()) {
+                vhaccelerator$auditPlan(
+                        recipeId,
+                        "rebuilt",
+                        cached == null
+                                ? "missing_cached_plan"
+                                : "output_uid_mismatch",
+                        cached,
+                        rebuilt
+                );
+            }
+        }
+        return new PersistentJeiRecipeIndexCache.ReconciledPlans<>(
+                List.copyOf(reconciled),
+                cachedCount,
+                rebuiltCount
+        );
+    }
+
+    @Unique
+    private CachedRecipeOutputReconciler.Result
+            vhaccelerator$reconcileCachedOutput(
+            PersistentJeiRecipeIndexCache.ActiveRecipe<?> plan
+    ) {
+        Recipe<?> recipe = (Recipe<?>) plan.recipe();
+        if (recipe.isSpecial()) {
+            return new CachedRecipeOutputReconciler.Result(
+                    CachedRecipeOutputReconciler.Outcome.EXACT,
+                    plan.roleGroups()
+            );
+        }
+        ItemStack output = recipe.getResultItem();
+        if (output == null || output.isEmpty()) {
+            return new CachedRecipeOutputReconciler.Result(
+                    CachedRecipeOutputReconciler.Outcome.EXACT,
+                    plan.roleGroups()
+            );
+        }
+        IIngredientHelper<ItemStack> helper =
+                registeredIngredients.getIngredientHelper(
+                        VanillaTypes.ITEM_STACK
+                );
+        String liveUid = helper.getUniqueId(output, UidContext.Recipe);
+        return CachedRecipeOutputReconciler.reconcile(
+                plan.roleGroups(),
+                RecipeIngredientRole.OUTPUT.name(),
+                liveUid
+        );
+    }
+
+    @Unique
+    private void vhaccelerator$auditPlan(
+            String recipeId,
+            String action,
+            String reason,
+            PersistentJeiRecipeIndexCache.ActiveRecipe<?> cached,
+            PersistentJeiRecipeIndexCache.ActiveRecipe<?> rebuilt
+    ) {
+        String comparison;
+        if (cached == null) {
+            comparison = "no_cached_plan";
+        } else if (rebuilt == null) {
+            comparison = "no_live_plan";
+        } else if (cached.roleGroups().equals(rebuilt.roleGroups())) {
+            comparison = "equivalent";
+        } else {
+            comparison = "changed";
+        }
+        List<String> changedRoles = new ArrayList<>();
+        if (cached != null && rebuilt != null) {
+            for (RecipeIngredientRole role : RecipeIngredientRole.values()) {
+                String roleName = role.name();
+                if (!Objects.equals(
+                        cached.roleGroups().get(roleName),
+                        rebuilt.roleGroups().get(roleName)
+                )) {
+                    changedRoles.add(roleName);
+                }
+            }
+        }
+        VHAccelerator.LOGGER.info(
+                "[JEI recipe audit] JEI 9 recipe {} {} "
+                        + "[reason={}, planComparison={}, changedRoles={}, "
+                        + "cachedOutputs={}, liveOutputs={}]",
+                recipeId,
+                action,
+                reason,
+                comparison,
+                changedRoles,
+                vhaccelerator$outputGroups(cached),
+                vhaccelerator$outputGroups(rebuilt)
+        );
+    }
+
+    @Unique
+    private List<List<String>> vhaccelerator$outputGroups(
+            PersistentJeiRecipeIndexCache.ActiveRecipe<?> plan
+    ) {
+        if (plan == null) {
+            return List.of();
+        }
+        return plan.roleGroups().getOrDefault(
+                RecipeIngredientRole.OUTPUT.name(),
+                List.of()
+        );
     }
 }

@@ -71,6 +71,11 @@ public final class VHAcceleratorCommand {
                                 "debug",
                                 VHAcceleratorCommand::setDebug,
                                 VHAcceleratorCommand::reportDebug
+                        ))
+                        .then(toggleCommand(
+                                "jei_audit",
+                                VHAcceleratorCommand::setJeiAudit,
+                                VHAcceleratorCommand::reportJeiAudit
                         ));
         if (reloadJei != null) {
             root.then(Commands.literal("reload_jei")
@@ -187,6 +192,30 @@ public final class VHAcceleratorCommand {
         return enabled ? 1 : 0;
     }
 
+    private static int setJeiAudit(
+            CommandSourceStack source,
+            boolean enabled
+    ) {
+        VHAcceleratorConfig.setJeiRecipeAuditEnabled(enabled);
+        sendState(
+                source,
+                "JEI recipe-cache audit",
+                enabled,
+                enabled
+                        ? "Saved. Reconnect to record repaired recipe IDs "
+                                + "and cached-versus-live plan differences."
+                        : "Saved. Targeted JEI audit logging stops "
+                                + "immediately."
+        );
+        return 1;
+    }
+
+    private static int reportJeiAudit(CommandSourceStack source) {
+        boolean enabled = VHAcceleratorConfig.jeiRecipeAuditEnabled();
+        sendState(source, "JEI recipe-cache audit", enabled, null);
+        return enabled ? 1 : 0;
+    }
+
     private static int reportAll(CommandSourceStack source) {
         source.sendSuccess(
                 new TextComponent(
@@ -204,6 +233,11 @@ public final class VHAcceleratorCommand {
                                 + state(
                                         VHAcceleratorConfig
                                                 .debugDiagnosticsEnabled()
+                                )
+                                + ", jeiAudit="
+                                + state(
+                                        VHAcceleratorConfig
+                                                .jeiRecipeAuditEnabled()
                                 )
                 ),
                 false

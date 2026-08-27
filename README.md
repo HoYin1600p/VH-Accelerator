@@ -23,8 +23,9 @@ target mod and supported class layout are present.
   stale-session rejection, and sequential failure recovery.
 - Parallel vanilla JEI recipe validation and prefix indexing while preserving
   result order.
-- Persistent JEI recipe indexes keyed to the synchronized recipe, tag, and
-  server-config semantics that can change what JEI displays.
+- Persistent JEI recipe indexes keyed to synchronized recipe, tag, and
+  server-config semantics, with live category and output-UID validation before
+  any cached batch is published.
 - Targeted optimizations for Vault Hunters, JEITweaker, CraftTweaker, JER,
   Powah, Thermal, Iron Furnaces, Industrial Foregoing, and Xaero's maps.
 - Launch, server-login, server/world-transfer, post-login-work, and disconnect
@@ -88,7 +89,7 @@ as does its `status` form.
 
 | Command | Result |
 | --- | --- |
-| `/vha` | Reports Compare Mode, timers, and debug state together. |
+| `/vha` | Reports Compare Mode, timers, debug, and JEI audit state together. |
 | `/vha compare` | Reports Compare Mode. |
 | `/vha compare on` | Disables all VH Accelerator optimizations; keeps selected instrumentation. Restart before measuring. |
 | `/vha compare off` | Restores configured optimizations. Restart before measuring launch time. |
@@ -101,6 +102,10 @@ as does its `status` form.
 | `/vha debug on` | Enables detailed profiling; reconnect or restart for complete samples. |
 | `/vha debug off` | Stops new detailed diagnostic sampling. |
 | `/vha debug status` | Reports detailed diagnostic state. |
+| `/vha jei_audit` | Reports targeted JEI recipe-cache audit state. |
+| `/vha jei_audit on` | Logs each recipe plan repaired during the next login, including changed roles and cached-versus-live output UIDs. |
+| `/vha jei_audit off` | Stops targeted JEI recipe-cache audit logging. |
+| `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
 | `/vha reload_jei` | Rebuilds JEI from the currently synchronized recipes and tags, bypassing VHA's core JEI caches and parallel index paths for that recovery reload. |
 
 These are client commands in multiplayer and require no server permission.

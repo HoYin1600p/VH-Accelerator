@@ -43,7 +43,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
  */
 public final class PersistentJeiRecipeIndexCache {
     private static final int MAGIC = 0x56484A49;
-    private static final int FORMAT_VERSION = 3;
+    private static final int FORMAT_VERSION = 4;
     private static final int MAX_FILES = 64;
     private static final int MAX_CATEGORIES = 128;
     private static final int MAX_BATCHES_PER_CATEGORY = 64;
@@ -160,7 +160,10 @@ public final class PersistentJeiRecipeIndexCache {
                     plan.roleGroups
             ));
         }
-        return new RestoreResult<>(List.copyOf(restored));
+        return new RestoreResult<>(
+                List.copyOf(restored),
+                restored.size()
+        );
     }
 
     public static void record(
@@ -768,7 +771,15 @@ public final class PersistentJeiRecipeIndexCache {
     }
 
     public record RestoreResult<T>(
-            List<ActiveRecipe<T>> recipes
+            List<ActiveRecipe<T>> recipes,
+            int cachedRecipeCount
+    ) {
+    }
+
+    public record ReconciledPlans<T>(
+            List<ActiveRecipe<T>> plans,
+            int cachedCount,
+            int rebuiltCount
     ) {
     }
 

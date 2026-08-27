@@ -20,6 +20,7 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue compareMode;
         public final ForgeConfigSpec.BooleanValue timers;
         public final ForgeConfigSpec.BooleanValue debug;
+        public final ForgeConfigSpec.BooleanValue jeiRecipeAudit;
         public final ForgeConfigSpec.BooleanValue enableCommonOptimizations;
         public final ForgeConfigSpec.BooleanValue parallelReloadPreparation;
         public final ForgeConfigSpec.BooleanValue skipRedundantRegistryValidation;
@@ -54,6 +55,13 @@ public final class VHAcceleratorConfig {
                             "overhead and is disabled by default for normal play.",
                             "The /vha debug command changes this setting.")
                     .define("debug", false);
+            jeiRecipeAudit = builder
+                    .comment(
+                            "Logs exact recipe IDs and cached-versus-live plan differences",
+                            "when the persistent JEI index repairs a recipe during login.",
+                            "This targeted audit is disabled by default and is controlled by",
+                            "the /vha jei_audit command independently of general debug logging.")
+                    .define("jeiRecipeAudit", false);
             builder.pop();
 
             builder.push("optimizations");
@@ -142,6 +150,15 @@ public final class VHAcceleratorConfig {
         COMMON.debug.set(enabled);
         COMMON.debug.save();
         BootstrapDebugDiagnostics.set(enabled);
+    }
+
+    public static boolean jeiRecipeAuditEnabled() {
+        return COMMON.jeiRecipeAudit.get();
+    }
+
+    public static void setJeiRecipeAuditEnabled(boolean enabled) {
+        COMMON.jeiRecipeAudit.set(enabled);
+        COMMON.jeiRecipeAudit.save();
     }
 
     public static boolean instrumentationEnabled() {

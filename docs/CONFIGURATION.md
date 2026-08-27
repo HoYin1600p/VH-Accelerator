@@ -23,7 +23,7 @@ file-based so a benchmark records a stable launch configuration.
 
 | Command | Behavior |
 | --- | --- |
-| `/vha` | Reports Compare Mode, timers, and debug state. |
+| `/vha` | Reports Compare Mode, timers, debug, and JEI audit state. |
 | `/vha compare` | Reports Compare Mode; identical to `status`. |
 | `/vha compare on` | Saves Compare Mode as enabled. Restart before measuring launch time. |
 | `/vha compare off` | Saves Compare Mode as disabled. Restart before measuring launch time. |
@@ -36,6 +36,10 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha debug on` | Saves detailed diagnostics as enabled. Reconnect and restart for complete samples. |
 | `/vha debug off` | Saves detailed diagnostics as disabled and stops new sampling. |
 | `/vha debug status` | Reports detailed diagnostic state. |
+| `/vha jei_audit` | Reports targeted JEI recipe-cache audit state; identical to `status`. |
+| `/vha jei_audit on` | Saves the targeted audit as enabled. Reconnect to log every repaired JEI recipe ID, repair reason, changed roles, and cached-versus-live output UIDs. |
+| `/vha jei_audit off` | Saves the targeted audit as disabled and stops its per-recipe logging. |
+| `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
 | `/vha reload_jei` | Runs JEI's native stop/start lifecycle against the currently synchronized recipes and tags. VHA's core JEI caches and parallel index paths are bypassed for this recovery reload. |
 
 The dedicated-server console uses the setting commands without the leading
@@ -92,6 +96,7 @@ settings resume as soon as the recovery rebuild finishes.
 | `compareMode` | `false` | Disables all optimizations without disabling selected instrumentation. |
 | `timers` | `true` | Enables visible timer notices and routine timing summaries. |
 | `debug` | `false` | Enables detailed profiling and diagnostic attribution. |
+| `jeiRecipeAudit` | `false` | Logs exact recipe IDs, role changes, and output UIDs when the persistent JEI index repairs a plan. Controlled independently by `/vha jei_audit`. |
 
 ### `[optimizations]`
 
@@ -158,7 +163,7 @@ not part of the recommended release configuration.
 | `persistentVanillaIngredientCache` | `true` | Persists JEI's completed vanilla item list behind exact login-state validation. |
 | `parallelVanillaRecipeValidation` | `true` | Validates vanilla crafting, furnace, smoking, blasting, campfire, stonecutting, and smithing groups concurrently with ordered output. |
 | `persistentVanillaRecipeValidationCache` | `false` | Persists accepted recipe IDs. Off because resolving its large manifest can cost more than bounded parallel validation. |
-| `persistentJeiRecipeIndexCache` | `true` | Persists independent deterministic recipe-to-ingredient index batches behind semantic recipe, tag, server-config, mod-file, server, and JEI-generation validation while resolving live recipe objects each login. |
+| `persistentJeiRecipeIndexCache` | `true` | Persists independent recipe-to-ingredient index batches behind semantic recipe, tag, server-config, mod-file, server, and JEI-generation validation. Every restore resolves live recipe objects, rechecks category ownership, and verifies ordinary output UIDs before publication. |
 | `cacheJerCompatibility` | `true` | Reuses JER's completed pack-local compatibility state for later JEI rebuilds. |
 | `parallelCraftTweakerTagBinding` | `true` | Decodes independent synchronized CraftTweaker tag registries in worker-owned memory. |
 | `compactCraftTweakerClientReplayLogging` | `true` | Compacts repetitive successful replay entries while preserving warnings, errors, filenames, and lifecycle messages. |
@@ -210,6 +215,7 @@ Use the generated defaults. In particular:
 compareMode = false
 timers = true
 debug = false
+jeiRecipeAudit = false
 
 [optimizations]
 parallelReloadPreparation = false

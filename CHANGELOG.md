@@ -9,11 +9,37 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added an off-by-default targeted JEI recipe-cache audit controlled by
+  `/vha jei_audit on|off|status`. When enabled, repaired recipes report their
+  exact ID, repair reason, changed roles, and cached-versus-live output UIDs.
+
 ### Changed
+
+- Persistent JEI recipe-index restores now re-run category ownership against
+  the live JEI runtime on every lifecycle. Cached accepted/rejected decisions
+  can no longer survive a login or server transfer.
+- Advanced the persistent JEI recipe-index format so indexes created by
+  earlier versions are rebuilt once under the corrected live-state rules.
 
 ### Fixed
 
+- Rebuilds any recipe currently handled by a category that has no cached plan,
+  without discarding the other validated plans in that category.
+- Verifies the current recipe-result output UID for ordinary cached recipes
+  during every restore. A changed subtype or output mapping now rebuilds only
+  that recipe plan instead of making the recipe unreachable from JEI's lookup.
+- Rebinds a single-output Sophisticated Storage plan when its cached and live
+  UIDs differ only by Minecraft's transient `WoodType` object identity. Every
+  difference outside that runtime-only fragment still invalidates the plan.
+- Treats multi-variant JEI output plans as category-owned data instead of
+  invalidating the full plan when the recipe's single default result does not
+  represent every published output variant.
+
 ### Performance
+
+- Kept persistent recipe-index reuse enabled. Warm restores add a bounded
+  client-thread category and singleton-output validation pass rather than
+  forcing JEI's full multi-role ingredient index rebuild on every connection.
 
 ### Compatibility
 

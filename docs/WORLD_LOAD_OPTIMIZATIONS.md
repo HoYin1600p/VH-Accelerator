@@ -137,6 +137,16 @@ serializers, ordered ingredient slots, order-independent ingredient choices,
 outputs, and canonical item NBT. Any JEI-relevant recipe addition, removal, or
 content change pushed by the server invalidates recipe products, while harmless
 packet-map and ingredient-choice ordering differences do not create false misses.
+Persistent JEI index plans additionally re-run category ownership against the
+current JEI lifecycle and verify each ordinary recipe's singleton live output
+UID. If a currently handled recipe is absent from a stored batch, or a real
+output UID no longer agrees, only the affected recipe plan is rebuilt through
+the live JEI path; the other validated plans remain warm-cache hits. A
+single-output Sophisticated Storage plan whose UID differs only by Minecraft's
+transient `WoodType` object identity is rebound to the current-process UID
+before indexing. JEI categories that intentionally publish multiple output
+variants remain governed by the complete cached category plan rather than a
+recipe's single default result.
 
 Runtime JEI additions and removals that arrive while the private search index
 is being built are deferred until the complete index is published. This keeps
