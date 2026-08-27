@@ -26,7 +26,8 @@ UpdateNoticeService.initialize(
         MOD_ID,
         "Short Display Name",
         "https://raw.githubusercontent.com/HoYin1600p/REPOSITORY/master/update.json",
-        "https://www.curseforge.com/minecraft/mc-mods/project-slug"
+        "https://www.curseforge.com/minecraft/mc-mods/project-slug",
+        CHECK_FOR_UPDATES
 );
 ```
 
@@ -79,8 +80,18 @@ Prefix the target version's message with `[CRITICAL]` for a critical notice:
 The prefix is removed before display. A critical reminder appears on the first
 successful fresh world join and again after every five additional successful
 fresh joins. A normal reminder appears on the first successful fresh join and
-again after every ten. Server transfers, dimension changes, and failed joins
-do not count.
+again after every ten. Dimension changes, failed joins, and in-connection world
+replacements that do not open a new connection screen do not count. Transfer
+frameworks that construct a fresh `ConnectScreen` need compatibility-specific
+classification before they can be excluded.
+
+The reminder decision is made at the first playable frame. Persistence waits
+ten client ticks so the state-file write is not part of that first frame.
+
+Destination mods should expose a client-side `checkForUpdates` option with a
+default of `true`, pass its launch value to `initialize`, and call
+`UpdateNoticeService.setEnabled` when the setting changes. Disabling it cancels
+the current request and suppresses both menu and chat notices immediately.
 
 ## Release order
 

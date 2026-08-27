@@ -23,7 +23,7 @@ file-based so a benchmark records a stable launch configuration.
 
 | Command | Behavior |
 | --- | --- |
-| `/vha` | Reports Compare Mode, timers, debug, and JEI audit state. |
+| `/vha` | Reports Compare Mode, timers, debug, JEI audit, and client update-check state. |
 | `/vha compare` | Reports Compare Mode; identical to `status`. |
 | `/vha compare on` | Saves Compare Mode as enabled. Restart before measuring launch time. |
 | `/vha compare off` | Saves Compare Mode as disabled. Restart before measuring launch time. |
@@ -40,11 +40,16 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha jei_audit on` | Saves the targeted audit as enabled. Reconnect to log every repaired JEI recipe ID, repair reason, changed roles, and cached-versus-live output UIDs. |
 | `/vha jei_audit off` | Saves the targeted audit as disabled and stops its per-recipe logging. |
 | `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
+| `/vha updates` | Reports client update-check state; identical to `status`. |
+| `/vha updates on` | Saves and immediately enables GitHub update checks and notices. |
+| `/vha updates off` | Saves and immediately disables update checks, cancels an active request, and hides notices. |
+| `/vha updates status` | Reports client update-check state. |
 | `/vha reload_jei` | Runs JEI's native stop/start lifecycle against the currently synchronized recipes and tags. VHA's core JEI caches and parallel index paths are bypassed for this recovery reload. |
 
-The dedicated-server console uses the setting commands without the leading
-slash. `reload_jei` is client-only, requires an active world or server
-connection, and can briefly pause the client while JEI rebuilds.
+The dedicated-server console uses the common setting commands without the
+leading slash. `updates` and `reload_jei` are client-only. `reload_jei`
+requires an active world or server connection and can briefly pause the client
+while JEI rebuilds.
 
 ### Compare Mode
 
@@ -117,6 +122,12 @@ validation, diagnostic output, or assumptions made by modded blocks. They are
 not part of the recommended release configuration.
 
 ## Client configuration
+
+### `[updates]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `checkForUpdates` | `true` | Fetches the small GitHub update manifest asynchronously. When disabled, VHA performs no update request and shows no update notices. Controlled immediately by `/vha updates`. |
 
 ### `[optimizations]`
 

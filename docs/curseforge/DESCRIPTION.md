@@ -7,7 +7,7 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
-The current 1.0.11 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
+The current 1.0.12 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
 the compatibility, startup-reliability, texture-safety, JEI recovery, and JEI
 recipe-cache correctness work added since the original 1.0.0 release.
 
@@ -32,6 +32,8 @@ thread. Dynamic models and other unsafe work stay on their normal path.
 - Testing and troubleshooting through a compact main-menu launch timer and
   optional login, transfer, post-login, and disconnect measurements.
 - Main-menu update notices with occasional clickable CurseForge reminders.
+- An immediate opt-out for update checks through the client config or
+  `/vha updates off`.
 - In-world JEI recovery when a synchronized recipe or ingredient is missing
   only from JEI's visible lists.
 - Large-pack model loading through guarded CTM, generated-model,
@@ -90,7 +92,7 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.11.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.12.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
@@ -104,7 +106,7 @@ timers and detailed debug profiling are disabled by default.
 
 | Command | Purpose |
 | --- | --- |
-| `/vha` | Show Compare Mode, timer, debug, and JEI audit status. |
+| `/vha` | Show Compare Mode, timer, debug, JEI audit, and update-check status. |
 | `/vha compare on` | Disable all optimizations while keeping selected measurement tools active. Restart before comparing times. |
 | `/vha compare off` | Restore configured optimizations. Restart before measuring launch time. |
 | `/vha timers on` | Show routine chat timers and timing logs. |
@@ -113,10 +115,13 @@ timers and detailed debug profiling are disabled by default.
 | `/vha debug off` | Stop new detailed diagnostic profiling. |
 | `/vha jei_audit on` | Log each JEI recipe plan automatically repaired during the next login. |
 | `/vha jei_audit off` | Stop targeted JEI recipe repair logging. |
+| `/vha updates on` | Enable GitHub update checks and notices. |
+| `/vha updates off` | Cancel update checks and hide update notices. |
 | `/vha reload_jei` | Rebuild JEI from the recipes and tags already synchronized to the client. |
 
 Each setting also accepts `status`, and `/vha compare`, `/vha timers`,
-`/vha debug`, or `/vha jei_audit` reports that setting without changing it.
+`/vha debug`, `/vha jei_audit`, or `/vha updates` reports that setting without
+changing it.
 
 These are client commands in multiplayer and do not require the mod on the
 remote server. `/vha reload_jei` requires an active world or server connection

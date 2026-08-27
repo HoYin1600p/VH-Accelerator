@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.0.11-7b68ee)](docs/releases/1.0.11.md)
+[![Release](https://img.shields.io/badge/Release-1.0.12-7b68ee)](docs/releases/1.0.12.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 clients. It reduces work on the client-launch and multiplayer-login critical
@@ -79,7 +79,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.0.11.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.0.12.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -93,7 +93,7 @@ as does its `status` form.
 
 | Command | Result |
 | --- | --- |
-| `/vha` | Reports Compare Mode, timers, debug, and JEI audit state together. |
+| `/vha` | Reports Compare Mode, timers, debug, JEI audit, and update-check state together. |
 | `/vha compare` | Reports Compare Mode. |
 | `/vha compare on` | Disables all VH Accelerator optimizations; keeps selected instrumentation. Restart before measuring. |
 | `/vha compare off` | Restores configured optimizations. Restart before measuring launch time. |
@@ -110,12 +110,16 @@ as does its `status` form.
 | `/vha jei_audit on` | Logs each recipe plan repaired during the next login, including changed roles and cached-versus-live output UIDs. |
 | `/vha jei_audit off` | Stops targeted JEI recipe-cache audit logging. |
 | `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
+| `/vha updates` | Reports update-check state. |
+| `/vha updates on` | Enables GitHub update checks and notices immediately. |
+| `/vha updates off` | Cancels update checks and hides notices immediately. |
+| `/vha updates status` | Reports update-check state. |
 | `/vha reload_jei` | Rebuilds JEI from the currently synchronized recipes and tags, bypassing VHA's core JEI caches and parallel index paths for that recovery reload. |
 
 These are client commands in multiplayer and require no server permission.
 The setting commands are also available to a dedicated-server console and to
-operators with permission level 2 or higher. `reload_jei` is client-only and
-must be run while connected to a world or server.
+operators with permission level 2 or higher. `updates` and `reload_jei` are
+client-only; `reload_jei` must be run while connected to a world or server.
 
 The complete behavior and permission reference is in
 [Configuration and commands](docs/CONFIGURATION.md).
@@ -189,6 +193,7 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
+| [Release notes 1.0.12](docs/releases/1.0.12.md) | Update notifications and simplified default timing output |
 | [Release notes 1.0.11](docs/releases/1.0.11.md) | Targeted JEI recipe-index repair and audit diagnostics |
 | [Release notes 1.0.10](docs/releases/1.0.10.md) | JEI recipe correctness and persistent-index safety |
 | [Release notes 1.0.9](docs/releases/1.0.9.md) | In-world JEI recovery and Wolds Vaults 0.33.0 verification |

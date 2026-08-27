@@ -9,24 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Added a reusable Forge update-notification unit backed by a standard
-  GitHub-hosted Forge update manifest.
-- Outdated integrated mods now receive coordinated main-menu notices and a
-  clickable CurseForge reminder in chat. Critical notices repeat after five
-  successful fresh world joins; normal notices repeat after ten.
-- Added persistent per-update reminder state. Server transfers and dimension
-  changes do not advance the reminder schedule.
-
 ### Changed
 
-- Reduced the main-menu timer to the client launch time only.
-- The main-menu launch time remains visible independently, while routine
-  in-game timing messages and timing logs now default to disabled.
-
 ### Fixed
-
-- Update notices now fetch their GitHub manifest asynchronously even when a
-  modpack disables Forge's global version checker.
 
 ### Performance
 
@@ -35,6 +20,34 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Server
 
 ### Removed
+
+## [1.0.12] - 2026-08-27
+
+### Added
+
+- Added a reusable Forge update-notification unit backed by a standard
+  GitHub-hosted Forge update manifest.
+- Outdated integrated mods now receive coordinated main-menu notices and a
+  clickable CurseForge reminder in chat. Critical notices repeat after five
+  successful fresh world joins; normal notices repeat after ten.
+- Added persistent per-update reminder state. Server transfers and dimension
+  changes that remain inside the active connection do not advance the reminder
+  schedule.
+- Added `updates.checkForUpdates` and `/vha updates on|off|status`. Disabling
+  the setting immediately cancels an active request and hides update notices.
+
+### Changed
+
+- Reduced the main-menu timer to the client launch time only.
+- The main-menu launch time remains visible independently, while routine
+  in-game timing messages and timing logs now default to disabled.
+- Reminder cadence is updated in memory at the first playable frame, while its
+  small state-file write is deferred by ten client ticks.
+
+### Fixed
+
+- Update notices now fetch their GitHub manifest asynchronously even when a
+  modpack disables Forge's global version checker.
 
 ## [1.0.11] - 2026-08-26
 
@@ -339,7 +352,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.11...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.12...HEAD
+[1.0.12]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.11...v1.0.12
 [1.0.11]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.8...v1.0.9
