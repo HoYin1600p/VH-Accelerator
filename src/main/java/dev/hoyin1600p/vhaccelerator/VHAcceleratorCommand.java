@@ -156,8 +156,9 @@ public final class VHAcceleratorCommand {
                 source,
                 "Timers",
                 enabled,
-                "Saved. The display and routine timer logging update "
-                        + "immediately."
+                "Saved. Routine chat timing messages and timing logs update "
+                        + "immediately. The main-menu launch time remains "
+                        + "visible."
         );
         return 1;
     }

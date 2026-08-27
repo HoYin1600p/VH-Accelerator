@@ -98,9 +98,9 @@ as does its `status` form.
 | `/vha compare on` | Disables all VH Accelerator optimizations; keeps selected instrumentation. Restart before measuring. |
 | `/vha compare off` | Restores configured optimizations. Restart before measuring launch time. |
 | `/vha compare status` | Reports Compare Mode. |
-| `/vha timers` | Reports visible/routine timer state. |
-| `/vha timers on` | Enables timer displays and routine timing logs immediately. |
-| `/vha timers off` | Disables timer displays and routine timing logs immediately. |
+| `/vha timers` | Reports routine chat-timer and timing-log state. |
+| `/vha timers on` | Enables routine chat timers and timing logs immediately. |
+| `/vha timers off` | Disables routine chat timers and timing logs immediately. |
 | `/vha timers status` | Reports timer state. |
 | `/vha debug` | Reports detailed diagnostic state. |
 | `/vha debug on` | Enables detailed profiling; reconnect or restart for complete samples. |
