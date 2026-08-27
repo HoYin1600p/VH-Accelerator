@@ -59,4 +59,19 @@ class UpdateNoticeParserTest {
                 DOWNLOAD_URL
         ).isEmpty());
     }
+
+    @Test
+    void stableReleaseSupersedesAPreRelease() {
+        UpdateNotice notice = UpdateNoticeParser.parse(
+                "vhaccelerator",
+                "1.0.12-beta.1",
+                "1.0.12",
+                Map.of("1.0.12", "Stable Release"),
+                "VH Accelerator",
+                DOWNLOAD_URL
+        ).orElseThrow();
+
+        assertEquals("1.0.12", notice.targetVersion());
+        assertEquals("Stable Release", notice.message());
+    }
 }

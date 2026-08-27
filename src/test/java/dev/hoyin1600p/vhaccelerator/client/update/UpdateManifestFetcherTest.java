@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.AfterEach;
@@ -95,18 +96,48 @@ class UpdateManifestFetcherTest {
         );
     }
 
+    @Test
+    void timesOutAStalledResponse() {
+        server.createContext("/stalled", exchange -> {
+            try {
+                Thread.sleep(1_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } finally {
+                exchange.close();
+            }
+        });
+
+        assertThrows(
+                CompletionException.class,
+                () -> UpdateManifestFetcher.fetch(
+                        uri("/stalled"),
+                        "vhaccelerator",
+                        "VH Accelerator",
+                        "1.0.11",
+                        "1.18.2",
+                        DOWNLOAD_URL,
+                        Duration.ofMillis(100L)
+                ).join()
+        );
+    }
+
     private java.util.concurrent.CompletableFuture<Optional<UpdateNotice>> fetch(
             String path
     ) {
         return UpdateManifestFetcher.fetch(
-                URI.create("http://" + server.getAddress().getHostString()
-                        + ":" + server.getAddress().getPort() + path),
+                uri(path),
                 "vhaccelerator",
                 "VH Accelerator",
                 "1.0.11",
                 "1.18.2",
                 DOWNLOAD_URL
         );
+    }
+
+    private URI uri(String path) {
+        return URI.create("http://" + server.getAddress().getHostString()
+                + ":" + server.getAddress().getPort() + path);
     }
 
     private void respond(String path, int status, String body) {

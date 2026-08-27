@@ -26,12 +26,32 @@ final class UpdateManifestFetcher {
             String minecraftVersion,
             String downloadUrl
     ) {
+        return fetch(
+                manifestUri,
+                modId,
+                displayName,
+                currentVersion,
+                minecraftVersion,
+                downloadUrl,
+                REQUEST_TIMEOUT
+        );
+    }
+
+    static CompletableFuture<Optional<UpdateNotice>> fetch(
+            URI manifestUri,
+            String modId,
+            String displayName,
+            String currentVersion,
+            String minecraftVersion,
+            String downloadUrl,
+            Duration requestTimeout
+    ) {
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
         HttpRequest request = HttpRequest.newBuilder(manifestUri)
-                .timeout(REQUEST_TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Accept", "application/json")
                 .header(
                         "User-Agent",

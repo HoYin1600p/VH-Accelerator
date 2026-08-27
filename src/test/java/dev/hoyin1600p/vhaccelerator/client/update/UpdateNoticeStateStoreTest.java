@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.update;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -54,6 +55,24 @@ class UpdateNoticeStateStoreTest {
         String json = Files.readString(statePath, StandardCharsets.UTF_8);
         assertTrue(json.startsWith("{"));
         assertTrue(json.contains("\"targetVersion\": \"1.0.12\""));
+    }
+
+    @Test
+    void anUnwritableStatePathDoesNotBreakClientTicks() throws IOException {
+        Path parentFile = temporaryDirectory.resolve("not-a-directory");
+        Files.writeString(parentFile, "occupied", StandardCharsets.UTF_8);
+        UpdateNoticeStateStore store = new UpdateNoticeStateStore(
+                parentFile.resolve("state.json")
+        );
+
+        assertTrue(store.recordSuccessfulJoin(notice()));
+        assertDoesNotThrow(() -> {
+            for (int tick = 0;
+                    tick < UpdateNoticeStateStore.SAVE_DELAY_TICKS;
+                    tick++) {
+                store.tick();
+            }
+        });
     }
 
     private static UpdateNotice notice() {
