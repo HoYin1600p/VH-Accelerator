@@ -41,4 +41,17 @@ class FreshWorldJoinTrackerTest {
 
         assertFalse(tracker.markFirstPlayableFrame());
     }
+
+    @Test
+    void suspendingTrackingClearsIntentAndPendingJoin() {
+        FreshWorldJoinTracker tracker = new FreshWorldJoinTracker();
+        tracker.markFreshConnectionIntent();
+        tracker.markPlayerLoggedIn();
+
+        tracker.suspend();
+        tracker.markPlayerLoggedIn();
+
+        assertFalse(tracker.isWaitingForPlayableFrame());
+        assertFalse(tracker.markFirstPlayableFrame());
+    }
 }

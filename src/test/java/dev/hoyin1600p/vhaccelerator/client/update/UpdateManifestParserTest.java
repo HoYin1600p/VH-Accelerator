@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.update;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -55,5 +56,35 @@ class UpdateManifestParserTest {
                 "1.18.2",
                 DOWNLOAD_URL
         ).isEmpty());
+    }
+
+    @Test
+    void rejectsMalformedJson() {
+        assertThrows(
+                RuntimeException.class,
+                () -> UpdateManifestParser.parse(
+                        "not json",
+                        "vhaccelerator",
+                        "VH Accelerator",
+                        "1.0.11",
+                        "1.18.2",
+                        DOWNLOAD_URL
+                )
+        );
+    }
+
+    @Test
+    void rejectsAManifestWithoutTheCurrentMinecraftPromotion() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> UpdateManifestParser.parse(
+                        "{\"promos\":{\"1.19-latest\":\"1.0.12\"}}",
+                        "vhaccelerator",
+                        "VH Accelerator",
+                        "1.0.11",
+                        "1.18.2",
+                        DOWNLOAD_URL
+                )
+        );
     }
 }
