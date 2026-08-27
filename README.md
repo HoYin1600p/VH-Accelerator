@@ -143,6 +143,14 @@ debug = false
 The compact launch-time line remains visible on the main menu. Routine timing
 messages and detailed diagnostics are intentionally off for normal play.
 
+Update checks are enabled by default and remain independent of Forge's global
+update-check preference. The main menu identifies an available release on
+every outdated launch. Chat reminders are deliberately less frequent: a
+critical update is shown after every five eligible client JVM launches and a
+normal update after every ten. A JVM becomes eligible only after its manifest
+check succeeds and it reaches a playable world; additional joins, dimensions,
+and server transfers in that process never advance the reminder schedule.
+
 Persistent cache files live under `cache/vhaccelerator/`. They are validated
 against the installed mods, relevant configs, resource packs, server identity,
 registries, synchronized tags, recipes, and Forge server config as appropriate
