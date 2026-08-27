@@ -7,6 +7,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import net.minecraft.SharedConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -26,24 +30,30 @@ import net.minecraftforge.client.event.ScreenOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.VersionChecker;
 import net.minecraftforge.forgespi.language.IModInfo;
 import net.minecraftforge.internal.BrandingControl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Client-only, source-copyable update notification unit.
  *
- * <p>The remote request and version comparison are owned by Forge's standard
- * update checker. This class adds a coordinated main-menu row and a persistent
- * in-world reminder schedule without blocking the render thread.</p>
+ * <p>The remote request and version comparison run asynchronously and remain
+ * independent of Forge's global update-check preference. This class adds a
+ * coordinated main-menu row and a persistent in-world reminder schedule
+ * without blocking the render thread.</p>
  */
 public final class UpdateNoticeService {
     public static final String ENABLED_PROPERTY = "hoyinUpdateNotifier";
     public static final String NAME_PROPERTY = "hoyinUpdateName";
+    private static final Logger LOGGER = LogManager.getLogger(
+            UpdateNoticeService.class
+    );
 
     private static Registration registration;
     private static IModInfo modInfo;
     private static UpdateNoticeStateStore stateStore;
+    private static CompletableFuture<Optional<UpdateNotice>> updateRequest;
     private static UpdateNotice currentNotice;
     private static List<IModInfo> coordinatedMods;
     private static final FreshWorldJoinTracker FRESH_JOIN_TRACKER =
@@ -58,13 +68,19 @@ public final class UpdateNoticeService {
     public static synchronized void initialize(
             String modId,
             String displayName,
+            String manifestUrl,
             String downloadUrl
     ) {
         if (registration != null) {
             return;
         }
 
-        registration = new Registration(modId, displayName, downloadUrl);
+        registration = new Registration(
+                modId,
+                displayName,
+                manifestUrl,
+                downloadUrl
+        );
         modInfo = ModList.get()
                 .getModContainerById(modId)
                 .orElseThrow(() -> new IllegalStateException(
@@ -73,6 +89,14 @@ public final class UpdateNoticeService {
                 .getModInfo();
         stateStore = new UpdateNoticeStateStore(modId);
         coordinatedMods = discoverCoordinatedMods();
+        updateRequest = UpdateManifestFetcher.fetch(
+                registration.manifestUri(),
+                modId,
+                displayName,
+                modInfo.getVersion().toString(),
+                SharedConstants.getCurrentVersion().getName(),
+                downloadUrl
+        );
 
         MinecraftForge.EVENT_BUS.addListener(
                 UpdateNoticeService::onScreenOpened
@@ -196,18 +220,25 @@ public final class UpdateNoticeService {
             return;
         }
 
-        VersionChecker.CheckResult result = VersionChecker.getResult(modInfo);
-        if (result.status() == VersionChecker.Status.PENDING) {
+        if (updateRequest == null || !updateRequest.isDone()) {
             return;
         }
 
         resultResolved = true;
-        currentNotice = UpdateNoticeParser.parse(
-                modInfo.getModId(),
-                result,
-                registration.displayName(),
-                registration.downloadUrl()
-        ).orElse(null);
+        try {
+            currentNotice = updateRequest.join().orElse(null);
+        } catch (CompletionException exception) {
+            currentNotice = null;
+            Throwable cause = exception.getCause() == null
+                    ? exception
+                    : exception.getCause();
+            LOGGER.warn(
+                    "Failed to fetch update manifest for {} from {}: {}",
+                    registration.displayName(),
+                    registration.manifestUri(),
+                    cause.toString()
+            );
+        }
         if (currentNotice == null) {
             pendingSuccessfulFreshJoins = 0;
             return;
@@ -270,22 +301,13 @@ public final class UpdateNoticeService {
     }
 
     private static int updateNoticeSlot(String ownModId) {
-        List<IModInfo> outdatedMods = new ArrayList<>();
-        for (IModInfo candidate : coordinatedMods) {
-            VersionChecker.Status status = VersionChecker
-                    .getResult(candidate)
-                    .status();
-            if (status == VersionChecker.Status.OUTDATED
-                    || status == VersionChecker.Status.BETA_OUTDATED) {
-                outdatedMods.add(candidate);
-            }
-        }
-        outdatedMods.sort(Comparator.comparing(
+        List<IModInfo> orderedMods = new ArrayList<>(coordinatedMods);
+        orderedMods.sort(Comparator.comparing(
                 UpdateNoticeService::coordinatedDisplayName,
                 String.CASE_INSENSITIVE_ORDER
         ).thenComparing(IModInfo::getModId));
-        for (int index = 0; index < outdatedMods.size(); index++) {
-            if (outdatedMods.get(index).getModId().equals(ownModId)) {
+        for (int index = 0; index < orderedMods.size(); index++) {
+            if (orderedMods.get(index).getModId().equals(ownModId)) {
                 return index;
             }
         }
@@ -317,11 +339,13 @@ public final class UpdateNoticeService {
     private record Registration(
             String modId,
             String displayName,
+            URI manifestUri,
             String downloadUrl
     ) {
         private Registration {
             Objects.requireNonNull(modId, "modId");
             Objects.requireNonNull(displayName, "displayName");
+            Objects.requireNonNull(manifestUri, "manifestUri");
             Objects.requireNonNull(downloadUrl, "downloadUrl");
             if (modId.isBlank() || displayName.isBlank()) {
                 throw new IllegalArgumentException(
@@ -329,15 +353,37 @@ public final class UpdateNoticeService {
                 );
             }
 
-            URI uri = URI.create(downloadUrl);
-            String host = uri.getHost();
-            if (!"https".equalsIgnoreCase(uri.getScheme())
+            validateManifestUri(manifestUri);
+
+            URI downloadUri = URI.create(downloadUrl);
+            String host = downloadUri.getHost();
+            if (!"https".equalsIgnoreCase(downloadUri.getScheme())
                     || host == null
                     || !(host.equalsIgnoreCase("curseforge.com")
                     || host.toLowerCase(Locale.ROOT)
                     .endsWith(".curseforge.com"))) {
                 throw new IllegalArgumentException(
                         "Update download URL must be an HTTPS CurseForge URL"
+                );
+            }
+        }
+
+        private Registration(
+                String modId,
+                String displayName,
+                String manifestUrl,
+                String downloadUrl
+        ) {
+            this(modId, displayName, URI.create(manifestUrl), downloadUrl);
+        }
+
+        private static void validateManifestUri(URI uri) {
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !"raw.githubusercontent.com".equalsIgnoreCase(
+                    uri.getHost()
+            )) {
+                throw new IllegalArgumentException(
+                        "Update manifest URL must be an HTTPS raw GitHub URL"
                 );
             }
         }

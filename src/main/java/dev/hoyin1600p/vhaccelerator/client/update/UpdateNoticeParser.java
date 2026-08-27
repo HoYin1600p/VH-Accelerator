@@ -2,7 +2,6 @@ package dev.hoyin1600p.vhaccelerator.client.update;
 
 import java.util.Map;
 import java.util.Optional;
-import net.minecraftforge.fml.VersionChecker;
 import org.apache.maven.artifact.versioning.ComparableVersion;
 
 public final class UpdateNoticeParser {
@@ -15,24 +14,27 @@ public final class UpdateNoticeParser {
 
     public static Optional<UpdateNotice> parse(
             String modId,
-            VersionChecker.CheckResult result,
+            String currentVersion,
+            String targetVersion,
+            Map<String, String> changes,
             String displayName,
             String downloadUrl
     ) {
-        if (result == null
-                || (result.status() != VersionChecker.Status.OUTDATED
-                && result.status() != VersionChecker.Status.BETA_OUTDATED)
-                || result.target() == null) {
+        if (currentVersion == null
+                || targetVersion == null
+                || new ComparableVersion(currentVersion).compareTo(
+                new ComparableVersion(targetVersion)
+        ) >= 0) {
             return Optional.empty();
         }
 
         ParsedMessage parsedMessage = parseMessage(
-                findTargetMessage(result.target(), result.changes())
+                findTargetMessage(targetVersion, changes)
         );
         return Optional.of(new UpdateNotice(
                 modId,
                 displayName,
-                result.target().toString(),
+                targetVersion,
                 parsedMessage.severity(),
                 parsedMessage.message(),
                 downloadUrl
@@ -58,15 +60,18 @@ public final class UpdateNoticeParser {
     }
 
     private static String findTargetMessage(
-            ComparableVersion target,
-            Map<ComparableVersion, String> changes
+            String target,
+            Map<String, String> changes
     ) {
         if (changes == null || changes.isEmpty()) {
             return "";
         }
 
-        for (Map.Entry<ComparableVersion, String> entry : changes.entrySet()) {
-            if (entry.getKey().compareTo(target) == 0) {
+        ComparableVersion comparableTarget = new ComparableVersion(target);
+        for (Map.Entry<String, String> entry : changes.entrySet()) {
+            if (new ComparableVersion(entry.getKey()).compareTo(
+                    comparableTarget
+            ) == 0) {
                 return entry.getValue();
             }
         }

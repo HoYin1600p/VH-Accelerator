@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import net.minecraftforge.fml.VersionChecker;
-import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.junit.jupiter.api.Test;
 
 class UpdateNoticeParserTest {
@@ -15,22 +13,17 @@ class UpdateNoticeParserTest {
 
     @Test
     void parsesCriticalTargetMessage() {
-        ComparableVersion target = new ComparableVersion("1.0.12");
-        Map<ComparableVersion, String> changes = new LinkedHashMap<>();
+        String target = "1.0.12";
+        Map<String, String> changes = new LinkedHashMap<>();
         changes.put(
                 target,
                 "[CRITICAL] Critical Bug Fix"
         );
-        VersionChecker.CheckResult result = new VersionChecker.CheckResult(
-                VersionChecker.Status.OUTDATED,
-                target,
-                changes,
-                DOWNLOAD_URL
-        );
-
         UpdateNotice notice = UpdateNoticeParser.parse(
                 "vhaccelerator",
-                result,
+                "1.0.11",
+                target,
+                changes,
                 "VH Accelerator",
                 DOWNLOAD_URL
         ).orElseThrow();
@@ -42,17 +35,11 @@ class UpdateNoticeParserTest {
 
     @Test
     void treatsPlainChangelogAsNormalMessage() {
-        ComparableVersion target = new ComparableVersion("1.0.12");
-        VersionChecker.CheckResult result = new VersionChecker.CheckResult(
-                VersionChecker.Status.OUTDATED,
-                target,
-                Map.of(target, "Performance Improvement"),
-                DOWNLOAD_URL
-        );
-
         UpdateNotice notice = UpdateNoticeParser.parse(
                 "vhaccelerator",
-                result,
+                "1.0.11",
+                "1.0.12",
+                Map.of("1.0.12", "Performance Improvement"),
                 "VH Accelerator",
                 DOWNLOAD_URL
         ).orElseThrow();
@@ -63,16 +50,11 @@ class UpdateNoticeParserTest {
 
     @Test
     void ignoresUpToDateResult() {
-        VersionChecker.CheckResult result = new VersionChecker.CheckResult(
-                VersionChecker.Status.UP_TO_DATE,
-                null,
-                Map.of(),
-                DOWNLOAD_URL
-        );
-
         assertTrue(UpdateNoticeParser.parse(
                 "vhaccelerator",
-                result,
+                "1.0.12",
+                "1.0.12",
+                Map.of(),
                 "VH Accelerator",
                 DOWNLOAD_URL
         ).isEmpty());

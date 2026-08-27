@@ -25,6 +25,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Update notices now fetch their GitHub manifest asynchronously even when a
+  modpack disables Forge's global version checker.
+
 ### Performance
 
 ### Compatibility

@@ -1,8 +1,9 @@
 # Reusable update notifier integration
 
 VH Accelerator contains the canonical Forge 1.18.2 implementation under
-`client/update`. It uses Forge's existing asynchronous update checker, adds a
-coordinated main-menu notice, and persists a rate-limited chat reminder.
+`client/update`. It fetches the small GitHub manifest asynchronously, adds a
+coordinated main-menu notice, and persists a rate-limited chat reminder. The
+notifier remains active when a modpack disables Forge's global version checker.
 
 The implementation is intended to be copied into another public mod rather
 than added as a runtime library dependency. Relocate every copied class into
@@ -24,6 +25,7 @@ Register the unit from client-only initialization:
 UpdateNoticeService.initialize(
         MOD_ID,
         "Short Display Name",
+        "https://raw.githubusercontent.com/HoYin1600p/REPOSITORY/master/update.json",
         "https://www.curseforge.com/minecraft/mc-mods/project-slug"
 );
 ```
@@ -47,8 +49,9 @@ hoyinUpdateNotifier = true
 hoyinUpdateName = "Short Display Name"
 ```
 
-The marker lets independently packaged copies calculate non-overlapping rows
-when several supported mods are outdated together.
+The marker lets independently packaged copies calculate deterministic,
+non-overlapping rows when several supported mods are installed. An up-to-date
+integrated mod can leave an unused row, but notices never overlap.
 
 ## Manifest
 
@@ -87,8 +90,9 @@ do not count.
 4. Push the manifest last.
 
 This order prevents installed clients from advertising an update before its
-download is available. Forge's global update-check preference remains the
-user's opt-out; network failures never block launch or world entry.
+download is available. The notifier is independent of Forge's global update
+preference so it remains reliable across modpacks. Its HTTPS request has strict
+timeouts and size limits; network failures never block launch or world entry.
 
 ## Mapping variants
 

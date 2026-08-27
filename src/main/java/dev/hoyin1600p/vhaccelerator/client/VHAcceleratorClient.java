@@ -57,6 +57,8 @@ public final class VHAcceleratorClient {
         UpdateNoticeService.initialize(
                 VHAccelerator.MOD_ID,
                 "VH Accelerator",
+                "https://raw.githubusercontent.com/HoYin1600p/"
+                        + "VH-Accelerator/master/update.json",
                 "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator"
         );
         ModLoadingContext.get().registerConfig(
