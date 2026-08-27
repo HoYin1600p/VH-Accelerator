@@ -46,9 +46,9 @@ public final class UpdateNoticeService {
     private static UpdateNoticeStateStore stateStore;
     private static UpdateNotice currentNotice;
     private static List<IModInfo> coordinatedMods;
+    private static final FreshWorldJoinTracker FRESH_JOIN_TRACKER =
+            new FreshWorldJoinTracker();
     private static boolean resultResolved;
-    private static boolean freshConnectionIntent = true;
-    private static boolean pendingFreshWorldJoin;
     private static int pendingSuccessfulFreshJoins;
     private static int refreshTicks;
 
@@ -112,30 +112,28 @@ public final class UpdateNoticeService {
                 || event.getScreen() instanceof SelectWorldScreen
                 || event.getScreen() instanceof RealmsMainScreen
                 || event.getScreen() instanceof ConnectScreen) {
-            freshConnectionIntent = true;
-            pendingFreshWorldJoin = false;
+            FRESH_JOIN_TRACKER.markFreshConnectionIntent();
         }
     }
 
     private static void onPlayerLoggedIn(
             ClientPlayerNetworkEvent.LoggedInEvent event
     ) {
-        if (event.getPlayer() == null || !freshConnectionIntent) {
+        if (event.getPlayer() == null) {
             return;
         }
-        freshConnectionIntent = false;
-        pendingFreshWorldJoin = true;
+        FRESH_JOIN_TRACKER.markPlayerLoggedIn();
     }
 
     private static void onPlayerLoggedOut(
             ClientPlayerNetworkEvent.LoggedOutEvent event
     ) {
-        pendingFreshWorldJoin = false;
+        FRESH_JOIN_TRACKER.markPlayerLoggedOut();
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!pendingFreshWorldJoin
+        if (!FRESH_JOIN_TRACKER.isWaitingForPlayableFrame()
                 || event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER
                 || minecraft.level == null
                 || minecraft.player == null
@@ -143,7 +141,9 @@ public final class UpdateNoticeService {
             return;
         }
 
-        pendingFreshWorldJoin = false;
+        if (!FRESH_JOIN_TRACKER.markFirstPlayableFrame()) {
+            return;
+        }
         pendingSuccessfulFreshJoins++;
         refreshUpdateResult();
         processPendingSuccessfulJoins();
