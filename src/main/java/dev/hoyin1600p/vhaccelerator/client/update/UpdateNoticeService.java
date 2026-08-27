@@ -120,7 +120,13 @@ public final class UpdateNoticeService {
     }
 
     private static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || resultResolved) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (stateStore != null) {
+            stateStore.tick();
+        }
+        if (resultResolved) {
             return;
         }
         refreshTicks++;

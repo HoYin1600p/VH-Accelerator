@@ -13,6 +13,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
 final class UpdateNoticeStateStore {
+    static final int SAVE_DELAY_TICKS = 10;
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -20,17 +21,39 @@ final class UpdateNoticeStateStore {
 
     private final Path statePath;
     private UpdateReminderState state;
+    private boolean dirty;
+    private int saveDelayTicks;
 
     UpdateNoticeStateStore(String modId) {
-        statePath = FMLPaths.CONFIGDIR.get()
-                .resolve(modId + "-update-notice-state.json");
+        this(FMLPaths.CONFIGDIR.get()
+                .resolve(modId + "-update-notice-state.json"));
+    }
+
+    UpdateNoticeStateStore(Path statePath) {
+        this.statePath = statePath;
     }
 
     synchronized boolean recordSuccessfulJoin(UpdateNotice notice) {
         UpdateReminderState loadedState = state();
         boolean shouldNotify = loadedState.recordSuccessfulJoin(notice);
-        save(loadedState);
+        dirty = true;
+        saveDelayTicks = SAVE_DELAY_TICKS;
         return shouldNotify;
+    }
+
+    synchronized void tick() {
+        if (!dirty) {
+            return;
+        }
+        if (saveDelayTicks > 0) {
+            saveDelayTicks--;
+        }
+        if (saveDelayTicks > 0) {
+            return;
+        }
+
+        dirty = false;
+        save(state());
     }
 
     private UpdateReminderState state() {
