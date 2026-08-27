@@ -29,8 +29,9 @@ thread. Dynamic models and other unsafe work stay on their normal path.
   live category or output identity.
 - Post-login responsiveness by keeping unfinished background work away from
   the first playable world frame.
-- Testing and troubleshooting through built-in launch, login, transfer,
-  post-login, and disconnect timers.
+- Testing and troubleshooting through a compact main-menu launch timer and
+  optional login, transfer, post-login, and disconnect measurements.
+- Main-menu update notices with occasional clickable CurseForge reminders.
 - In-world JEI recovery when a synchronized recipe or ingredient is missing
   only from JEI's visible lists.
 - Large-pack model loading through guarded CTM, generated-model,
@@ -98,16 +99,16 @@ ModernFix already owns and avoids applying overlapping work.
 
 ## Timers and commands
 
-Visible timers are enabled by default. Detailed debug profiling is disabled by
-default.
+The compact main-menu launch timer remains visible by default. Routine chat
+timers and detailed debug profiling are disabled by default.
 
 | Command | Purpose |
 | --- | --- |
 | `/vha` | Show Compare Mode, timer, debug, and JEI audit status. |
 | `/vha compare on` | Disable all optimizations while keeping selected measurement tools active. Restart before comparing times. |
 | `/vha compare off` | Restore configured optimizations. Restart before measuring launch time. |
-| `/vha timers on` | Show visible timers and routine timing logs. |
-| `/vha timers off` | Hide visible timers and routine timing logs. |
+| `/vha timers on` | Show routine chat timers and timing logs. |
+| `/vha timers off` | Hide routine chat timers and timing logs. |
 | `/vha debug on` | Enable detailed diagnostic profiling. |
 | `/vha debug off` | Stop new detailed diagnostic profiling. |
 | `/vha jei_audit on` | Log each JEI recipe plan automatically repaired during the next login. |

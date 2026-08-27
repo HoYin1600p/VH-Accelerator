@@ -30,8 +30,10 @@ target mod and supported class layout are present.
   output identity no longer matches the cached plan.
 - Targeted optimizations for Vault Hunters, JEITweaker, CraftTweaker, JER,
   Powah, Thermal, Iron Furnaces, Industrial Foregoing, and Xaero's maps.
-- Launch, server-login, server/world-transfer, post-login-work, and disconnect
-  timers.
+- A compact main-menu launch timer, with optional login, transfer,
+  post-login-work, and disconnect measurements for testing.
+- GitHub-backed update notices on the main menu with rate-limited, clickable
+  CurseForge reminders after successful fresh world joins.
 - Compare Mode for disabling every optimization without losing measurement
   tools.
 - An in-world `/vha reload_jei` recovery command that rebuilds JEI from the
@@ -130,12 +132,12 @@ Release defaults use:
 ```toml
 [diagnostics]
 compareMode = false
-timers = true
+timers = false
 debug = false
 ```
 
-Detailed diagnostics are intentionally off for normal play. The timer display
-is on so users can immediately measure launch and login behavior.
+The compact launch-time line remains visible on the main menu. Routine timing
+messages and detailed diagnostics are intentionally off for normal play.
 
 Persistent cache files live under `cache/vhaccelerator/`. They are validated
 against the installed mods, relevant configs, resource packs, server identity,
@@ -148,8 +150,8 @@ default.
 
 ## Measurement
 
-Depending on enabled timers and the event being measured, VH Accelerator
-reports:
+The main menu always reports client launch time. When routine timers are
+enabled, VH Accelerator also reports:
 
 - client or dedicated-server launch time;
 - multiplayer connect to first playable frame;

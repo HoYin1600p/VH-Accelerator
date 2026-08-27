@@ -9,7 +9,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added a reusable Forge update-notification unit backed by a standard
+  GitHub-hosted Forge update manifest.
+- Outdated integrated mods now receive coordinated main-menu notices and a
+  clickable CurseForge reminder in chat. Critical notices repeat after five
+  successful fresh world joins; normal notices repeat after ten.
+- Added persistent per-update reminder state. Server transfers and dimension
+  changes do not advance the reminder schedule.
+
 ### Changed
+
+- Reduced the main-menu timer to the client launch time only.
+- The main-menu launch time remains visible independently, while routine
+  in-game timing messages and timing logs now default to disabled.
 
 ### Fixed
 

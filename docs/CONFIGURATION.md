@@ -29,8 +29,8 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha compare off` | Saves Compare Mode as disabled. Restart before measuring launch time. |
 | `/vha compare status` | Reports Compare Mode. |
 | `/vha timers` | Reports timer state; identical to `status`. |
-| `/vha timers on` | Saves and immediately enables visible/routine timers. |
-| `/vha timers off` | Saves and immediately disables visible/routine timers. |
+| `/vha timers on` | Saves and immediately enables routine chat timers and timing logs. |
+| `/vha timers off` | Saves and immediately disables routine chat timers and timing logs. |
 | `/vha timers status` | Reports timer state. |
 | `/vha debug` | Reports debug state; identical to `status`. |
 | `/vha debug on` | Saves detailed diagnostics as enabled. Reconnect and restart for complete samples. |
@@ -64,9 +64,10 @@ keys, so `/vha compare off` restores their configured state.
 
 ### Timers
 
-Timers control routine logs and visible launch, login, transfer, post-login,
-and disconnect messages. Turning timers off does not remove internal lifecycle
-signals needed to keep optimizations safe.
+The compact main-menu launch time remains visible independently of this
+setting. Timers control routine logs and the login, transfer, post-login, and
+disconnect chat messages. Turning timers off does not remove internal
+lifecycle signals needed to keep optimizations safe.
 
 ### Debug diagnostics
 
@@ -94,7 +95,7 @@ settings resume as soon as the recovery rebuild finishes.
 | Key | Default | Description |
 | --- | --- | --- |
 | `compareMode` | `false` | Disables all optimizations without disabling selected instrumentation. |
-| `timers` | `true` | Enables visible timer notices and routine timing summaries. |
+| `timers` | `false` | Enables routine chat timer notices and timing summaries. The main-menu launch time remains visible. |
 | `debug` | `false` | Enables detailed profiling and diagnostic attribution. |
 | `jeiRecipeAudit` | `false` | Logs exact recipe IDs, role changes, and output UIDs when the persistent JEI index repairs a plan. Controlled independently by `/vha jei_audit`. |
 
@@ -213,7 +214,7 @@ Use the generated defaults. In particular:
 # vhaccelerator-common.toml
 [diagnostics]
 compareMode = false
-timers = true
+timers = false
 debug = false
 jeiRecipeAudit = false
 
