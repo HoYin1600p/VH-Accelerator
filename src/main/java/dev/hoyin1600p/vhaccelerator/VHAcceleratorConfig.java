@@ -42,12 +42,13 @@ public final class VHAcceleratorConfig {
                     .define("compareMode", false);
             timers = builder
                     .comment(
-                            "Shows launch, login, transfer, post-login, and disconnect",
-                            "measurements in the UI and writes their routine timing summaries",
-                            "to the log. The /vha timers command changes this setting.",
+                            "Shows login, transfer, post-login, and disconnect timing",
+                            "messages in chat and writes their routine timing summaries to",
+                            "the log. The launch-time line remains visible on the main menu.",
+                            "The /vha timers command changes this setting.",
                             "Internal lifecycle timestamps required for safe optimizations",
                             "remain available when this display setting is disabled.")
-                    .define("timers", true);
+                    .define("timers", false);
             debug = builder
                     .comment(
                             "Enables detailed launch, reload, model, connection, packet,",

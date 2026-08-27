@@ -190,8 +190,7 @@ public final class VHAcceleratorClient {
         releaseDeferredOnlineChecksFromMenu(event);
         runMenuPrecompile(event);
         if (!(event.getScreen() instanceof TitleScreen)
-                || !LaunchTimer.isFinished()
-                || !VHAcceleratorConfig.timersEnabled()) {
+                || !LaunchTimer.isFinished()) {
             return;
         }
 
@@ -201,49 +200,20 @@ public final class VHAcceleratorClient {
                 true,
                 (line, text) -> brandingLines[0] = line + 1
         );
-        ServerLoginTimer.Sample lastLogin = ServerLoginTimer.lastSample();
-        ServerTransferTimer.Sample lastTransfer = ServerTransferTimer.lastSample();
-        PostLoginWorkTimer.Sample lastPostLogin = PostLoginWorkTimer.lastSample();
-        DisconnectTimer.Sample lastDisconnect = DisconnectTimer.lastSample();
-        StringBuilder launchText = new StringBuilder(String.format(
+        String launchText = String.format(
                 "VH Accelerator%s: Launch %.2fs",
                 VHAcceleratorConfig.compareModeEnabled()
                         ? " [COMPARE]"
                         : "",
                 LaunchTimer.elapsedMillis() / 1000.0
-        ));
-        appendPrecompileStatus(launchText);
-        if (lastLogin != null) {
-            launchText.append(String.format(
-                    " | Last server login %.2fs",
-                    lastLogin.totalMillis() / 1000.0
-            ));
-        }
-        if (lastTransfer != null) {
-            launchText.append(String.format(
-                    " | Last transfer %.2fs",
-                    lastTransfer.totalMillis() / 1000.0
-            ));
-        }
-        if (lastPostLogin != null) {
-            launchText.append(String.format(
-                    " | Last post-login %.2fs",
-                    lastPostLogin.totalMillis() / 1000.0
-            ));
-        }
-        if (lastDisconnect != null) {
-            launchText.append(String.format(
-                    " | Last disconnect %.2fs",
-                    lastDisconnect.totalMillis() / 1000.0
-            ));
-        }
+        );
         int y = event.getScreen().height - (10 + brandingLines[0] * 10);
 
         event.getPoseStack().pushPose();
         GuiComponent.drawString(
                 event.getPoseStack(),
                 Minecraft.getInstance().font,
-                launchText.toString(),
+                launchText,
                 2,
                 y,
                 0x55FF55
@@ -310,97 +280,6 @@ public final class VHAcceleratorClient {
                             .ironFurnacesPrecompileFrameBudgetMillis
                             .get()
             );
-        }
-    }
-
-    private static void appendPrecompileStatus(StringBuilder text) {
-        int startedTasks = 0;
-        int totalProgress = 0;
-        long elapsedMillis = 0L;
-        boolean running = false;
-        boolean completed = false;
-        boolean failed = false;
-
-        if (jerLoaded
-                && VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
-            JerCompatibilityCache.PreloadStatus jerStatus =
-                    JerCompatibilityCache.preloadStatus();
-            if (jerStatus.phase()
-                    != JerCompatibilityCache.PreloadPhase.NOT_STARTED) {
-                startedTasks++;
-                elapsedMillis = Math.max(
-                        elapsedMillis,
-                        jerStatus.elapsedMillis()
-                );
-                if (jerStatus.phase()
-                        == JerCompatibilityCache.PreloadPhase.RUNNING) {
-                    running = true;
-                    totalProgress += jerStatus.percent();
-                } else if (jerStatus.phase()
-                        == JerCompatibilityCache.PreloadPhase.COMPLETED) {
-                    completed = true;
-                    totalProgress += 100;
-                } else {
-                    failed = true;
-                    totalProgress += 100;
-                }
-            }
-        }
-
-        if (ironFurnacesLoaded
-                && VHAcceleratorClientConfig.VALUES
-                        .cacheIronFurnacesJeiRecipes
-                        .get()
-                && VHAcceleratorClientConfig.VALUES
-                        .precompileIronFurnacesJeiRecipes
-                        .get()) {
-            IronFurnacesRecipeCache.PrecompileStatus status =
-                    IronFurnacesRecipeCache.precompileStatus();
-            if (status.phase()
-                    != IronFurnacesRecipeCache.PrecompilePhase.NOT_STARTED) {
-                startedTasks++;
-                elapsedMillis = Math.max(
-                        elapsedMillis,
-                        status.elapsedMillis()
-                );
-                if (status.phase()
-                        == IronFurnacesRecipeCache.PrecompilePhase.RUNNING) {
-                    running = true;
-                    totalProgress += status.percent();
-                } else if (status.phase()
-                        == IronFurnacesRecipeCache.PrecompilePhase.COMPLETED) {
-                    completed = true;
-                    totalProgress += 100;
-                } else {
-                    failed = true;
-                    totalProgress += 100;
-                }
-            }
-        }
-
-        if (startedTasks == 0) {
-            return;
-        }
-        if (running) {
-            int progress = Math.min(
-                    99,
-                    Math.round(totalProgress / (float) startedTasks)
-            );
-            text.append(String.format(" | Menu prep: %d%%", progress));
-        } else if (failed) {
-            text.append(completed
-                    ? " | Menu prep partially completed"
-                    : " | Menu prep deferred");
-        } else if (elapsedMillis < 1000L) {
-            text.append(String.format(
-                    " | Menu prep completed in %dms",
-                    elapsedMillis
-            ));
-        } else {
-            text.append(String.format(
-                    " | Menu prep completed in %.2fs",
-                    elapsedMillis / 1000.0
-            ));
         }
     }
 
