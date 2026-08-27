@@ -33,7 +33,7 @@ target mod and supported class layout are present.
 - A compact main-menu launch timer, with optional login, transfer,
   post-login-work, and disconnect measurements for testing.
 - GitHub-backed update notices on the main menu with rate-limited, clickable
-  CurseForge reminders after successful fresh world joins.
+  CurseForge reminders counted once per eligible client launch.
 - Compare Mode for disabling every optimization without losing measurement
   tools.
 - An in-world `/vha reload_jei` recovery command that rebuilds JEI from the

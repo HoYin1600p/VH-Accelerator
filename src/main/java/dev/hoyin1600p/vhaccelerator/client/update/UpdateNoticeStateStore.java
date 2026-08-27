@@ -33,9 +33,9 @@ final class UpdateNoticeStateStore {
         this.statePath = statePath;
     }
 
-    synchronized boolean recordSuccessfulJoin(UpdateNotice notice) {
+    synchronized boolean recordEligibleLaunch(UpdateNotice notice) {
         UpdateReminderState loadedState = state();
-        boolean shouldNotify = loadedState.recordSuccessfulJoin(notice);
+        boolean shouldNotify = loadedState.recordEligibleLaunch(notice);
         dirty = true;
         saveDelayTicks = SAVE_DELAY_TICKS;
         return shouldNotify;

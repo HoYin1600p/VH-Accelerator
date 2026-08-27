@@ -77,16 +77,18 @@ Prefix the target version's message with `[CRITICAL]` for a critical notice:
 "1.2.3": "[CRITICAL] Critical Bug Fix"
 ```
 
-The prefix is removed before display. A critical reminder appears on the first
-successful fresh world join and again after every five additional successful
-fresh joins. A normal reminder appears on the first successful fresh join and
-again after every ten. Dimension changes, failed joins, and in-connection world
-replacements that do not open a new connection screen do not count. Transfer
-frameworks that construct a fresh `ConnectScreen` need compatibility-specific
-classification before they can be excluded.
+The prefix is removed before display. A critical reminder is armed after every
+five eligible client launches; a normal reminder is armed after every ten. A
+launch becomes eligible only when its manifest request succeeds, an update is
+available, and that JVM reaches a playable world frame. Each JVM can advance
+the counter only once. Later world joins, dimension changes, and server
+transfers in the same process therefore have no effect, regardless of how a
+network implements its transfer.
 
-The reminder decision is made at the first playable frame. Persistence waits
-ten client ticks so the state-file write is not part of that first frame.
+An armed reminder is displayed in chat only while a playable world is active,
+and at most once in that JVM. Persistence waits ten client ticks after the
+eligible launch is recorded so the state-file write is not part of the first
+playable frame.
 
 Destination mods should expose a client-side `checkForUpdates` option with a
 default of `true`, pass its launch value to `initialize`, and call

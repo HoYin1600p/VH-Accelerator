@@ -19,11 +19,12 @@ class UpdateNoticeStateStoreTest {
     Path temporaryDirectory;
 
     @Test
-    void waitsTenClientTicksBeforePersistingAJoin() throws IOException {
+    void waitsTenClientTicksBeforePersistingAnEligibleLaunch()
+            throws IOException {
         Path statePath = temporaryDirectory.resolve("state.json");
         UpdateNoticeStateStore store = new UpdateNoticeStateStore(statePath);
 
-        assertTrue(store.recordSuccessfulJoin(notice()));
+        assertFalse(store.recordEligibleLaunch(notice()));
         for (int tick = 1;
                 tick < UpdateNoticeStateStore.SAVE_DELAY_TICKS;
                 tick++) {
@@ -36,7 +37,9 @@ class UpdateNoticeStateStoreTest {
         assertTrue(Files.isRegularFile(statePath));
         String json = Files.readString(statePath, StandardCharsets.UTF_8);
         assertTrue(json.contains("\"targetVersion\": \"1.0.12\""));
-        assertTrue(json.contains("\"notified\": true"));
+        assertTrue(json.contains(
+                "\"eligibleLaunchesSinceReminder\": 1"
+        ));
     }
 
     @Test
@@ -45,7 +48,7 @@ class UpdateNoticeStateStoreTest {
         Files.writeString(statePath, "{broken", StandardCharsets.UTF_8);
         UpdateNoticeStateStore store = new UpdateNoticeStateStore(statePath);
 
-        assertTrue(store.recordSuccessfulJoin(notice()));
+        assertFalse(store.recordEligibleLaunch(notice()));
         for (int tick = 0;
                 tick < UpdateNoticeStateStore.SAVE_DELAY_TICKS;
                 tick++) {
@@ -58,6 +61,29 @@ class UpdateNoticeStateStoreTest {
     }
 
     @Test
+    void persistedLaunchCadenceContinuesInANewJvmStore()
+            throws IOException {
+        Path statePath = temporaryDirectory.resolve("state.json");
+        UpdateNoticeStateStore firstJvm = new UpdateNoticeStateStore(
+                statePath
+        );
+
+        for (int launch = 0; launch < 9; launch++) {
+            assertFalse(firstJvm.recordEligibleLaunch(notice()));
+        }
+        for (int tick = 0;
+                tick < UpdateNoticeStateStore.SAVE_DELAY_TICKS;
+                tick++) {
+            firstJvm.tick();
+        }
+
+        UpdateNoticeStateStore tenthJvm = new UpdateNoticeStateStore(
+                statePath
+        );
+        assertTrue(tenthJvm.recordEligibleLaunch(notice()));
+    }
+
+    @Test
     void anUnwritableStatePathDoesNotBreakClientTicks() throws IOException {
         Path parentFile = temporaryDirectory.resolve("not-a-directory");
         Files.writeString(parentFile, "occupied", StandardCharsets.UTF_8);
@@ -65,7 +91,7 @@ class UpdateNoticeStateStoreTest {
                 parentFile.resolve("state.json")
         );
 
-        assertTrue(store.recordSuccessfulJoin(notice()));
+        assertFalse(store.recordEligibleLaunch(notice()));
         assertDoesNotThrow(() -> {
             for (int tick = 0;
                     tick < UpdateNoticeStateStore.SAVE_DELAY_TICKS;

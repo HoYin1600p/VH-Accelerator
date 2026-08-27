@@ -10,7 +10,7 @@ class UpdateReminderStateTest {
             "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator";
 
     @Test
-    void normalNoticeAppearsImmediatelyThenAfterTenMoreJoins() {
+    void normalNoticeAppearsOnEveryTenthEligibleLaunch() {
         UpdateReminderState state = new UpdateReminderState();
         UpdateNotice notice = notice(
                 "1.0.12",
@@ -18,15 +18,15 @@ class UpdateReminderStateTest {
                 "Performance Improvement"
         );
 
-        assertTrue(state.recordSuccessfulJoin(notice));
-        for (int join = 1; join < 10; join++) {
-            assertFalse(state.recordSuccessfulJoin(notice));
+        for (int launch = 1; launch < 10; launch++) {
+            assertFalse(state.recordEligibleLaunch(notice));
         }
-        assertTrue(state.recordSuccessfulJoin(notice));
+        assertTrue(state.recordEligibleLaunch(notice));
+        assertFalse(state.recordEligibleLaunch(notice));
     }
 
     @Test
-    void criticalNoticeAppearsImmediatelyThenAfterFiveMoreJoins() {
+    void criticalNoticeAppearsOnEveryFifthEligibleLaunch() {
         UpdateReminderState state = new UpdateReminderState();
         UpdateNotice notice = notice(
                 "1.0.12",
@@ -34,15 +34,15 @@ class UpdateReminderStateTest {
                 "Critical Bug Fix"
         );
 
-        assertTrue(state.recordSuccessfulJoin(notice));
-        for (int join = 1; join < 5; join++) {
-            assertFalse(state.recordSuccessfulJoin(notice));
+        for (int launch = 1; launch < 5; launch++) {
+            assertFalse(state.recordEligibleLaunch(notice));
         }
-        assertTrue(state.recordSuccessfulJoin(notice));
+        assertTrue(state.recordEligibleLaunch(notice));
+        assertFalse(state.recordEligibleLaunch(notice));
     }
 
     @Test
-    void changedMessageResetsReminderImmediately() {
+    void changedMessageAndSeverityStartANewCadence() {
         UpdateReminderState state = new UpdateReminderState();
         UpdateNotice performance = notice(
                 "1.0.12",
@@ -55,9 +55,13 @@ class UpdateReminderStateTest {
                 "Critical Bug Fix"
         );
 
-        assertTrue(state.recordSuccessfulJoin(performance));
-        assertFalse(state.recordSuccessfulJoin(performance));
-        assertTrue(state.recordSuccessfulJoin(critical));
+        for (int launch = 0; launch < 4; launch++) {
+            assertFalse(state.recordEligibleLaunch(performance));
+        }
+        for (int launch = 0; launch < 4; launch++) {
+            assertFalse(state.recordEligibleLaunch(critical));
+        }
+        assertTrue(state.recordEligibleLaunch(critical));
     }
 
     private static UpdateNotice notice(

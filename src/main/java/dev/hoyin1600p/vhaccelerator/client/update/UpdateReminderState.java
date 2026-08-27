@@ -6,35 +6,27 @@ final class UpdateReminderState {
     private String targetVersion = "";
     private String severity = "";
     private String message = "";
-    private int successfulJoinsSinceReminder;
-    private boolean notified;
+    private int eligibleLaunchesSinceReminder;
 
-    boolean recordSuccessfulJoin(UpdateNotice notice) {
+    boolean recordEligibleLaunch(UpdateNotice notice) {
         if (!matches(notice)) {
             targetVersion = notice.targetVersion();
             severity = notice.severity().name();
             message = notice.message();
-            successfulJoinsSinceReminder = 0;
-            notified = false;
+            eligibleLaunchesSinceReminder = 0;
         }
 
-        successfulJoinsSinceReminder++;
-        if (!notified
-                || successfulJoinsSinceReminder
+        eligibleLaunchesSinceReminder++;
+        if (eligibleLaunchesSinceReminder
                 >= notice.severity().reminderInterval()) {
-            notified = true;
-            successfulJoinsSinceReminder = 0;
+            eligibleLaunchesSinceReminder = 0;
             return true;
         }
         return false;
     }
 
-    int successfulJoinsSinceReminder() {
-        return successfulJoinsSinceReminder;
-    }
-
-    boolean notified() {
-        return notified;
+    int eligibleLaunchesSinceReminder() {
+        return eligibleLaunchesSinceReminder;
     }
 
     private boolean matches(UpdateNotice notice) {

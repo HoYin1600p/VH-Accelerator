@@ -28,11 +28,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added a reusable Forge update-notification unit backed by a standard
   GitHub-hosted Forge update manifest.
 - Outdated integrated mods now receive coordinated main-menu notices and a
-  clickable CurseForge reminder in chat. Critical notices repeat after five
-  successful fresh world joins; normal notices repeat after ten.
-- Added persistent per-update reminder state. Server transfers and dimension
-  changes that remain inside the active connection do not advance the reminder
-  schedule.
+  eligible client launches; normal notices repeat after ten.
+- Added persistent per-update reminder state. A launch counts at most once,
+  only after a successful manifest check and the first playable world frame;
+  later joins, server transfers, and dimension changes cannot advance it.
 - Added `updates.checkForUpdates` and `/vha updates on|off|status`. Disabling
   the setting immediately cancels an active request and hides update notices.
 
@@ -41,8 +40,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Reduced the main-menu timer to the client launch time only.
 - The main-menu launch time remains visible independently, while routine
   in-game timing messages and timing logs now default to disabled.
-- Reminder cadence is updated in memory at the first playable frame, while its
-  small state-file write is deferred by ten client ticks.
+- Reminder cadence is updated in memory after the first playable frame and a
+  confirmed available update, while its small state-file write is deferred by
+  ten client ticks.
 
 ### Fixed
 

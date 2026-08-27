@@ -1,6 +1,5 @@
 package dev.hoyin1600p.vhaccelerator.client.update;
 
-import com.mojang.realmsclient.RealmsMainScreen;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -14,11 +13,8 @@ import net.minecraft.SharedConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
-import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
@@ -53,13 +49,12 @@ public final class UpdateNoticeService {
     private static Registration registration;
     private static IModInfo modInfo;
     private static UpdateNoticeStateStore stateStore;
+    private static final UpdateNoticeSession SESSION =
+            new UpdateNoticeSession();
     private static CompletableFuture<Optional<UpdateNotice>> updateRequest;
     private static UpdateNotice currentNotice;
     private static List<IModInfo> coordinatedMods;
-    private static final FreshWorldJoinTracker FRESH_JOIN_TRACKER =
-            new FreshWorldJoinTracker();
     private static boolean resultResolved;
-    private static int pendingSuccessfulFreshJoins;
     private static int refreshTicks;
     private static boolean enabled;
 
@@ -115,7 +110,6 @@ public final class UpdateNoticeService {
             startUpdateRequest();
         } else {
             resultResolved = true;
-            FRESH_JOIN_TRACKER.suspend();
         }
     }
 
@@ -126,12 +120,6 @@ public final class UpdateNoticeService {
 
         enabled = requestedEnabled;
         if (enabled) {
-            FRESH_JOIN_TRACKER.suspend();
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.level == null
-                    && isFreshConnectionScreen(minecraft.screen)) {
-                FRESH_JOIN_TRACKER.markFreshConnectionIntent();
-            }
             startUpdateRequest();
             return;
         }
@@ -141,15 +129,13 @@ public final class UpdateNoticeService {
         }
         updateRequest = null;
         currentNotice = null;
-        pendingSuccessfulFreshJoins = 0;
         refreshTicks = 0;
         resultResolved = true;
-        FRESH_JOIN_TRACKER.suspend();
+        SESSION.disable();
     }
 
     private static void startUpdateRequest() {
         currentNotice = null;
-        pendingSuccessfulFreshJoins = 0;
         refreshTicks = 0;
         resultResolved = false;
         updateRequest = UpdateManifestFetcher.fetch(
@@ -181,40 +167,29 @@ public final class UpdateNoticeService {
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
-        if (enabled && isFreshConnectionScreen(event.getScreen())) {
-            FRESH_JOIN_TRACKER.markFreshConnectionIntent();
+        if (event.getScreen() instanceof ReceivingLevelScreen) {
+            SESSION.markReceivingLevel();
         }
-    }
-
-    private static boolean isFreshConnectionScreen(Object screen) {
-        return screen instanceof TitleScreen
-                || screen instanceof JoinMultiplayerScreen
-                || screen instanceof SelectWorldScreen
-                || screen instanceof RealmsMainScreen
-                || screen instanceof ConnectScreen;
     }
 
     private static void onPlayerLoggedIn(
             ClientPlayerNetworkEvent.LoggedInEvent event
     ) {
-        if (!enabled || event.getPlayer() == null) {
+        if (event.getPlayer() == null) {
             return;
         }
-        FRESH_JOIN_TRACKER.markPlayerLoggedIn();
+        SESSION.markPlayerLoggedIn();
     }
 
     private static void onPlayerLoggedOut(
             ClientPlayerNetworkEvent.LoggedOutEvent event
     ) {
-        if (enabled) {
-            FRESH_JOIN_TRACKER.markPlayerLoggedOut();
-        }
+        SESSION.markPlayerLoggedOut();
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!enabled
-                || !FRESH_JOIN_TRACKER.isWaitingForPlayableFrame()
+        if (!SESSION.needsPlayableFrame()
                 || event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER
                 || minecraft.level == null
                 || minecraft.player == null
@@ -222,12 +197,9 @@ public final class UpdateNoticeService {
             return;
         }
 
-        if (!FRESH_JOIN_TRACKER.markFirstPlayableFrame()) {
-            return;
-        }
-        pendingSuccessfulFreshJoins++;
+        SESSION.markPlayableFrame();
         refreshUpdateResult();
-        processPendingSuccessfulJoins();
+        recordEligibleLaunchAndNotify();
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
@@ -298,29 +270,28 @@ public final class UpdateNoticeService {
             );
         }
         if (currentNotice == null) {
-            pendingSuccessfulFreshJoins = 0;
             return;
         }
-        processPendingSuccessfulJoins();
+        recordEligibleLaunchAndNotify();
     }
 
-    private static synchronized void processPendingSuccessfulJoins() {
+    private static synchronized void recordEligibleLaunchAndNotify() {
         Minecraft minecraft = Minecraft.getInstance();
         if (!enabled
                 || !resultResolved
-                || currentNotice == null
-                || pendingSuccessfulFreshJoins <= 0
-                || minecraft.player == null
-                || minecraft.level == null) {
+                || currentNotice == null) {
             return;
         }
 
-        boolean shouldNotify = false;
-        while (pendingSuccessfulFreshJoins > 0) {
-            pendingSuccessfulFreshJoins--;
-            shouldNotify |= stateStore.recordSuccessfulJoin(currentNotice);
+        if (SESSION.claimEligibleLaunch()) {
+            SESSION.armReminder(
+                    stateStore.recordEligibleLaunch(currentNotice)
+            );
         }
-        if (shouldNotify) {
+
+        if (minecraft.player != null
+                && minecraft.level != null
+                && SESSION.claimReminderDelivery()) {
             showChatNotice(minecraft, currentNotice);
         }
     }
