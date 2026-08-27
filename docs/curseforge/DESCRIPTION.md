@@ -7,7 +7,7 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
-The current 1.0.10 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
+The current 1.0.11 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
 the compatibility, startup-reliability, texture-safety, JEI recovery, and JEI
 recipe-cache correctness work added since the original 1.0.0 release.
 
@@ -25,6 +25,8 @@ thread. Dynamic models and other unsafe work stay on their normal path.
 - Repeated launches and connections through validated caches.
 - Faster repeated JEI recipe preparation without trusting stale category or
   incomplete recipe-list results.
+- Automatic targeted repair when a cached JEI recipe no longer matches the
+  live category or output identity.
 - Post-login responsiveness by keeping unfinished background work away from
   the first playable world frame.
 - Testing and troubleshooting through built-in launch, login, transfer,
@@ -50,6 +52,10 @@ activate only when the matching mod and supported class layout are present.
   synchronized recipes and tags without disconnecting.
 - Corrected persistent JEI recipe caching so late recipe batches cannot hide
   normal crafting-table recipes, while keeping the warm-login speedup.
+- Added live category and output checks that repair only affected cached JEI
+  recipes, including transient Sophisticated Storage wood identities.
+- Added an off-by-default JEI recipe audit command for troubleshooting cache
+  repairs without enabling all debug profiling.
 - Hardened early startup mixins against unusual class-loading order and added
   build checks that prevent the same startup failure class from returning.
 - Reduced repeated CTM, model-registry, voxel-shape, asset-fingerprint, and
@@ -83,7 +89,7 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.10.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.11.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
@@ -97,17 +103,19 @@ default.
 
 | Command | Purpose |
 | --- | --- |
-| `/vha` | Show Compare Mode, timer, and debug status. |
+| `/vha` | Show Compare Mode, timer, debug, and JEI audit status. |
 | `/vha compare on` | Disable all optimizations while keeping selected measurement tools active. Restart before comparing times. |
 | `/vha compare off` | Restore configured optimizations. Restart before measuring launch time. |
 | `/vha timers on` | Show visible timers and routine timing logs. |
 | `/vha timers off` | Hide visible timers and routine timing logs. |
 | `/vha debug on` | Enable detailed diagnostic profiling. |
 | `/vha debug off` | Stop new detailed diagnostic profiling. |
+| `/vha jei_audit on` | Log each JEI recipe plan automatically repaired during the next login. |
+| `/vha jei_audit off` | Stop targeted JEI recipe repair logging. |
 | `/vha reload_jei` | Rebuild JEI from the recipes and tags already synchronized to the client. |
 
-Each setting also accepts `status`, and `/vha compare`, `/vha timers`, or
-`/vha debug` reports that setting without changing it.
+Each setting also accepts `status`, and `/vha compare`, `/vha timers`,
+`/vha debug`, or `/vha jei_audit` reports that setting without changing it.
 
 These are client commands in multiplayer and do not require the mod on the
 remote server. `/vha reload_jei` requires an active world or server connection

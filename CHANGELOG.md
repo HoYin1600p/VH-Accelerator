@@ -9,6 +9,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Performance
+
+### Compatibility
+
+### Server
+
+### Removed
+
+## [1.0.11] - 2026-08-26
+
+### Added
+
 - Added an off-by-default targeted JEI recipe-cache audit controlled by
   `/vha jei_audit on|off|status`. When enabled, repaired recipes report their
   exact ID, repair reason, changed roles, and cached-versus-live output UIDs.
@@ -308,7 +324,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 See the complete [1.0.0 release notes](docs/releases/1.0.0.md).
 
-[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.10...HEAD
+[Unreleased]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.11...HEAD
+[1.0.11]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/HoYin1600p/VH-Accelerator/compare/v1.0.7...v1.0.8
