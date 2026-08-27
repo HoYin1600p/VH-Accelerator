@@ -20,6 +20,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCa
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
+import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -53,6 +54,11 @@ public final class VHAcceleratorClient {
     public static void initialize() {
         ConfigMigration.migrateClient();
         VHAcceleratorClientConfig.captureLaunchSnapshot();
+        UpdateNoticeService.initialize(
+                VHAccelerator.MOD_ID,
+                "VH Accelerator",
+                "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator"
+        );
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.CLIENT,
                 VHAcceleratorClientConfig.SPEC,

@@ -1,0 +1,345 @@
+package dev.hoyin1600p.vhaccelerator.client.update;
+
+import com.mojang.realmsclient.RealmsMainScreen;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.client.event.ScreenOpenEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.VersionChecker;
+import net.minecraftforge.forgespi.language.IModInfo;
+import net.minecraftforge.internal.BrandingControl;
+
+/**
+ * Client-only, source-copyable update notification unit.
+ *
+ * <p>The remote request and version comparison are owned by Forge's standard
+ * update checker. This class adds a coordinated main-menu row and a persistent
+ * in-world reminder schedule without blocking the render thread.</p>
+ */
+public final class UpdateNoticeService {
+    public static final String ENABLED_PROPERTY = "hoyinUpdateNotifier";
+    public static final String NAME_PROPERTY = "hoyinUpdateName";
+
+    private static Registration registration;
+    private static IModInfo modInfo;
+    private static UpdateNoticeStateStore stateStore;
+    private static UpdateNotice currentNotice;
+    private static List<IModInfo> coordinatedMods;
+    private static boolean resultResolved;
+    private static boolean freshConnectionIntent = true;
+    private static boolean pendingFreshWorldJoin;
+    private static int pendingSuccessfulFreshJoins;
+    private static int refreshTicks;
+
+    private UpdateNoticeService() {
+    }
+
+    public static synchronized void initialize(
+            String modId,
+            String displayName,
+            String downloadUrl
+    ) {
+        if (registration != null) {
+            return;
+        }
+
+        registration = new Registration(modId, displayName, downloadUrl);
+        modInfo = ModList.get()
+                .getModContainerById(modId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Missing active mod container for " + modId
+                ))
+                .getModInfo();
+        stateStore = new UpdateNoticeStateStore(modId);
+        coordinatedMods = discoverCoordinatedMods();
+
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onScreenOpened
+        );
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onScreenDrawn
+        );
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onPlayerLoggedIn
+        );
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onPlayerLoggedOut
+        );
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onLevelRendered
+        );
+        MinecraftForge.EVENT_BUS.addListener(
+                UpdateNoticeService::onClientTick
+        );
+        refreshUpdateResult();
+    }
+
+    private static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || resultResolved) {
+            return;
+        }
+        refreshTicks++;
+        if (refreshTicks >= 20) {
+            refreshTicks = 0;
+            refreshUpdateResult();
+        }
+    }
+
+    private static void onScreenOpened(ScreenOpenEvent event) {
+        if (event.getScreen() instanceof TitleScreen
+                || event.getScreen() instanceof JoinMultiplayerScreen
+                || event.getScreen() instanceof SelectWorldScreen
+                || event.getScreen() instanceof RealmsMainScreen
+                || event.getScreen() instanceof ConnectScreen) {
+            freshConnectionIntent = true;
+            pendingFreshWorldJoin = false;
+        }
+    }
+
+    private static void onPlayerLoggedIn(
+            ClientPlayerNetworkEvent.LoggedInEvent event
+    ) {
+        if (event.getPlayer() == null || !freshConnectionIntent) {
+            return;
+        }
+        freshConnectionIntent = false;
+        pendingFreshWorldJoin = true;
+    }
+
+    private static void onPlayerLoggedOut(
+            ClientPlayerNetworkEvent.LoggedOutEvent event
+    ) {
+        pendingFreshWorldJoin = false;
+    }
+
+    private static void onLevelRendered(RenderLevelStageEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!pendingFreshWorldJoin
+                || event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER
+                || minecraft.level == null
+                || minecraft.player == null
+                || minecraft.screen instanceof ReceivingLevelScreen) {
+            return;
+        }
+
+        pendingFreshWorldJoin = false;
+        pendingSuccessfulFreshJoins++;
+        refreshUpdateResult();
+        processPendingSuccessfulJoins();
+    }
+
+    private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
+        if (!(event.getScreen() instanceof TitleScreen)
+                || currentNotice == null) {
+            return;
+        }
+
+        int slot = updateNoticeSlot(modInfo.getModId());
+        if (slot < 0) {
+            return;
+        }
+
+        int[] brandingLines = {0};
+        BrandingControl.forEachLine(
+                true,
+                true,
+                (line, text) -> brandingLines[0] = line + 1
+        );
+        int launchTimerRows = ModList.get().isLoaded("vhaccelerator") ? 1 : 0;
+        int y = event.getScreen().height
+                - (10 + brandingLines[0] * 10)
+                - ((slot + launchTimerRows) * 10);
+        int color = currentNotice.severity()
+                == UpdateNotice.Severity.CRITICAL
+                ? 0xFF5555
+                : 0xFFAA00;
+        String text = currentNotice.displayName() + " - Update Available";
+        if (!currentNotice.message().isBlank()) {
+            text += " - " + currentNotice.message();
+        }
+
+        event.getPoseStack().pushPose();
+        GuiComponent.drawString(
+                event.getPoseStack(),
+                Minecraft.getInstance().font,
+                text,
+                2,
+                y,
+                color
+        );
+        event.getPoseStack().popPose();
+    }
+
+    private static synchronized void refreshUpdateResult() {
+        if (resultResolved || modInfo == null) {
+            return;
+        }
+
+        VersionChecker.CheckResult result = VersionChecker.getResult(modInfo);
+        if (result.status() == VersionChecker.Status.PENDING) {
+            return;
+        }
+
+        resultResolved = true;
+        currentNotice = UpdateNoticeParser.parse(
+                modInfo.getModId(),
+                result,
+                registration.displayName(),
+                registration.downloadUrl()
+        ).orElse(null);
+        if (currentNotice == null) {
+            pendingSuccessfulFreshJoins = 0;
+            return;
+        }
+        processPendingSuccessfulJoins();
+    }
+
+    private static synchronized void processPendingSuccessfulJoins() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!resultResolved
+                || currentNotice == null
+                || pendingSuccessfulFreshJoins <= 0
+                || minecraft.player == null
+                || minecraft.level == null) {
+            return;
+        }
+
+        boolean shouldNotify = false;
+        while (pendingSuccessfulFreshJoins > 0) {
+            pendingSuccessfulFreshJoins--;
+            shouldNotify |= stateStore.recordSuccessfulJoin(currentNotice);
+        }
+        if (shouldNotify) {
+            showChatNotice(minecraft, currentNotice);
+        }
+    }
+
+    private static void showChatNotice(
+            Minecraft minecraft,
+            UpdateNotice notice
+    ) {
+        ChatFormatting noticeColor = notice.severity()
+                == UpdateNotice.Severity.CRITICAL
+                ? ChatFormatting.RED
+                : ChatFormatting.GOLD;
+        MutableComponent text = new TextComponent(
+                notice.displayName() + " Update Available"
+        ).withStyle(noticeColor);
+        if (!notice.message().isBlank()) {
+            text.append(new TextComponent(
+                    " - " + notice.message()
+            ).withStyle(noticeColor));
+        }
+        text.append(new TextComponent(" [Download on CurseForge]")
+                .withStyle(style -> style
+                        .withColor(ChatFormatting.AQUA)
+                        .withUnderlined(true)
+                        .withClickEvent(new ClickEvent(
+                                ClickEvent.Action.OPEN_URL,
+                                notice.downloadUrl()
+                        ))
+                        .withHoverEvent(new HoverEvent(
+                                HoverEvent.Action.SHOW_TEXT,
+                                new TextComponent(
+                                        "Open the " + notice.displayName()
+                                                + " CurseForge page"
+                                )
+                        ))));
+        minecraft.player.displayClientMessage(text, false);
+    }
+
+    private static int updateNoticeSlot(String ownModId) {
+        List<IModInfo> outdatedMods = new ArrayList<>();
+        for (IModInfo candidate : coordinatedMods) {
+            VersionChecker.Status status = VersionChecker
+                    .getResult(candidate)
+                    .status();
+            if (status == VersionChecker.Status.OUTDATED
+                    || status == VersionChecker.Status.BETA_OUTDATED) {
+                outdatedMods.add(candidate);
+            }
+        }
+        outdatedMods.sort(Comparator.comparing(
+                UpdateNoticeService::coordinatedDisplayName,
+                String.CASE_INSENSITIVE_ORDER
+        ));
+        for (int index = 0; index < outdatedMods.size(); index++) {
+            if (outdatedMods.get(index).getModId().equals(ownModId)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static List<IModInfo> discoverCoordinatedMods() {
+        List<IModInfo> result = new ArrayList<>();
+        for (IModInfo candidate : ModList.get().getMods()) {
+            Object enabled = candidate.getModProperties().get(ENABLED_PROPERTY);
+            if (enabled instanceof Boolean && (Boolean) enabled
+                    || enabled instanceof String
+                    && Boolean.parseBoolean((String) enabled)) {
+                result.add(candidate);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static String coordinatedDisplayName(IModInfo candidate) {
+        Object configuredName = candidate.getModProperties().get(NAME_PROPERTY);
+        if (configuredName instanceof String
+                && !((String) configuredName).isBlank()) {
+            return ((String) configuredName).trim();
+        }
+        return candidate.getDisplayName();
+    }
+
+    private record Registration(
+            String modId,
+            String displayName,
+            String downloadUrl
+    ) {
+        private Registration {
+            Objects.requireNonNull(modId, "modId");
+            Objects.requireNonNull(displayName, "displayName");
+            Objects.requireNonNull(downloadUrl, "downloadUrl");
+            if (modId.isBlank() || displayName.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Update notification identity cannot be blank"
+                );
+            }
+
+            URI uri = URI.create(downloadUrl);
+            String host = uri.getHost();
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || host == null
+                    || !(host.equalsIgnoreCase("curseforge.com")
+                    || host.toLowerCase(Locale.ROOT)
+                    .endsWith(".curseforge.com"))) {
+                throw new IllegalArgumentException(
+                        "Update download URL must be an HTTPS CurseForge URL"
+                );
+            }
+        }
+    }
+}
