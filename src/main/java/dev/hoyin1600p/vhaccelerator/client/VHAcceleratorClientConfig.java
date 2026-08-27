@@ -155,6 +155,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
+        public final ForgeConfigSpec.BooleanValue checkForUpdates;
 
         private Values(ForgeConfigSpec.Builder builder) {
             builder.push("optimizations");
@@ -529,7 +530,25 @@ public final class VHAcceleratorClientConfig {
                             "listener order, executors, or menu precompile behavior.")
                     .define("profileClientLaunchPhases", true);
             builder.pop();
+
+            builder.push("updates");
+            checkForUpdates = builder
+                    .comment(
+                            "Checks the mod's GitHub manifest asynchronously and shows",
+                            "available updates on the main menu and occasionally in chat.",
+                            "The /vha updates command changes this setting immediately.")
+                    .define("checkForUpdates", true);
+            builder.pop();
         }
+    }
+
+    public static boolean updateChecksEnabled() {
+        return launchValue(VALUES.checkForUpdates, true);
+    }
+
+    public static void setUpdateChecksEnabled(boolean enabled) {
+        VALUES.checkForUpdates.set(enabled);
+        VALUES.checkForUpdates.save();
     }
 
     public static boolean launchProfilingEnabled() {

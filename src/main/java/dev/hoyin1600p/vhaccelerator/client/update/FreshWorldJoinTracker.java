@@ -25,6 +25,11 @@ final class FreshWorldJoinTracker {
         pendingFreshWorldJoin = false;
     }
 
+    void suspend() {
+        freshConnectionIntent = false;
+        pendingFreshWorldJoin = false;
+    }
+
     boolean isWaitingForPlayableFrame() {
         return pendingFreshWorldJoin;
     }

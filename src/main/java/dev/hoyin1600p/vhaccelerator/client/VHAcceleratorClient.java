@@ -59,7 +59,8 @@ public final class VHAcceleratorClient {
                 "VH Accelerator",
                 "https://raw.githubusercontent.com/HoYin1600p/"
                         + "VH-Accelerator/master/update.json",
-                "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator"
+                "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator",
+                VHAcceleratorClientConfig.updateChecksEnabled()
         );
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.CLIENT,
@@ -113,8 +114,15 @@ public final class VHAcceleratorClient {
     ) {
         VHAcceleratorCommand.registerClient(
                 event.getDispatcher(),
-                VHAcceleratorClient::reloadJei
+                VHAcceleratorClient::reloadJei,
+                VHAcceleratorClientConfig::updateChecksEnabled,
+                VHAcceleratorClient::setUpdateChecksEnabled
         );
+    }
+
+    private static void setUpdateChecksEnabled(boolean enabled) {
+        VHAcceleratorClientConfig.setUpdateChecksEnabled(enabled);
+        UpdateNoticeService.setEnabled(enabled);
     }
 
     private static int reloadJei(

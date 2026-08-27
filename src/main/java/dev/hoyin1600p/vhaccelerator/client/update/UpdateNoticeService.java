@@ -61,6 +61,7 @@ public final class UpdateNoticeService {
     private static boolean resultResolved;
     private static int pendingSuccessfulFreshJoins;
     private static int refreshTicks;
+    private static boolean enabled;
 
     private UpdateNoticeService() {
     }
@@ -69,7 +70,8 @@ public final class UpdateNoticeService {
             String modId,
             String displayName,
             String manifestUrl,
-            String downloadUrl
+            String downloadUrl,
+            boolean initiallyEnabled
     ) {
         if (registration != null) {
             return;
@@ -89,14 +91,7 @@ public final class UpdateNoticeService {
                 .getModInfo();
         stateStore = new UpdateNoticeStateStore(modId);
         coordinatedMods = discoverCoordinatedMods();
-        updateRequest = UpdateManifestFetcher.fetch(
-                registration.manifestUri(),
-                modId,
-                displayName,
-                modInfo.getVersion().toString(),
-                SharedConstants.getCurrentVersion().getName(),
-                downloadUrl
-        );
+        enabled = initiallyEnabled;
 
         MinecraftForge.EVENT_BUS.addListener(
                 UpdateNoticeService::onScreenOpened
@@ -116,6 +111,55 @@ public final class UpdateNoticeService {
         MinecraftForge.EVENT_BUS.addListener(
                 UpdateNoticeService::onClientTick
         );
+        if (enabled) {
+            startUpdateRequest();
+        } else {
+            resultResolved = true;
+            FRESH_JOIN_TRACKER.suspend();
+        }
+    }
+
+    public static synchronized void setEnabled(boolean requestedEnabled) {
+        if (registration == null || enabled == requestedEnabled) {
+            return;
+        }
+
+        enabled = requestedEnabled;
+        if (enabled) {
+            FRESH_JOIN_TRACKER.suspend();
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.level == null
+                    && isFreshConnectionScreen(minecraft.screen)) {
+                FRESH_JOIN_TRACKER.markFreshConnectionIntent();
+            }
+            startUpdateRequest();
+            return;
+        }
+
+        if (updateRequest != null) {
+            updateRequest.cancel(true);
+        }
+        updateRequest = null;
+        currentNotice = null;
+        pendingSuccessfulFreshJoins = 0;
+        refreshTicks = 0;
+        resultResolved = true;
+        FRESH_JOIN_TRACKER.suspend();
+    }
+
+    private static void startUpdateRequest() {
+        currentNotice = null;
+        pendingSuccessfulFreshJoins = 0;
+        refreshTicks = 0;
+        resultResolved = false;
+        updateRequest = UpdateManifestFetcher.fetch(
+                registration.manifestUri(),
+                registration.modId(),
+                registration.displayName(),
+                modInfo.getVersion().toString(),
+                SharedConstants.getCurrentVersion().getName(),
+                registration.downloadUrl()
+        );
         refreshUpdateResult();
     }
 
@@ -126,7 +170,7 @@ public final class UpdateNoticeService {
         if (stateStore != null) {
             stateStore.tick();
         }
-        if (resultResolved) {
+        if (!enabled || resultResolved) {
             return;
         }
         refreshTicks++;
@@ -137,19 +181,23 @@ public final class UpdateNoticeService {
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
-        if (event.getScreen() instanceof TitleScreen
-                || event.getScreen() instanceof JoinMultiplayerScreen
-                || event.getScreen() instanceof SelectWorldScreen
-                || event.getScreen() instanceof RealmsMainScreen
-                || event.getScreen() instanceof ConnectScreen) {
+        if (enabled && isFreshConnectionScreen(event.getScreen())) {
             FRESH_JOIN_TRACKER.markFreshConnectionIntent();
         }
+    }
+
+    private static boolean isFreshConnectionScreen(Object screen) {
+        return screen instanceof TitleScreen
+                || screen instanceof JoinMultiplayerScreen
+                || screen instanceof SelectWorldScreen
+                || screen instanceof RealmsMainScreen
+                || screen instanceof ConnectScreen;
     }
 
     private static void onPlayerLoggedIn(
             ClientPlayerNetworkEvent.LoggedInEvent event
     ) {
-        if (event.getPlayer() == null) {
+        if (!enabled || event.getPlayer() == null) {
             return;
         }
         FRESH_JOIN_TRACKER.markPlayerLoggedIn();
@@ -158,12 +206,15 @@ public final class UpdateNoticeService {
     private static void onPlayerLoggedOut(
             ClientPlayerNetworkEvent.LoggedOutEvent event
     ) {
-        FRESH_JOIN_TRACKER.markPlayerLoggedOut();
+        if (enabled) {
+            FRESH_JOIN_TRACKER.markPlayerLoggedOut();
+        }
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!FRESH_JOIN_TRACKER.isWaitingForPlayableFrame()
+        if (!enabled
+                || !FRESH_JOIN_TRACKER.isWaitingForPlayableFrame()
                 || event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER
                 || minecraft.level == null
                 || minecraft.player == null
@@ -180,7 +231,8 @@ public final class UpdateNoticeService {
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
-        if (!(event.getScreen() instanceof TitleScreen)
+        if (!enabled
+                || !(event.getScreen() instanceof TitleScreen)
                 || currentNotice == null) {
             return;
         }
@@ -222,7 +274,7 @@ public final class UpdateNoticeService {
     }
 
     private static synchronized void refreshUpdateResult() {
-        if (resultResolved || modInfo == null) {
+        if (!enabled || resultResolved || modInfo == null) {
             return;
         }
 
@@ -254,7 +306,8 @@ public final class UpdateNoticeService {
 
     private static synchronized void processPendingSuccessfulJoins() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!resultResolved
+        if (!enabled
+                || !resultResolved
                 || currentNotice == null
                 || pendingSuccessfulFreshJoins <= 0
                 || minecraft.player == null

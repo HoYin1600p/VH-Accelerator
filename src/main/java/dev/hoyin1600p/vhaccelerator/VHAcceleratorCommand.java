@@ -3,6 +3,8 @@ package dev.hoyin1600p.vhaccelerator;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.function.ToIntFunction;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
@@ -18,20 +20,30 @@ public final class VHAcceleratorCommand {
             CommandDispatcher<CommandSourceStack> dispatcher,
             boolean requireAdministrator
     ) {
-        register(dispatcher, requireAdministrator, null);
+        register(dispatcher, requireAdministrator, null, null, null);
     }
 
     public static void registerClient(
             CommandDispatcher<CommandSourceStack> dispatcher,
-            ToIntFunction<CommandSourceStack> reloadJei
+            ToIntFunction<CommandSourceStack> reloadJei,
+            BooleanSupplier updateChecksEnabled,
+            Consumer<Boolean> updateChecksSetter
     ) {
-        register(dispatcher, false, reloadJei);
+        register(
+                dispatcher,
+                false,
+                reloadJei,
+                updateChecksEnabled,
+                updateChecksSetter
+        );
     }
 
     private static void register(
             CommandDispatcher<CommandSourceStack> dispatcher,
             boolean requireAdministrator,
-            ToIntFunction<CommandSourceStack> reloadJei
+            ToIntFunction<CommandSourceStack> reloadJei,
+            BooleanSupplier updateChecksEnabled,
+            Consumer<Boolean> updateChecksSetter
     ) {
         LiteralArgumentBuilder<CommandSourceStack> root =
                 Commands.literal("vha")
@@ -39,7 +51,10 @@ public final class VHAcceleratorCommand {
                                 !requireAdministrator
                                         || source.hasPermission(2))
                         .executes(context ->
-                                reportAll(context.getSource()))
+                                reportAll(
+                                        context.getSource(),
+                                        updateChecksEnabled
+                                ))
                         .then(Commands.literal("compare")
                                 .executes(context ->
                                         reportCompare(
@@ -77,6 +92,17 @@ public final class VHAcceleratorCommand {
                                 VHAcceleratorCommand::setJeiAudit,
                                 VHAcceleratorCommand::reportJeiAudit
                         ));
+        if (updateChecksEnabled != null && updateChecksSetter != null) {
+            root.then(toggleCommand(
+                    "updates",
+                    (source, enabled) -> setUpdates(
+                            source,
+                            enabled,
+                            updateChecksSetter
+                    ),
+                    source -> reportUpdates(source, updateChecksEnabled)
+            ));
+        }
         if (reloadJei != null) {
             root.then(Commands.literal("reload_jei")
                     .executes(context ->
@@ -217,7 +243,37 @@ public final class VHAcceleratorCommand {
         return enabled ? 1 : 0;
     }
 
-    private static int reportAll(CommandSourceStack source) {
+    private static int setUpdates(
+            CommandSourceStack source,
+            boolean enabled,
+            Consumer<Boolean> updateChecksSetter
+    ) {
+        updateChecksSetter.accept(enabled);
+        sendState(
+                source,
+                "Update checks",
+                enabled,
+                "Saved. GitHub update checks and notices update immediately."
+        );
+        return 1;
+    }
+
+    private static int reportUpdates(
+            CommandSourceStack source,
+            BooleanSupplier updateChecksEnabled
+    ) {
+        boolean enabled = updateChecksEnabled.getAsBoolean();
+        sendState(source, "Update checks", enabled, null);
+        return enabled ? 1 : 0;
+    }
+
+    private static int reportAll(
+            CommandSourceStack source,
+            BooleanSupplier updateChecksEnabled
+    ) {
+        String updateState = updateChecksEnabled == null
+                ? ""
+                : ", updates=" + state(updateChecksEnabled.getAsBoolean());
         source.sendSuccess(
                 new TextComponent(
                         "[VH Accelerator] Compare="
@@ -240,6 +296,7 @@ public final class VHAcceleratorCommand {
                                         VHAcceleratorConfig
                                                 .jeiRecipeAuditEnabled()
                                 )
+                                + updateState
                 ),
                 false
         );
