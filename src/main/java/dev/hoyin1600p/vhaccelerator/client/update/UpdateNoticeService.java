@@ -283,7 +283,7 @@ public final class UpdateNoticeService {
         outdatedMods.sort(Comparator.comparing(
                 UpdateNoticeService::coordinatedDisplayName,
                 String.CASE_INSENSITIVE_ORDER
-        ));
+        ).thenComparing(IModInfo::getModId));
         for (int index = 0; index < outdatedMods.size(); index++) {
             if (outdatedMods.get(index).getModId().equals(ownModId)) {
                 return index;
@@ -296,9 +296,9 @@ public final class UpdateNoticeService {
         List<IModInfo> result = new ArrayList<>();
         for (IModInfo candidate : ModList.get().getMods()) {
             Object enabled = candidate.getModProperties().get(ENABLED_PROPERTY);
-            if (enabled instanceof Boolean && (Boolean) enabled
-                    || enabled instanceof String
-                    && Boolean.parseBoolean((String) enabled)) {
+            if ((enabled instanceof Boolean && (Boolean) enabled)
+                    || (enabled instanceof String
+                    && Boolean.parseBoolean((String) enabled))) {
                 result.add(candidate);
             }
         }
