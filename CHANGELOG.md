@@ -9,7 +9,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added `updates.updateTypes` with `CRITICAL` and `ALL` choices. New and
+  existing installations default to showing critical updates only.
+- Added `/vha updates critical` and `/vha updates all` so the notice filter can
+  be saved and applied immediately without restarting or refetching the
+  manifest.
+
 ### Changed
+
+- Normal update notices are now hidden from both the main menu and in-game
+  chat unless the player explicitly selects `ALL`. Critical notices retain
+  their existing five-launch reminder cadence.
 
 ### Fixed
 

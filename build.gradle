@@ -214,6 +214,7 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/client/cache/ConfigFingerprintMonitor.class',
                     'dev/hoyin1600p/vhaccelerator/client/cache/PersistentModelJsonCache.class',
                     'dev/hoyin1600p/vhaccelerator/client/PacketDecodeProfiler.class',
+                    'dev/hoyin1600p/vhaccelerator/client/update/UpdateNoticeFilter.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientFilterMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientBlacklistInternalMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientManagerMixin.class',

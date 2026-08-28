@@ -110,10 +110,12 @@ as does its `status` form.
 | `/vha jei_audit on` | Logs each recipe plan repaired during the next login, including changed roles and cached-versus-live output UIDs. |
 | `/vha jei_audit off` | Stops targeted JEI recipe-cache audit logging. |
 | `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
-| `/vha updates` | Reports update-check state. |
+| `/vha updates` | Reports update-check state and the selected update types. |
 | `/vha updates on` | Enables GitHub update checks and notices immediately. |
 | `/vha updates off` | Cancels update checks and hides notices immediately. |
 | `/vha updates status` | Reports update-check state. |
+| `/vha updates critical` | Shows only updates marked critical. This is the default. |
+| `/vha updates all` | Shows both normal and critical updates. |
 | `/vha reload_jei` | Rebuilds JEI from the currently synchronized recipes and tags, bypassing VHA's core JEI caches and parallel index paths for that recovery reload. |
 
 These are client commands in multiplayer and require no server permission.
@@ -144,12 +146,13 @@ The compact launch-time line remains visible on the main menu. Routine timing
 messages and detailed diagnostics are intentionally off for normal play.
 
 Update checks are enabled by default and remain independent of Forge's global
-update-check preference. The main menu identifies an available release on
-every outdated launch. Chat reminders are deliberately less frequent: a
-critical update is shown after every five eligible client JVM launches and a
-normal update after every ten. A JVM becomes eligible only after its manifest
-check succeeds and it reaches a playable world; additional joins, dimensions,
-and server transfers in that process never advance the reminder schedule.
+update-check preference. By default, only updates marked critical appear on
+the main menu or in chat. `/vha updates all` also enables normal notices.
+Critical chat reminders are due after every five eligible client JVM launches;
+normal reminders use ten when enabled. A JVM becomes eligible only after its
+manifest check succeeds and it reaches a playable world; additional joins,
+dimensions, and server transfers in that process never advance the reminder
+schedule.
 
 Persistent cache files live under `cache/vhaccelerator/`. They are validated
 against the installed mods, relevant configs, resource packs, server identity,

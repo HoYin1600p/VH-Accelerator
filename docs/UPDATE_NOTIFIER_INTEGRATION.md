@@ -27,7 +27,8 @@ UpdateNoticeService.initialize(
         "Short Display Name",
         "https://raw.githubusercontent.com/HoYin1600p/REPOSITORY/master/update.json",
         "https://www.curseforge.com/minecraft/mc-mods/project-slug",
-        CHECK_FOR_UPDATES
+        CHECK_FOR_UPDATES,
+        UPDATE_NOTICE_FILTER
 );
 ```
 
@@ -91,9 +92,17 @@ eligible launch is recorded so the state-file write is not part of the first
 playable frame.
 
 Destination mods should expose a client-side `checkForUpdates` option with a
-default of `true`, pass its launch value to `initialize`, and call
-`UpdateNoticeService.setEnabled` when the setting changes. Disabling it cancels
-the current request and suppresses both menu and chat notices immediately.
+default of `true` and an `updateTypes` enum with `CRITICAL` as its default and
+`ALL` as its other value. Pass both launch values to `initialize`. Call
+`UpdateNoticeService.setEnabled` and `UpdateNoticeService.setFilter` when their
+settings change. Disabling checks cancels the current request and suppresses
+both menu and chat notices immediately. Changing the filter applies to the
+already-fetched result without another request: `CRITICAL` suppresses normal
+menu and chat notices, while `ALL` permits both severities.
+
+Expose matching client commands under the destination mod's command root:
+`updates on|off|status|critical|all`. The bare and `status` forms should report
+both whether checks are enabled and which update types are selected.
 
 ## Release order
 

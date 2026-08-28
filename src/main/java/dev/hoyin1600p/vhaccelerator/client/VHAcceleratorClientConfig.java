@@ -4,6 +4,7 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.commons.lang3.tuple.Pair;
@@ -20,6 +21,8 @@ public final class VHAcceleratorClientConfig {
     public static final Values VALUES;
     private static volatile Map<List<String>, Boolean> launchBooleanSnapshot =
             Map.of();
+    private static volatile UpdateNoticeFilter launchUpdateFilterSnapshot =
+            UpdateNoticeFilter.CRITICAL;
     private static volatile boolean launchSnapshotCaptured;
 
     static {
@@ -35,6 +38,7 @@ public final class VHAcceleratorClientConfig {
         Path configPath = FMLPaths.CONFIGDIR.get()
                 .resolve(ConfigMigration.CLIENT_CONFIG);
         Map<List<String>, Boolean> snapshot = new HashMap<>();
+        UpdateNoticeFilter updateFilter = UpdateNoticeFilter.CRITICAL;
 
         if (Files.isRegularFile(configPath)) {
             try (CommentedFileConfig config = CommentedFileConfig.of(configPath)) {
@@ -50,6 +54,10 @@ public final class VHAcceleratorClientConfig {
                         snapshot.put(List.copyOf(booleanValue.getPath()), enabled);
                     }
                 }
+                updateFilter = UpdateNoticeFilter.fromConfigValue(
+                        config.get(VALUES.updateNoticeFilter.getPath()),
+                        UpdateNoticeFilter.CRITICAL
+                );
             } catch (Exception exception) {
                 VHAccelerator.LOGGER.warn(
                         "Could not capture the initial client configuration from {}",
@@ -60,6 +68,7 @@ public final class VHAcceleratorClientConfig {
         }
 
         launchBooleanSnapshot = Map.copyOf(snapshot);
+        launchUpdateFilterSnapshot = updateFilter;
         launchSnapshotCaptured = true;
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info(
@@ -156,6 +165,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
         public final ForgeConfigSpec.BooleanValue profileClientLaunchPhases;
         public final ForgeConfigSpec.BooleanValue checkForUpdates;
+        public final ForgeConfigSpec.EnumValue<UpdateNoticeFilter>
+                updateNoticeFilter;
 
         private Values(ForgeConfigSpec.Builder builder) {
             builder.push("optimizations");
@@ -538,6 +549,17 @@ public final class VHAcceleratorClientConfig {
                             "available updates on the main menu and occasionally in chat.",
                             "The /vha updates command changes this setting immediately.")
                     .define("checkForUpdates", true);
+            updateNoticeFilter = builder
+                    .comment(
+                            "Chooses which available updates are shown in the menu",
+                            "and chat. CRITICAL shows only manifests marked [CRITICAL].",
+                            "ALL also shows normal updates. The default is CRITICAL.",
+                            "Use /vha updates critical or /vha updates all to change it."
+                    )
+                    .defineEnum(
+                            "updateTypes",
+                            UpdateNoticeFilter.CRITICAL
+                    );
             builder.pop();
         }
     }
@@ -549,6 +571,18 @@ public final class VHAcceleratorClientConfig {
     public static void setUpdateChecksEnabled(boolean enabled) {
         VALUES.checkForUpdates.set(enabled);
         VALUES.checkForUpdates.save();
+    }
+
+    public static UpdateNoticeFilter updateNoticeFilter() {
+        if (!LaunchTimer.isFinished() && launchSnapshotCaptured) {
+            return launchUpdateFilterSnapshot;
+        }
+        return VALUES.updateNoticeFilter.get();
+    }
+
+    public static void setUpdateNoticeFilter(UpdateNoticeFilter filter) {
+        VALUES.updateNoticeFilter.set(filter);
+        VALUES.updateNoticeFilter.save();
     }
 
     public static boolean launchProfilingEnabled() {

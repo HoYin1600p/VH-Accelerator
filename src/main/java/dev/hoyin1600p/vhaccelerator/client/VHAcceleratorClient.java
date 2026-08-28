@@ -20,6 +20,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCa
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
+import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -60,7 +61,8 @@ public final class VHAcceleratorClient {
                 "https://raw.githubusercontent.com/HoYin1600p/"
                         + "VH-Accelerator/master/update.json",
                 "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator",
-                VHAcceleratorClientConfig.updateChecksEnabled()
+                VHAcceleratorClientConfig.updateChecksEnabled(),
+                VHAcceleratorClientConfig.updateNoticeFilter()
         );
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.CLIENT,
@@ -116,13 +118,20 @@ public final class VHAcceleratorClient {
                 event.getDispatcher(),
                 VHAcceleratorClient::reloadJei,
                 VHAcceleratorClientConfig::updateChecksEnabled,
-                VHAcceleratorClient::setUpdateChecksEnabled
+                VHAcceleratorClient::setUpdateChecksEnabled,
+                VHAcceleratorClientConfig::updateNoticeFilter,
+                VHAcceleratorClient::setUpdateNoticeFilter
         );
     }
 
     private static void setUpdateChecksEnabled(boolean enabled) {
         VHAcceleratorClientConfig.setUpdateChecksEnabled(enabled);
         UpdateNoticeService.setEnabled(enabled);
+    }
+
+    private static void setUpdateNoticeFilter(UpdateNoticeFilter filter) {
+        VHAcceleratorClientConfig.setUpdateNoticeFilter(filter);
+        UpdateNoticeService.setFilter(filter);
     }
 
     private static int reloadJei(

@@ -52,11 +52,14 @@ public final class UpdateNoticeService {
     private static final UpdateNoticeSession SESSION =
             new UpdateNoticeSession();
     private static CompletableFuture<Optional<UpdateNotice>> updateRequest;
+    private static UpdateNotice fetchedNotice;
     private static UpdateNotice currentNotice;
     private static List<IModInfo> coordinatedMods;
     private static boolean resultResolved;
     private static int refreshTicks;
     private static boolean enabled;
+    private static UpdateNoticeFilter noticeFilter =
+            UpdateNoticeFilter.CRITICAL;
 
     private UpdateNoticeService() {
     }
@@ -67,6 +70,24 @@ public final class UpdateNoticeService {
             String manifestUrl,
             String downloadUrl,
             boolean initiallyEnabled
+    ) {
+        initialize(
+                modId,
+                displayName,
+                manifestUrl,
+                downloadUrl,
+                initiallyEnabled,
+                UpdateNoticeFilter.CRITICAL
+        );
+    }
+
+    public static synchronized void initialize(
+            String modId,
+            String displayName,
+            String manifestUrl,
+            String downloadUrl,
+            boolean initiallyEnabled,
+            UpdateNoticeFilter initialFilter
     ) {
         if (registration != null) {
             return;
@@ -87,6 +108,10 @@ public final class UpdateNoticeService {
         stateStore = new UpdateNoticeStateStore(modId);
         coordinatedMods = discoverCoordinatedMods();
         enabled = initiallyEnabled;
+        noticeFilter = Objects.requireNonNull(
+                initialFilter,
+                "initialFilter"
+        );
 
         MinecraftForge.EVENT_BUS.addListener(
                 UpdateNoticeService::onScreenOpened
@@ -128,13 +153,32 @@ public final class UpdateNoticeService {
             updateRequest.cancel(true);
         }
         updateRequest = null;
+        fetchedNotice = null;
         currentNotice = null;
         refreshTicks = 0;
         resultResolved = true;
         SESSION.disable();
     }
 
+    public static synchronized void setFilter(
+            UpdateNoticeFilter requestedFilter
+    ) {
+        Objects.requireNonNull(requestedFilter, "requestedFilter");
+        if (registration == null || noticeFilter == requestedFilter) {
+            return;
+        }
+
+        noticeFilter = requestedFilter;
+        currentNotice = filteredNotice(fetchedNotice);
+        if (currentNotice == null) {
+            SESSION.disable();
+            return;
+        }
+        recordEligibleLaunchAndNotify();
+    }
+
     private static void startUpdateRequest() {
+        fetchedNotice = null;
         currentNotice = null;
         refreshTicks = 0;
         resultResolved = false;
@@ -256,8 +300,10 @@ public final class UpdateNoticeService {
 
         resultResolved = true;
         try {
-            currentNotice = updateRequest.join().orElse(null);
+            fetchedNotice = updateRequest.join().orElse(null);
+            currentNotice = filteredNotice(fetchedNotice);
         } catch (CompletionException exception) {
+            fetchedNotice = null;
             currentNotice = null;
             Throwable cause = exception.getCause() == null
                     ? exception
@@ -273,6 +319,12 @@ public final class UpdateNoticeService {
             return;
         }
         recordEligibleLaunchAndNotify();
+    }
+
+    private static UpdateNotice filteredNotice(UpdateNotice notice) {
+        return notice != null && noticeFilter.allows(notice)
+                ? notice
+                : null;
     }
 
     private static synchronized void recordEligibleLaunchAndNotify() {

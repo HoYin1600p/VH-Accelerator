@@ -40,10 +40,12 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha jei_audit on` | Saves the targeted audit as enabled. Reconnect to log every repaired JEI recipe ID, repair reason, changed roles, and cached-versus-live output UIDs. |
 | `/vha jei_audit off` | Saves the targeted audit as disabled and stops its per-recipe logging. |
 | `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
-| `/vha updates` | Reports client update-check state; identical to `status`. |
+| `/vha updates` | Reports client update-check state and the selected update types; identical to `status`. |
 | `/vha updates on` | Saves and immediately enables GitHub update checks and notices. |
 | `/vha updates off` | Saves and immediately disables update checks, cancels an active request, and hides notices. |
 | `/vha updates status` | Reports client update-check state. |
+| `/vha updates critical` | Saves `CRITICAL` and immediately hides normal update notices. This is the default. |
+| `/vha updates all` | Saves `ALL` and immediately allows both normal and critical update notices. |
 | `/vha reload_jei` | Runs JEI's native stop/start lifecycle against the currently synchronized recipes and tags. VHA's core JEI caches and parallel index paths are bypassed for this recovery reload. |
 
 The dedicated-server console uses the common setting commands without the
@@ -128,6 +130,7 @@ not part of the recommended release configuration.
 | Key | Default | Description |
 | --- | --- | --- |
 | `checkForUpdates` | `true` | Fetches the small GitHub update manifest asynchronously. When disabled, VHA performs no update request and shows no update notices. Controlled immediately by `/vha updates`. |
+| `updateTypes` | `CRITICAL` | Chooses which fetched updates can appear in the main menu and chat. `CRITICAL` shows only manifests marked `[CRITICAL]`; `ALL` also shows normal updates. Controlled immediately by `/vha updates critical` or `/vha updates all`. |
 
 ### `[optimizations]`
 

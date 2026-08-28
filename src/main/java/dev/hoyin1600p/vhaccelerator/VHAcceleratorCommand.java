@@ -2,9 +2,11 @@ package dev.hoyin1600p.vhaccelerator;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import java.util.function.ToIntFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
@@ -20,21 +22,33 @@ public final class VHAcceleratorCommand {
             CommandDispatcher<CommandSourceStack> dispatcher,
             boolean requireAdministrator
     ) {
-        register(dispatcher, requireAdministrator, null, null, null);
+        register(
+                dispatcher,
+                requireAdministrator,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     public static void registerClient(
             CommandDispatcher<CommandSourceStack> dispatcher,
             ToIntFunction<CommandSourceStack> reloadJei,
             BooleanSupplier updateChecksEnabled,
-            Consumer<Boolean> updateChecksSetter
+            Consumer<Boolean> updateChecksSetter,
+            Supplier<UpdateNoticeFilter> updateFilter,
+            Consumer<UpdateNoticeFilter> updateFilterSetter
     ) {
         register(
                 dispatcher,
                 false,
                 reloadJei,
                 updateChecksEnabled,
-                updateChecksSetter
+                updateChecksSetter,
+                updateFilter,
+                updateFilterSetter
         );
     }
 
@@ -43,7 +57,9 @@ public final class VHAcceleratorCommand {
             boolean requireAdministrator,
             ToIntFunction<CommandSourceStack> reloadJei,
             BooleanSupplier updateChecksEnabled,
-            Consumer<Boolean> updateChecksSetter
+            Consumer<Boolean> updateChecksSetter,
+            Supplier<UpdateNoticeFilter> updateFilter,
+            Consumer<UpdateNoticeFilter> updateFilterSetter
     ) {
         LiteralArgumentBuilder<CommandSourceStack> root =
                 Commands.literal("vha")
@@ -53,7 +69,8 @@ public final class VHAcceleratorCommand {
                         .executes(context ->
                                 reportAll(
                                         context.getSource(),
-                                        updateChecksEnabled
+                                        updateChecksEnabled,
+                                        updateFilter
                                 ))
                         .then(Commands.literal("compare")
                                 .executes(context ->
@@ -92,15 +109,15 @@ public final class VHAcceleratorCommand {
                                 VHAcceleratorCommand::setJeiAudit,
                                 VHAcceleratorCommand::reportJeiAudit
                         ));
-        if (updateChecksEnabled != null && updateChecksSetter != null) {
-            root.then(toggleCommand(
-                    "updates",
-                    (source, enabled) -> setUpdates(
-                            source,
-                            enabled,
-                            updateChecksSetter
-                    ),
-                    source -> reportUpdates(source, updateChecksEnabled)
+        if (updateChecksEnabled != null
+                && updateChecksSetter != null
+                && updateFilter != null
+                && updateFilterSetter != null) {
+            root.then(updateCommand(
+                    updateChecksEnabled,
+                    updateChecksSetter,
+                    updateFilter,
+                    updateFilterSetter
             ));
         }
         if (reloadJei != null) {
@@ -258,22 +275,91 @@ public final class VHAcceleratorCommand {
         return 1;
     }
 
+    private static LiteralArgumentBuilder<CommandSourceStack> updateCommand(
+            BooleanSupplier updateChecksEnabled,
+            Consumer<Boolean> updateChecksSetter,
+            Supplier<UpdateNoticeFilter> updateFilter,
+            Consumer<UpdateNoticeFilter> updateFilterSetter
+    ) {
+        return Commands.literal("updates")
+                .executes(context -> reportUpdates(
+                        context.getSource(),
+                        updateChecksEnabled,
+                        updateFilter
+                ))
+                .then(Commands.literal("on")
+                        .executes(context -> setUpdates(
+                                context.getSource(),
+                                true,
+                                updateChecksSetter
+                        )))
+                .then(Commands.literal("off")
+                        .executes(context -> setUpdates(
+                                context.getSource(),
+                                false,
+                                updateChecksSetter
+                        )))
+                .then(Commands.literal("status")
+                        .executes(context -> reportUpdates(
+                                context.getSource(),
+                                updateChecksEnabled,
+                                updateFilter
+                        )))
+                .then(Commands.literal("critical")
+                        .executes(context -> setUpdateFilter(
+                                context.getSource(),
+                                UpdateNoticeFilter.CRITICAL,
+                                updateFilterSetter
+                        )))
+                .then(Commands.literal("all")
+                        .executes(context -> setUpdateFilter(
+                                context.getSource(),
+                                UpdateNoticeFilter.ALL,
+                                updateFilterSetter
+                        )));
+    }
+
+    private static int setUpdateFilter(
+            CommandSourceStack source,
+            UpdateNoticeFilter filter,
+            Consumer<UpdateNoticeFilter> updateFilterSetter
+    ) {
+        updateFilterSetter.accept(filter);
+        source.sendSuccess(
+                new TextComponent(
+                        "[VH Accelerator] Update notices now show "
+                                + filterDescription(filter)
+                                + ". Saved and applied immediately."
+                ),
+                false
+        );
+        return 1;
+    }
+
     private static int reportUpdates(
             CommandSourceStack source,
-            BooleanSupplier updateChecksEnabled
+            BooleanSupplier updateChecksEnabled,
+            Supplier<UpdateNoticeFilter> updateFilter
     ) {
         boolean enabled = updateChecksEnabled.getAsBoolean();
-        sendState(source, "Update checks", enabled, null);
+        sendState(
+                source,
+                "Update checks",
+                enabled,
+                "Showing " + filterDescription(updateFilter.get()) + "."
+        );
         return enabled ? 1 : 0;
     }
 
     private static int reportAll(
             CommandSourceStack source,
-            BooleanSupplier updateChecksEnabled
+            BooleanSupplier updateChecksEnabled,
+            Supplier<UpdateNoticeFilter> updateFilter
     ) {
         String updateState = updateChecksEnabled == null
                 ? ""
-                : ", updates=" + state(updateChecksEnabled.getAsBoolean());
+                : ", updates=" + state(updateChecksEnabled.getAsBoolean())
+                + ", updateTypes=" + updateFilter.get().name();
         source.sendSuccess(
                 new TextComponent(
                         "[VH Accelerator] Compare="
@@ -324,6 +410,12 @@ public final class VHAcceleratorCommand {
 
     private static String state(boolean enabled) {
         return enabled ? "ON" : "OFF";
+    }
+
+    private static String filterDescription(UpdateNoticeFilter filter) {
+        return filter == UpdateNoticeFilter.ALL
+                ? "all available updates"
+                : "critical updates only";
     }
 
     @FunctionalInterface
