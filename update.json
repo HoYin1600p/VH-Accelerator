@@ -1,10 +1,10 @@
 {
   "homepage": "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator",
   "1.18.2": {
-    "1.0.12": "Update Notifications"
+    "1.0.13": "Update Notice Preferences"
   },
   "promos": {
-    "1.18.2-latest": "1.0.12",
-    "1.18.2-recommended": "1.0.12"
+    "1.18.2-latest": "1.0.13",
+    "1.18.2-recommended": "1.0.13"
   }
 }
