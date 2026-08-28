@@ -9,6 +9,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Performance
+
+### Compatibility
+
+### Server
+
+### Removed
+
+## [1.0.13] - 2026-08-27
+
+### Added
+
 - Added `updates.updateTypes` with `CRITICAL` and `ALL` choices. New and
   existing installations default to showing critical updates only.
 - Added `/vha updates critical` and `/vha updates all` so the notice filter can
