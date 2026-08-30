@@ -8,7 +8,7 @@ public enum BackportFeature {
             "forgeHandshakeBatching",
             "Forge handshake batching",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.fix_handshake_stall.HandshakeHandlerMixin"),
             List.of()
@@ -18,7 +18,7 @@ public enum BackportFeature {
             "chunkMeshing",
             "Chunk meshing",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.chunk_meshing.RebuildTaskMixin"),
             List.of()
@@ -28,7 +28,7 @@ public enum BackportFeature {
             "bufferBuilderLeakFix",
             "BufferBuilder leak correction",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("bugfix.buffer_builder_leak.RenderBuffersMixin"),
             List.of(
@@ -41,7 +41,7 @@ public enum BackportFeature {
             "attributeSupplierDeduplication",
             "Attribute-supplier deduplication",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.attribute_supplier_dedup.AttributeSupplierMixin",
@@ -54,7 +54,7 @@ public enum BackportFeature {
             "attachCapabilitiesDispatch",
             "AttachCapabilitiesEvent dispatch",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.forge_cap_retrieval.AttachCapabilitiesEventMixin"),
             List.of(
@@ -67,7 +67,7 @@ public enum BackportFeature {
             "compactModFileScanData",
             "ModFileScanData compaction",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(),
             List.of("org.embeddedt.modernfix.forge.load.ModFileScanDataCompactor")
@@ -100,7 +100,7 @@ public enum BackportFeature {
             "forgeTagConcurrencyFixes",
             "Forge tag-registry concurrency",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "bugfix.concurrency.MappedRegistryMixin",
@@ -121,7 +121,7 @@ public enum BackportFeature {
             "serverEventLoopFix",
             "Server event-loop correction",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.fix_loop_spin_waiting.MinecraftServerMixin"),
             List.of(
@@ -134,7 +134,7 @@ public enum BackportFeature {
             "modernFixIntegratedWatchdogCorrection",
             "ModernFix integrated-watchdog correction",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of(),
             List.of()
@@ -144,7 +144,7 @@ public enum BackportFeature {
             "stateDefinitionConstruction",
             "Graceful blockstate-definition construction",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.state_definition_construct.StateDefinitionMixin"
@@ -156,7 +156,7 @@ public enum BackportFeature {
             "compactPaletteValidation",
             "Guarded compact palette validation",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.compact_bit_storage.PalettedContainerMixin"),
             List.of()
@@ -166,7 +166,7 @@ public enum BackportFeature {
             "modernFixJeiSearchSnapshot",
             "ModernFix JEI search snapshot correction",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of(),
             List.of()
@@ -176,7 +176,7 @@ public enum BackportFeature {
             "modernFixNightConfigWatcherCorrection",
             "ModernFix NightConfig watcher correction",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(),
             List.of()
@@ -186,7 +186,7 @@ public enum BackportFeature {
             "backgroundWorkerLimit",
             "Bounded Minecraft background workers",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of(),
             List.of()
@@ -196,7 +196,7 @@ public enum BackportFeature {
             "compactEntityModels",
             "Entity-model compaction",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.compact_entity_models.CubeDefinitionMixin"),
             List.of(
@@ -209,7 +209,7 @@ public enum BackportFeature {
             "worldgenMaterialRuleIteration",
             "World-generation material-rule iteration",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.MaterialRuleListMixin"),
             List.of(
@@ -222,7 +222,7 @@ public enum BackportFeature {
             "worldgenSurfaceRuleIteration",
             "World-generation surface-rule iteration",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.SequenceRuleMixin"),
             List.of(
@@ -235,7 +235,7 @@ public enum BackportFeature {
             "worldgenNoiseFunctionCache",
             "World-generation noise-function cache lookup",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.NoiseChunkMixin"),
             List.of(
@@ -248,7 +248,7 @@ public enum BackportFeature {
             "worldgenBiomeSupplierReuse",
             "World-generation biome-supplier reuse",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.SurfaceRulesContextMixin"),
             List.of(
@@ -261,7 +261,7 @@ public enum BackportFeature {
             "worldgenDirectYConditions",
             "World-generation direct Y-condition evaluation",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.SurfaceRulesMixin"),
             List.of(
@@ -274,7 +274,7 @@ public enum BackportFeature {
             "worldgenDeferredClimateTree",
             "Deferred world-generation climate tree",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.worldgen_allocation.ClimateParameterListMixin"),
             List.of(
@@ -287,7 +287,7 @@ public enum BackportFeature {
             "earlyStructureLocationRejection",
             "Early structure-location rejection",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.faster_structure_location.StructureCheckMixin"),
             List.of(
@@ -300,7 +300,7 @@ public enum BackportFeature {
             "compactObjectHolderThrowables",
             "Object-holder diagnostic compaction",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(),
             List.of(
@@ -313,7 +313,7 @@ public enum BackportFeature {
             "removeRedundantObjectHolderCallbacks",
             "Redundant Forge object-holder callback cleanup",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.object_holder_cleanup.GameDataMixin"),
             List.of(
@@ -326,7 +326,7 @@ public enum BackportFeature {
             "fasterLootLoading",
             "Loot-table resource-origin reuse",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.faster_loot_loading.LootDataManagerMixin",
@@ -344,7 +344,7 @@ public enum BackportFeature {
             "dynamicClientLanguages",
             "Dynamic client-language storage",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.dynamic_languages.ClientLanguageMixin"),
             List.of(
@@ -357,7 +357,7 @@ public enum BackportFeature {
             "profileTextureHashCache",
             "Profile-texture hash cache",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.cache_profile_texture_url.SkinManagerMixin"),
             List.of(
@@ -370,7 +370,7 @@ public enum BackportFeature {
             "disableTelemetry",
             "Client telemetry suppression",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of(
                     "feature.remove_telemetry.ClientTelemetryManagerMixin",
@@ -388,7 +388,7 @@ public enum BackportFeature {
             "fasterIngredientTagLookups",
             "Faster ingredient tag lookups",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.faster_ingredients.IngredientMixin",
@@ -406,7 +406,7 @@ public enum BackportFeature {
             "fasterIngredientExpansionCache",
             "Soft ingredient expansion cache",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.faster_ingredients.IngredientMixin"),
             List.of(
@@ -419,7 +419,7 @@ public enum BackportFeature {
             "ingredientItemValueDeduplication",
             "Ingredient item-value deduplication",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.ingredient_item_deduplication.IngredientMixin",
@@ -435,7 +435,7 @@ public enum BackportFeature {
             "modelSelectorPredicateCache",
             "Multipart model-selector predicate cache",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.model_optimizations.SelectorMixin"),
             List.of(
@@ -448,7 +448,7 @@ public enum BackportFeature {
             "modelVariantTraversal",
             "Allocation-light model-variant traversal",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.model_optimizations.MultiVariantMixin"),
             List.of(
@@ -461,7 +461,7 @@ public enum BackportFeature {
             "modelTransformationHashCache",
             "Model transformation hash cache",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.model_optimizations.TransformationMatrixMixin"),
             List.of(
@@ -474,7 +474,7 @@ public enum BackportFeature {
             "objModelCacheConcurrency",
             "Thread-safe Forge OBJ model caches",
             BackportSide.CLIENT,
-            false,
+            true,
             true,
             List.of("perf.model_optimizations.OBJLoaderMixin"),
             List.of(
@@ -487,7 +487,7 @@ public enum BackportFeature {
             "mappedRegistryGrowth",
             "Geometric Mojang registry growth",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.mojang_registry_size.MappedRegistryMixin"),
             List.of(
@@ -500,7 +500,7 @@ public enum BackportFeature {
             "forgeRegistryLambdaElision",
             "Forge registry hot-path allocation removal",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.forge_registry_lambda.RegistryObjectMixin",
@@ -518,7 +518,7 @@ public enum BackportFeature {
             "forgeRegistryRegistrationAcceleration",
             "Forge registry registration acceleration",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.fast_registry_validation.ForgeRegistryMixin"),
             List.of(
@@ -531,7 +531,7 @@ public enum BackportFeature {
             "blockPropertyNameDeduplication",
             "Block-property name deduplication",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of(
                     "perf.model_optimizations.PropertyMixin",
@@ -549,7 +549,7 @@ public enum BackportFeature {
             "resourceKeyInterning",
             "Allocation-light resource-key interning",
             BackportSide.COMMON,
-            false,
+            true,
             true,
             List.of("perf.mojang_registry_size.ResourceKeyMixin"),
             List.of(

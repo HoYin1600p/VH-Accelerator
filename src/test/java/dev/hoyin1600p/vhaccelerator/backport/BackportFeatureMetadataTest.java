@@ -7,6 +7,17 @@ import org.junit.jupiter.api.Test;
 
 final class BackportFeatureMetadataTest {
     @Test
+    void implementedFeaturesDefaultOnAndUnavailableFeaturesDefaultOff() {
+        for (BackportFeature feature : BackportFeature.values()) {
+            assertEquals(
+                    feature.implemented(),
+                    feature.defaultEnabled(),
+                    feature.id()
+            );
+        }
+    }
+
+    @Test
     void attachCapabilitiesRequiresTheExactModernFixMixin() {
         assertEquals(
                 List.of(
