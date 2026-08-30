@@ -19,6 +19,8 @@
     "backport.modernfix.recipe.dedup.IngredientItemValueMixin",
     "backport.modernfix.recipe.dedup.IngredientValueDeduplicationMixin",
     "backport.modernfix.registry.growth.MappedRegistryMixin",
+    "backport.modernfix.registry.lambda.RegistryDelegateMixin",
+    "backport.modernfix.registry.lambda.RegistryObjectMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",

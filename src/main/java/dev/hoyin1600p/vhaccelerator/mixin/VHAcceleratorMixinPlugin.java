@@ -440,6 +440,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.registry.lambda."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FORGE_REGISTRY_LAMBDA_ELISION
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.recipe."
         )) {
             return BackportOwnershipRegistry.vhaOwns(

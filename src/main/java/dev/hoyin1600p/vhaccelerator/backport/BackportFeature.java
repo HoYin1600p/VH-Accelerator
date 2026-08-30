@@ -416,6 +416,24 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "mojang_registry_size.MappedRegistryMixin"
             )
+    ),
+    FORGE_REGISTRY_LAMBDA_ELISION(
+            "forge_registry_lambda_elision",
+            "forgeRegistryLambdaElision",
+            "Forge registry hot-path allocation removal",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.forge_registry_lambda.RegistryObjectMixin",
+                    "perf.forge_registry_lambda.RegistryDelegateMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "forge_registry_lambda.RegistryObjectMixin",
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "forge_registry_lambda.RegistryDelegateMixin"
+            )
     );
 
     private final String id;
