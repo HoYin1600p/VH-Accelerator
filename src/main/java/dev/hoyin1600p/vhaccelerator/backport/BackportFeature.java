@@ -403,6 +403,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.forge.mixin.perf."
                             + "model_optimizations.OBJLoaderMixin"
             )
+    ),
+    MAPPED_REGISTRY_GROWTH(
+            "mapped_registry_growth",
+            "mappedRegistryGrowth",
+            "Geometric Mojang registry growth",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.mojang_registry_size.MappedRegistryMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "mojang_registry_size.MappedRegistryMixin"
+            )
     );
 
     private final String id;

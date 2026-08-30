@@ -433,6 +433,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.registry.growth."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.MAPPED_REGISTRY_GROWTH
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.recipe."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
