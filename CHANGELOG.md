@@ -46,6 +46,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Corrected ModernFix ownership detection for the newer
+  `AttachCapabilitiesEvent` dispatch precursor. ModernFix 5.18's older
+  `forge_cap_retrieval` category no longer claims a mixin class that it does
+  not contain, allowing VHA's exact newer correction to run beside the older
+  non-overlapping LivingEntity optimization.
+
 - Telemetry suppression now also wraps VHA's asynchronous user-service result
   at its early return point. The separate vanilla return hook cannot observe a
   cancellable HEAD return, which otherwise allowed a telemetry session to be

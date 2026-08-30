@@ -57,7 +57,10 @@ public enum BackportFeature {
             false,
             true,
             List.of("perf.forge_cap_retrieval.AttachCapabilitiesEventMixin"),
-            List.of()
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "forge_cap_retrieval.AttachCapabilitiesEventMixin"
+            )
     ),
     MOD_FILE_SCAN_DATA_COMPACTION(
             "mod_file_scan_data_compaction",
