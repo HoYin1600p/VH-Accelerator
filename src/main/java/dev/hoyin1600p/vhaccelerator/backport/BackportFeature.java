@@ -181,6 +181,16 @@ public enum BackportFeature {
             List.of(),
             List.of()
     ),
+    BACKGROUND_WORKER_LIMIT(
+            "background_worker_limit",
+            "backgroundWorkerLimit",
+            "Bounded Minecraft background workers",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of(),
+            List.of()
+    ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",
             "compactEntityModels",

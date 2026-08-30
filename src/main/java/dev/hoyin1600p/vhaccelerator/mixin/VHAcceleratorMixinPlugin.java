@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
 import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
 import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.config.NightConfigWatcherCorrection;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.thread.BackgroundWorkerLimit;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -222,6 +223,26 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             } else {
                 LOGGER.warn(
                         "Could not apply the ModernFix NightConfig watcher correction; retained the installed watcher"
+                );
+            }
+        }
+        if (physicalClient
+                && !BootstrapCompareMode.enabled()
+                && BootstrapBackportConfig.enabled(
+                        BackportFeature.BACKGROUND_WORKER_LIMIT
+                )) {
+            BackgroundWorkerLimit.Result workerLimit =
+                    BackgroundWorkerLimit.configure();
+            if (workerLimit == BackgroundWorkerLimit.Result.CONFIGURED) {
+                LOGGER.info(
+                        "Configured Minecraft max.bg.threads={} through VHA",
+                        System.getProperty("max.bg.threads")
+                );
+            } else if (workerLimit
+                    == BackgroundWorkerLimit.Result.USER_VALUE_RETAINED) {
+                LOGGER.info(
+                        "Retained explicit max.bg.threads={} instead of applying VHA's worker limit",
+                        System.getProperty("max.bg.threads")
                 );
             }
         }
