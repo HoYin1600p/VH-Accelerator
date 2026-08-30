@@ -390,6 +390,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "model_optimizations.TransformationMatrixMixin"
             )
+    ),
+    OBJ_MODEL_CACHE_CONCURRENCY(
+            "obj_model_cache_concurrency",
+            "objModelCacheConcurrency",
+            "Thread-safe Forge OBJ model caches",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.model_optimizations.OBJLoaderMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "model_optimizations.OBJLoaderMixin"
+            )
     );
 
     private final String id;
