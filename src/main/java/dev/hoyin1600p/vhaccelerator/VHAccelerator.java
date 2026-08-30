@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeSupplierD
 import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.load.ModFileScanDataCompactor;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.registry.ObjectHolderThrowableCompactor;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -69,6 +70,11 @@ public final class VHAccelerator {
         )) {
             event.enqueueWork(this::compactModFileScanData);
         }
+        if (BackportOwnershipRegistry.vhaOwns(
+                BackportFeature.OBJECT_HOLDER_THROWABLE_COMPACTION
+        )) {
+            event.enqueueWork(this::compactObjectHolderThrowables);
+        }
     }
 
     private void compactModFileScanData() {
@@ -87,6 +93,24 @@ public final class VHAccelerator {
                 statistics.classesAfter(),
                 statistics.canonicalTypes(),
                 statistics.failedFiles()
+        );
+    }
+
+    private void compactObjectHolderThrowables() {
+        ObjectHolderThrowableCompactor.Statistics statistics =
+                ObjectHolderThrowableCompactor.compactForgeHolders();
+        if (!statistics.available()) {
+            LOGGER.warn(
+                    "Forge object-holder diagnostic compaction could not be initialized"
+            );
+            return;
+        }
+        LOGGER.info(
+                "Compacted {} captured Forge object-holder diagnostic stack "
+                        + "traces across {} handlers ({} isolated failures)",
+                statistics.throwablesCleared(),
+                statistics.holdersVisited(),
+                statistics.failures()
         );
     }
 

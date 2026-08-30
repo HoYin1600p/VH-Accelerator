@@ -95,6 +95,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added a default-off beta climate-tree option that defers expensive biome
   search-tree construction from bootstrap until its first actual indexed
   lookup, with synchronized one-time construction and volatile publication.
+- Added default-off Forge object-holder diagnostic compaction at load
+  completion. It replaces only compiler-captured registration calling-site
+  stack traces with one empty shared marker after registration has succeeded;
+  every callback remains installed for world snapshots and registry remaps.
 
 ### Compatibility
 
@@ -102,6 +106,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   1.18.2 after verifying that SecureJarHandler still needs those digests for
   classes loaded after bootstrap. VHA preserves later class verification
   instead of taking the unsafe memory shortcut.
+- Deliberately did not import ModernFix's newer redundant-holder removal into
+  Forge 40. Forge 1.18.2 still reapplies those callbacks during snapshot
+  injection and registry restoration, so this port limits itself to dead
+  diagnostic data rather than changing remap behavior.
 
 ### Server
 

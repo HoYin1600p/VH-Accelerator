@@ -151,6 +151,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `worldgenDirectYConditions` | client + server | `false` | Implemented; bypasses ineffective `LazyYCondition` bookkeeping for the five generated surface conditions whose cache key changes at every block position. Useful XZ and shared temperature-condition caches are left intact. |
 | `worldgenDeferredClimateTree` | client + server | `false` | Implemented as a beta option; defers each biome climate search tree from construction-time bootstrap until its first indexed lookup. The original tree and search algorithm are retained, and concurrent first use publishes one fully built tree. |
 | `earlyStructureLocationRejection` | client + server | `false` | Implemented; after chunk storage has no decisive answer, checks the generator's existing placement table before running the expensive full structure-generation probe. Known starts and valid candidate chunks retain vanilla behavior. |
+| `compactObjectHolderThrowables` | client + server | `false` | Implemented; after Forge load completion, replaces synthetic registration calling-site stack traces captured by object-holder callbacks with one empty shared marker. Holder callbacks stay registered so world snapshot injection, remaps, and registry restoration retain Forge behavior. |
 
 For each feature, ModernFix's effective option is checked independently. An
 active ModernFix implementation owns the path; an unknown ModernFix state

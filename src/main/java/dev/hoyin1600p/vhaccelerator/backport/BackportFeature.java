@@ -229,6 +229,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "faster_structure_location.StructureCheckMixin"
             )
+    ),
+    OBJECT_HOLDER_THROWABLE_COMPACTION(
+            "object_holder_throwable_compaction",
+            "compactObjectHolderThrowables",
+            "Object-holder diagnostic compaction",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(),
+            List.of(
+                    "org.embeddedt.modernfix.forge.registry."
+                            + "ObjectHolderClearer"
+            )
     );
 
     private final String id;

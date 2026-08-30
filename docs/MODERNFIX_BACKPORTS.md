@@ -58,6 +58,7 @@ and add the earlier source to `THIRD_PARTY_NOTICES.md`.
 | Direct worldgen Y-condition evaluation | `mixin/backport/modernfix/worldgen/SurfaceRulesDirectYConditionMixin.java`<br>`META-INF/accesstransformer.cfg` | `common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/worldgen_allocation/SurfaceRulesMixin.java`<br>`common/src/main/resources/modernfix.accesswidener` | `25976f3b870313502afe20913478090b9faf2f89` | Copyright (c) 2024; embeddedt and ModernFix contributors; LGPL-3.0-or-later | Verified the five exact generated 1.18.2 classes and bypassed only their ineffective `LazyYCondition` bookkeeping. Conditions with useful XZ or shared temperature caching are deliberately not targeted. | Off; common/world generation |
 | Deferred climate parameter tree | `mixin/backport/modernfix/worldgen/ClimateParameterListMixin.java`<br>`META-INF/accesstransformer.cfg` | `src/main/java/org/embeddedt/modernfix/common/mixin/perf/worldgen_allocation/ClimateParameterListMixin.java`<br>`src/main/resources/META-INF/accesstransformer.cfg` | `4e3ec7898ed34a1eabb87d3ff39129e264434e3f` | Copyright (c) 2026; embeddedt and ModernFix contributors; LGPL-3.0-or-later | Verified Minecraft 1.18.2 eagerly builds the same private `RTree` in `ParameterList` construction. Retargeted both descriptors and uses an uninitialized JVM-default volatile flag so no merged mixin field initializer can run too late. The first indexed lookup builds the unchanged tree once under synchronization and safely publishes it. | Off/beta; common/world generation and bootstrap |
 | Early structure-location rejection | `mixin/backport/modernfix/structure/ChunkGeneratorAccessor.java`<br>`mixin/backport/modernfix/structure/StructureCheckMixin.java` | `common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/faster_structure_location/ChunkGeneratorAccessor.java`<br>`common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/faster_structure_location/StructureCheckMixin.java` | `2e8c00357239827b05c9afd06f6a000e524ac3d9` | Copyright (c) 2024; embeddedt and ModernFix contributors; LGPL-3.0-or-later | Retargeted the optimization to Minecraft 1.18.2's `ConfiguredStructureFeature` and `isFeatureChunk` APIs. The port uses standard Mixin redirection, retains all decisive storage results, and returns early only when every generator placement rejects the candidate chunk. | Off; common/structure location |
+| Forge object-holder diagnostic compaction | `backport/modernfix/registry/ObjectHolderThrowableCompactor.java` | `forge/src/main/java/org/embeddedt/modernfix/forge/registry/ObjectHolderClearer.java` | `f36a8f4266355aea3d365ea867925713f6815f09` | Copyright (c) 2023; embeddedt and ModernFix contributors; LGPL-3.0-or-later | Deferred execution to queued Forge load-complete work, after successful registration and all lifecycle listeners. Restricted replacement to synthetic instance fields that capture a `Throwable`, added per-handler failure isolation and statistics, and retained every holder callback required by Forge 40 snapshot injection and restoration. The newer callback-removal extension from `f23348c6cbf68bb44f4fdd95f900f7106278cb11` is intentionally not ported. | Off; common/load lifecycle |
 
 ## Ownership rules
 
@@ -90,6 +91,13 @@ instead of comparing the class bytes. Limiting removal to already verified
 entries would save little, and eagerly reading and verifying every entry would
 trade retained memory for launch I/O and hashing. VHA therefore leaves all
 signature data intact.
+
+ModernFix's newer removal of selected `ObjectHolderRef` callbacks is not
+backported to Forge 40. Forge 1.18.2 calls
+`ObjectHolderRegistry.applyObjectHolders()` after snapshot injection and again
+when registry state is restored. VHA therefore keeps the complete callback set
+and releases only synthetic registration calling-site throwables whose error
+purpose has ended after a successful load lifecycle.
 
 - Compare Mode must bypass every performance-changing backport while retaining
   explicitly enabled measurements.
