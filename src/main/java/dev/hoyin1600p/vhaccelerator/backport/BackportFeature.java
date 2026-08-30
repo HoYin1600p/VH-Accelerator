@@ -65,7 +65,7 @@ public enum BackportFeature {
             "ModFileScanData compaction",
             BackportSide.COMMON,
             false,
-            false,
+            true,
             List.of(),
             List.of("org.embeddedt.modernfix.forge.load.ModFileScanDataCompactor")
     ),

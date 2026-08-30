@@ -3,6 +3,9 @@ package dev.hoyin1600p.vhaccelerator;
 import com.mojang.logging.LogUtils;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeInstanceTemplates;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeSupplierDeduplication;
+import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
+import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.load.ModFileScanDataCompactor;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -61,6 +64,30 @@ public final class VHAccelerator {
                     statistics.reusedTemplates()
             );
         }
+        if (BackportOwnershipRegistry.vhaOwns(
+                BackportFeature.MOD_FILE_SCAN_DATA_COMPACTION
+        )) {
+            event.enqueueWork(this::compactModFileScanData);
+        }
+    }
+
+    private void compactModFileScanData() {
+        ModFileScanDataCompactor.Statistics statistics =
+                ModFileScanDataCompactor.compactAll();
+        if (!statistics.available()) {
+            LOGGER.warn("Forge scan-data compaction could not be initialized");
+            return;
+        }
+        LOGGER.info(
+                "Compacted Forge scan data across {} files: {} annotations "
+                        + "removed, {} classes retained, {} canonical types, "
+                        + "{} failed files",
+                statistics.filesVisited(),
+                statistics.removedAnnotations(),
+                statistics.classesAfter(),
+                statistics.canonicalTypes(),
+                statistics.failedFiles()
+        );
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {

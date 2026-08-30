@@ -55,6 +55,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   supplies Forge's missing constant non-cancelable answer. This bypasses the
   EventBus cancelability slow path without changing listener order, generic
   filtering, cancellation semantics, or attached capability contents.
+- Added default-off Forge mod-scan compaction after all load-complete listeners.
+  It canonicalizes repeated scan metadata, compacts retained collections, keeps
+  mutable annotation list values for mod compatibility, removes build-time-only
+  annotations, and isolates any failure to the affected mod file.
 
 ### Compatibility
 
