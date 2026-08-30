@@ -390,6 +390,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.DISABLE_TELEMETRY
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.recipe.IngredientExpansionCacheMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_INGREDIENT_EXPANSION_CACHE
+            );
+        }
         if (mixinClassName.contains(
                 ".backport.modernfix.recipe."
         )) {

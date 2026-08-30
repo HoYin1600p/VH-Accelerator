@@ -322,6 +322,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.forge.mixin.perf."
                             + "faster_ingredients.IngredientMixin"
             )
+    ),
+    FASTER_INGREDIENT_EXPANSION_CACHE(
+            "faster_ingredient_expansion_cache",
+            "fasterIngredientExpansionCache",
+            "Soft ingredient expansion cache",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.faster_ingredients.IngredientMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_ingredients.IngredientMixin"
+            )
     );
 
     private final String id;

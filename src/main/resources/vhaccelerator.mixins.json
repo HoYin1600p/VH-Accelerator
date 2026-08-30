@@ -14,6 +14,7 @@
     "backport.modernfix.loot.LootTablesMixin",
     "backport.modernfix.loot.SimpleJsonResourceReloadListenerMixin",
     "backport.modernfix.recipe.IngredientMixin",
+    "backport.modernfix.recipe.IngredientExpansionCacheMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",
