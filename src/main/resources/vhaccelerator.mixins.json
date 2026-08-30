@@ -11,6 +11,8 @@
     "backport.modernfix.capability.AttachCapabilitiesEventMixin",
     "backport.modernfix.network.HandshakeHandlerAccess",
     "backport.modernfix.network.HandshakeHandlerMixin",
+    "backport.modernfix.loot.LootTablesMixin",
+    "backport.modernfix.loot.SimpleJsonResourceReloadListenerMixin",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",
     "backport.modernfix.tag.MappedRegistryTagMixin",
     "backport.modernfix.tag.NamespacedHolderHelperTagMixin",

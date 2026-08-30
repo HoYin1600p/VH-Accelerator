@@ -242,6 +242,24 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.forge.registry."
                             + "ObjectHolderClearer"
             )
+    ),
+    FASTER_LOOT_LOADING(
+            "faster_loot_loading",
+            "fasterLootLoading",
+            "Loot-table resource-origin reuse",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.faster_loot_loading.LootDataManagerMixin",
+                    "perf.faster_loot_loading.ForgeHooksMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_loot_loading.LootDataManagerMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_loot_loading.ForgeHooksMixin"
+            )
     );
 
     private final String id;

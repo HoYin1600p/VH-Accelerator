@@ -91,8 +91,9 @@ Implement these one transformation at a time rather than as feature bundles.
 3. Object-holder diagnostic compaction after Forge load completion. Implemented
    without removing callbacks: Forge 40 still reapplies them during registry
    snapshot injection and restoration.
-4. Faster 1.18 `LootTables` loading while retaining Forge loot events and
-   resource-origin behavior.
+4. Faster 1.18 `LootTables` loading. Implemented by reusing exact source-name
+   metadata from the existing JSON read; Forge's event dispatch and
+   built-in/custom classification remain unchanged.
 5. Reloadable client-language storage if retained-heap evidence supports it.
 6. A bounded profile-texture URL/hash cache if skin/player-head profiling
    supports it.

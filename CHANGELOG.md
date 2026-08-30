@@ -99,6 +99,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   completion. It replaces only compiler-captured registration calling-site
   stack traces with one empty shared marker after registration has succeeded;
   every callback remains installed for world snapshots and registry remaps.
+- Added default-off loot-table resource-origin reuse for Forge 40. The source
+  name captured during the existing JSON read is replayed when `LootTables`
+  asks for it again, eliminating one resource-pack lookup per parsed table
+  while preserving the exact built-in/custom decision, Forge loot-table events,
+  parsing, validation, and fallback behavior.
 
 ### Compatibility
 

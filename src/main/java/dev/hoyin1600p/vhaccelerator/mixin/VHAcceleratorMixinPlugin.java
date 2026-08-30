@@ -362,6 +362,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.EARLY_STRUCTURE_LOCATION_REJECTION
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.loot."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_LOOT_LOADING
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }
