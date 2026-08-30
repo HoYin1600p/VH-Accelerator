@@ -33,6 +33,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
     private boolean fluidloggedLoaded;
+    private boolean isometricRendersLoaded;
+    private boolean witherStormModLoaded;
     private boolean jeiLoaded;
     private int jeiGeneration;
     private boolean vaultHuntersLoaded;
@@ -73,6 +75,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     || modList.getModFileById("lithium") != null);
             fluidloggedLoaded = modList != null
                     && modList.getModFileById("fluidlogged") != null;
+            isometricRendersLoaded = modList != null
+                    && modList.getModFileById("isometric-renders") != null;
+            witherStormModLoaded = modList != null
+                    && modList.getModFileById("witherstormmod") != null;
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
                 if (jeiLoaded
@@ -162,6 +168,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
             fluidloggedLoaded = false;
+            isometricRendersLoaded = false;
+            witherStormModLoaded = false;
             jeiLoaded = false;
             jeiGeneration = 0;
             vaultHuntersLoaded = false;
@@ -261,6 +269,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.CHUNK_MESHING
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.buffer."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.BUFFER_BUILDER_LEAK_FIX
             );
         }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
@@ -492,10 +507,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
 
         ClassLoader loader = VHAcceleratorMixinPlugin.class.getClassLoader();
+        boolean markerPresent = false;
         for (String markerClass : feature.modernFixMarkerClasses()) {
             try {
                 Class.forName(markerClass, false, loader);
-                return ModernFixOwnership.ACTIVE;
+                markerPresent = true;
+                break;
             } catch (ClassNotFoundException ignored) {
                 // This ModernFix build does not contain this unconditional path.
             } catch (RuntimeException | LinkageError failure) {
@@ -506,6 +523,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         failure
                 );
                 return ModernFixOwnership.UNKNOWN;
+            }
+        }
+
+        if (!feature.modernFixMarkerClasses().isEmpty()) {
+            if (!markerPresent) {
+                return ModernFixOwnership.INACTIVE;
+            }
+            if (feature.modernFixMixinKeys().isEmpty()) {
+                return ModernFixOwnership.ACTIVE;
             }
         }
 
@@ -548,6 +574,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private String probeBackportCompatibility(BackportFeature feature) {
         if (feature == BackportFeature.CHUNK_MESHING && fluidloggedLoaded) {
             return "Fluidlogged changes the chunk meshing state lookup path";
+        }
+        if (feature == BackportFeature.BUFFER_BUILDER_LEAK_FIX
+                && (isometricRendersLoaded || witherStormModLoaded)) {
+            return "an upstream-incompatible render mod is installed"
+                    + " (Isometric Renders or Cracker's Wither Storm Mod)";
         }
         return null;
     }

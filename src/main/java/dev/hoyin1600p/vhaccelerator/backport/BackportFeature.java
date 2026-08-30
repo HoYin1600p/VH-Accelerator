@@ -29,12 +29,12 @@ public enum BackportFeature {
             "BufferBuilder leak correction",
             BackportSide.CLIENT,
             false,
-            false,
+            true,
+            List.of("bugfix.buffer_builder_leak.RenderBuffersMixin"),
             List.of(
-                    "bugfix.buffer_builder_leak.RenderBuffersMixin",
-                    "bugfix.buffer_builder_leak.BufferBuilderMixin"
-            ),
-            List.of()
+                    "org.embeddedt.modernfix.common.mixin.bugfix."
+                            + "buffer_builder_leak.RenderBuffersMixin"
+            )
     ),
     ATTRIBUTE_SUPPLIER_DEDUPLICATION(
             "attribute_supplier_deduplication",

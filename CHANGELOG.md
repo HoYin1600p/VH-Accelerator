@@ -43,6 +43,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   light section iterator while preserving vanilla traversal order and avoids
   the duplicate BlockState lookup in each block render pass. Unexpected bounds
   and lookup sequences fall back safely, and Fluidlogged disables the feature.
+- Added a default-off client `RenderBuffers` correction that prevents duplicate
+  render-type registration from allocating and abandoning a native
+  `BufferBuilder`. It remains independently owned beside stock ModernFix's
+  older finalizer recovery and retains upstream mod exclusions.
 
 ### Compatibility
 

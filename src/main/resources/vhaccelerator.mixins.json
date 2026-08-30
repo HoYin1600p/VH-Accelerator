@@ -16,6 +16,7 @@
     "PathResourcePackIndexMixin"
   ],
   "client": [
+    "backport.modernfix.client.buffer.RenderBuffersMixin",
     "backport.modernfix.client.render.RebuildTaskMixin",
     "client.ClientMainMixin",
     "client.BlockModelShaperLocationMixin",
