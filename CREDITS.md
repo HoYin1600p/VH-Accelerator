@@ -4,11 +4,16 @@ VH Accelerator exists because other mod authors made large-pack loading
 performance visible, measurable, and worth investigating. Credit is given here
 for discovery and inspiration even when no code was reused.
 
-VH Accelerator's tracked source was independently written for this project and
-is released under the MIT License. No third-party mod jar, decompiled output,
-or source tree is included in the repository or release jar. References were
-used to understand behavior, locate bottlenecks, study APIs, compare safety
-boundaries, and design independent Forge 1.18.2 implementations.
+Releases through 1.0.13 were independently written for this project and remain
+available under their published MIT terms. Post-1.0.13 development is licensed
+under LGPL-3.0-or-later so selected ModernFix fixes can be adapted with their
+license, provenance, and copyright notices intact. No third-party mod jar or
+decompiled output is included in release jars.
+
+Research-only references are still distinguished from derived source. Every
+ModernFix-derived file must identify its exact upstream source path and commit;
+the public ledger is [docs/MODERNFIX_BACKPORTS.md](docs/MODERNFIX_BACKPORTS.md)
+and required notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Primary discovery inspiration
 
@@ -95,12 +100,24 @@ objects.
 
 ### ModernFix — embeddedt and contributors
 
+- Author/maintainer: [embeddedt](https://github.com/embeddedt)
 - Source: [embeddedt/ModernFix](https://github.com/embeddedt/ModernFix)
+- 1.18.2 baseline: tag `5.18.0+1.18.2`, commit
+  `fe855f15304ed788122a27cda4c2495a78374528`
+- License: LGPL-3.0-or-later
 
 ModernFix informed resource-pack indexing, BlockState cache analysis, dynamic
 resource compatibility, and the principle that two mods should not transform
 the same loading path simultaneously. VH Accelerator queries ModernFix's
 effective dynamic-resource choice and yields overlapping mixins.
+
+Beginning with post-1.0.13 development, selected later ModernFix fixes may be
+adapted into VH Accelerator. Those ports are modifications for Minecraft
+1.18.2 and are not official ModernFix releases. Each one must retain a
+file-level SPDX notice, upstream copyright, source URL, source path, exact
+commit, and a summary of VH Accelerator's changes. ModernFix's own README notes
+that its configuration system derives from Sodium under LGPL-3.0; any port
+touching that lineage must retain the additional Sodium provenance as well.
 
 ### LazyDFU — astei
 
@@ -230,3 +247,7 @@ When a future change is materially informed by another project, add that
 project here and describe the relationship in the same commit. Credit is not
 limited to copied code. Discovery, profiling, rejected designs, test methods,
 and compatibility knowledge all deserve attribution.
+
+Copied or adapted source has a higher bar: it must also be listed in
+`THIRD_PARTY_NOTICES.md`, carry a file-level license/provenance header, and name
+the exact upstream commit in `docs/MODERNFIX_BACKPORTS.md` before release.

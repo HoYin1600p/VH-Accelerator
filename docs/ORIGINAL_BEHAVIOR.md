@@ -3,7 +3,8 @@
 LaunchFaster 1.0 by [DogV2](https://github.com/DogV2) provided the primary
 initial discovery inspiration for VH Accelerator. Its local artifact declares
 the MIT license. Credit is given for the original behaviors even though VH
-Accelerator's tracked implementation was independently written.
+Accelerator's implementation of them was independently written. The project's
+later move to LGPL-3.0-or-later does not change that origin statement.
 
 This document records the behavior observed in the local LaunchFaster 1.0 jar.
 It is an implementation guide, not tracked decompiler output.

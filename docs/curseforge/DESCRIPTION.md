@@ -160,12 +160,14 @@ explain each influence.
 - [Source code and issue tracker](https://github.com/HoYin1600p/VH-Accelerator)
 - [Full installation guide](https://github.com/HoYin1600p/VH-Accelerator/blob/master/docs/INSTALLATION.md)
 - [Configuration reference](https://github.com/HoYin1600p/VH-Accelerator/blob/master/docs/CONFIGURATION.md)
-- License: MIT
+- License: LGPL-3.0-or-later for post-1.0.13 development. Releases through
+  1.0.13 retain their originally published MIT terms.
 
-No third-party mod jar or source is bundled. Minecraft is a trademark of
-Microsoft. Vault Hunters belongs to its respective authors. This independent
-project is not affiliated with Mojang, Microsoft, Forge, Iskallia, JEI, or the
-credited projects.
+No third-party mod jar is bundled. ModernFix-derived backports retain their
+required license, copyright, source, and commit references in the public
+repository. Minecraft is a trademark of Microsoft. Vault Hunters belongs to
+its respective authors. This independent project is not affiliated with
+Mojang, Microsoft, Forge, Iskallia, JEI, or the credited projects.
 
 The project icon is original AI-assisted branding and is not an in-game
 screenshot or a modified official Vault Hunters logo.

@@ -9,7 +9,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added a third-party notice and per-file ModernFix provenance ledger that
+  records exact upstream commits, source paths, copyrights, and modifications
+  for every adapted backport.
+
 ### Changed
+
+- Relicensed post-1.0.13 development from MIT to LGPL-3.0-or-later to match
+  ModernFix-derived work. Published releases through 1.0.13 retain their
+  original MIT terms.
+- Release and source jars now embed the project license, credits, third-party
+  notices, and ModernFix provenance ledger.
 
 ### Fixed
 

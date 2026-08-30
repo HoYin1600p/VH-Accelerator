@@ -22,7 +22,8 @@ original tradeoff.
 
 The decompiled files and extracted resources are ignored by Git. This document
 contains behavioral findings only; no code from the GPL jar was copied into
-VH Accelerator's MIT source.
+VH Accelerator. GPL-3.0 code is not covered by the project's
+LGPL-3.0-or-later license and remains outside the tracked implementation.
 
 The public source currently identifies itself as `1.0.3-u18`, one release
 behind the recovered `1.0.4-u19` binary. It clarifies intent and build

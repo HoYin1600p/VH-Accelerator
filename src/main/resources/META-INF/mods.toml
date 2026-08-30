@@ -10,7 +10,7 @@ displayName = "${mod_name}"
 authors = "${mod_authors}"
 displayURL = "https://github.com/HoYin1600p/VH-Accelerator"
 updateJSONURL = "https://raw.githubusercontent.com/HoYin1600p/VH-Accelerator/master/update.json"
-credits = "Discovery inspiration: LaunchFaster by DogV2 and VHClientOptimize by JustAHuman. See CREDITS.md for complete research attribution."
+credits = "Backport source: ModernFix by embeddedt and contributors. Discovery inspiration: LaunchFaster by DogV2 and VHClientOptimize by JustAHuman. See CREDITS.md and THIRD_PARTY_NOTICES.md."
 displayTest = "MATCH_VERSION"
 description = '''${mod_description}'''
 

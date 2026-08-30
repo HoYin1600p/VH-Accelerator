@@ -2,7 +2,7 @@
 
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-1.0.13-7b68ee)](docs/releases/1.0.13.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
@@ -255,8 +255,15 @@ inspired by LaunchFaster by [DogV2](https://github.com/DogV2) and
 JustAHuman. Many other performance and compatibility projects informed later
 research; all are documented in [CREDITS.md](CREDITS.md).
 
-No third-party mod jar or source is bundled in this repository or release.
-VH Accelerator is licensed under the [MIT License](LICENSE).
+No third-party mod jar is bundled. ModernFix-derived backports are identified
+at file level and recorded with their exact upstream source paths and commits
+in [the backport provenance ledger](docs/MODERNFIX_BACKPORTS.md).
+
+Post-1.0.13 development is licensed under
+[LGPL-3.0-or-later](LICENSE). Releases through 1.0.13 remain available under
+the MIT terms under which they were originally published. Required upstream
+copyright and license notices are collected in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Minecraft is a trademark of Microsoft. Vault Hunters belongs to its respective
 authors. This project is not affiliated with Mojang, Microsoft, Forge,

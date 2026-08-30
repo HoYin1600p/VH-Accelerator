@@ -271,6 +271,10 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ModelBakeryTopLevelCacheMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/client/ReloadListenerProfilerMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/vaulthunters/AbstractTextureAtlasHolderMixin.class',
+                    'META-INF/LICENSE',
+                    'META-INF/THIRD_PARTY_NOTICES.md',
+                    'META-INF/CREDITS.md',
+                    'META-INF/MODERNFIX_BACKPORTS.md',
                     'vhaccelerator.mixins.json'
             ]
             def missingEntries = requiredEntries.findAll {
@@ -362,6 +366,19 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('jar', Jar).configure {
+    from('LICENSE') {
+        into 'META-INF'
+    }
+    from('THIRD_PARTY_NOTICES.md') {
+        into 'META-INF'
+    }
+    from('CREDITS.md') {
+        into 'META-INF'
+    }
+    from('docs/MODERNFIX_BACKPORTS.md') {
+        into 'META-INF'
+    }
+
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
@@ -376,6 +393,21 @@ tasks.named('jar', Jar).configure {
     }
 
     finalizedBy 'reobfJar'
+}
+
+tasks.named('sourcesJar', Jar).configure {
+    from('LICENSE') {
+        into 'META-INF'
+    }
+    from('THIRD_PARTY_NOTICES.md') {
+        into 'META-INF'
+    }
+    from('CREDITS.md') {
+        into 'META-INF'
+    }
+    from('docs/MODERNFIX_BACKPORTS.md') {
+        into 'META-INF'
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
