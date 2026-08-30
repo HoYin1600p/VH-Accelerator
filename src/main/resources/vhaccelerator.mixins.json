@@ -37,6 +37,7 @@
     "backport.modernfix.client.entity.CubeDefinitionMixin",
     "backport.modernfix.client.entity.EntityModelSetMixin",
     "backport.modernfix.client.language.ClientLanguageMixin",
+    "backport.modernfix.client.skin.SkinManagerMixin",
     "backport.modernfix.client.render.RebuildTaskMixin",
     "client.ClientMainMixin",
     "client.BlockModelShaperLocationMixin",

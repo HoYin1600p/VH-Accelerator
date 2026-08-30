@@ -97,8 +97,10 @@ Implement these one transformation at a time rather than as feature bundles.
 5. Reloadable client-language storage. Implemented as a default-off beta using
    resource descriptors and fresh 1.18.2 resource-manager lookups; runtime
    counts provide the retained-memory evidence needed before enabling it.
-6. A bounded profile-texture URL/hash cache if skin/player-head profiling
-   supports it.
+6. A bounded profile-texture URL/hash cache. Implemented as a default-off beta
+   using exact URL keys, a 60-second access lifetime and a 2,048-entry cap;
+   runtime testing still decides whether the installed packs generate enough
+   repeat lookups to justify enabling it.
 7. Optional telemetry suppression through VHA's existing deferred
    `UserApiService` owner, not a competing wrapper.
 8. Optional missing-block-entity client recovery only after reproducing the

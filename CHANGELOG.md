@@ -40,6 +40,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added a default-off bounded profile-texture hash cache. Repeated skin and
+  player-head registrations for the same exact URL reuse Minecraft's parsed
+  hash for 60 seconds, while a 2,048-entry cap prevents unbounded retention.
+
 - Added default-off beta dynamic client-language storage. Resource-owned
   translation strings become compact descriptors backed by soft per-file
   caches, while mod-injected literal translations stay resident. The 1.18.2

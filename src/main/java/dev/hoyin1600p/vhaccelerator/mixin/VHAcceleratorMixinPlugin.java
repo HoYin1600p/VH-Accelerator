@@ -376,6 +376,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.DYNAMIC_CLIENT_LANGUAGES
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.skin."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.PROFILE_TEXTURE_HASH_CACHE
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

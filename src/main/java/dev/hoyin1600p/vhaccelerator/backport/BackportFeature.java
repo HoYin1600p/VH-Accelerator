@@ -273,6 +273,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "dynamic_languages.ClientLanguageMixin"
             )
+    ),
+    PROFILE_TEXTURE_HASH_CACHE(
+            "profile_texture_hash_cache",
+            "profileTextureHashCache",
+            "Profile-texture hash cache",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.cache_profile_texture_url.SkinManagerMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "cache_profile_texture_url.SkinManagerMixin"
+            )
     );
 
     private final String id;
