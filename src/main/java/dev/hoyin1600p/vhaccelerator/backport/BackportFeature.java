@@ -434,6 +434,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.forge.mixin.perf."
                             + "forge_registry_lambda.RegistryDelegateMixin"
             )
+    ),
+    FORGE_REGISTRY_REGISTRATION_ACCELERATION(
+            "forge_registry_registration_acceleration",
+            "forgeRegistryRegistrationAcceleration",
+            "Forge registry registration acceleration",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.fast_registry_validation.ForgeRegistryMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "fast_registry_validation.ForgeRegistryMixin"
+            )
     );
 
     private final String id;

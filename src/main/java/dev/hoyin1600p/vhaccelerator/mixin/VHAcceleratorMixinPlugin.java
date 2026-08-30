@@ -447,6 +447,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.registry.validation."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FORGE_REGISTRY_REGISTRATION_ACCELERATION
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.recipe."
         )) {
             return BackportOwnershipRegistry.vhaOwns(

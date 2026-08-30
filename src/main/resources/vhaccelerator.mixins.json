@@ -21,6 +21,7 @@
     "backport.modernfix.registry.growth.MappedRegistryMixin",
     "backport.modernfix.registry.lambda.RegistryDelegateMixin",
     "backport.modernfix.registry.lambda.RegistryObjectMixin",
+    "backport.modernfix.registry.validation.ForgeRegistryMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",
