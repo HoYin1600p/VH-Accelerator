@@ -147,6 +147,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `worldgenMaterialRuleIteration` | client + server | `false` | Implemented; replaces the per-density-position enhanced-for iterator in vanilla material selection with equivalent indexed list access. This affects world generation only and does not change rule order or early-return behavior. |
 | `worldgenSurfaceRuleIteration` | client + server | `false` | Implemented; evaluates vanilla surface-rule sequences by index rather than allocating an iterator at every surface position. Rule order, first-match behavior, and null fallthrough remain unchanged. |
 | `worldgenNoiseFunctionCache` | client + server | `false` | Implemented; replaces `NoiseChunk`'s bound-method `computeIfAbsent` lookup with an explicit get/create/put sequence. The 1.18.2 adaptation intentionally keeps vanilla's original map implementation and changes only the lookup path. |
+| `worldgenBiomeSupplierReuse` | client + server | `false` | Implemented; repositions one lazy biome supplier instead of allocating a capturing lambda and Guava memoizer for every surface position. It preserves delayed resolution, single resolution per position, mutable-position reuse, and null-result memoization. |
 
 For each feature, ModernFix's effective option is checked independently. An
 active ModernFix implementation owns the path; an unknown ModernFix state

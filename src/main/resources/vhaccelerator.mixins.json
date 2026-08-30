@@ -18,6 +18,7 @@
     "backport.modernfix.worldgen.MaterialRuleListMixin",
     "backport.modernfix.worldgen.NoiseChunkMixin",
     "backport.modernfix.worldgen.SequenceRuleMixin",
+    "backport.modernfix.worldgen.SurfaceRulesContextMixin",
     "ServerMainMixin",
     "SimpleReloadInstanceMixin",
     "ForgeRegistryMixin",

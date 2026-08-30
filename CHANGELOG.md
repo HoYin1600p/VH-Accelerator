@@ -79,6 +79,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added an independent `NoiseChunk` cache-lookup option that removes repeated
   bound method-reference allocation while deliberately retaining 1.18.2's
   original map and cache lifecycle.
+- Added an independent reusable biome-supplier option for surface generation.
+  It retains vanilla's lazy once-per-position lookup—including null-result
+  memoization—without constructing a lambda and memoizer at every position.
 
 ### Compatibility
 

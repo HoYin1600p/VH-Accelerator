@@ -177,6 +177,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.NoiseChunkMixin"
             )
+    ),
+    WORLDGEN_BIOME_SUPPLIER_REUSE(
+            "worldgen_biome_supplier_reuse",
+            "worldgenBiomeSupplierReuse",
+            "World-generation biome-supplier reuse",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.SurfaceRulesContextMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.SurfaceRulesContextMixin"
+            )
     );
 
     private final String id;
