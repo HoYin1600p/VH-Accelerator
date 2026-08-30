@@ -348,6 +348,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.WORLDGEN_DIRECT_Y_CONDITIONS
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.worldgen.ClimateParameterListMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.WORLDGEN_DEFERRED_CLIMATE_TREE
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

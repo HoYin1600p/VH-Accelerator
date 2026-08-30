@@ -203,6 +203,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.SurfaceRulesMixin"
             )
+    ),
+    WORLDGEN_DEFERRED_CLIMATE_TREE(
+            "worldgen_deferred_climate_tree",
+            "worldgenDeferredClimateTree",
+            "Deferred world-generation climate tree",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.ClimateParameterListMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.ClimateParameterListMixin"
+            )
     );
 
     private final String id;

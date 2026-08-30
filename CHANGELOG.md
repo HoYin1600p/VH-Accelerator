@@ -85,6 +85,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added a default-off direct surface Y-condition option that removes ineffective
   cache bookkeeping from biome, stone-depth, vertical-gradient, water, and
   height rules while retaining caching for conditions that can reuse results.
+- Added a default-off beta climate-tree option that defers expensive biome
+  search-tree construction from bootstrap until its first actual indexed
+  lookup, with synchronized one-time construction and volatile publication.
 
 ### Compatibility
 
