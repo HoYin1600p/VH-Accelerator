@@ -341,6 +341,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.WORLDGEN_BIOME_SUPPLIER_REUSE
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.worldgen.SurfaceRulesDirectYConditionMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.WORLDGEN_DIRECT_Y_CONDITIONS
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

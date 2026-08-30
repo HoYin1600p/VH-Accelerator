@@ -190,6 +190,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.SurfaceRulesContextMixin"
             )
+    ),
+    WORLDGEN_DIRECT_Y_CONDITIONS(
+            "worldgen_direct_y_conditions",
+            "worldgenDirectYConditions",
+            "World-generation direct Y-condition evaluation",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.SurfaceRulesMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.SurfaceRulesMixin"
+            )
     );
 
     private final String id;
