@@ -286,6 +286,24 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "cache_profile_texture_url.SkinManagerMixin"
             )
+    ),
+    DISABLE_TELEMETRY(
+            "disable_telemetry",
+            "disableTelemetry",
+            "Client telemetry suppression",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of(
+                    "feature.remove_telemetry.ClientTelemetryManagerMixin",
+                    "feature.remove_telemetry.MinecraftMixin_Telemetry"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.feature."
+                            + "remove_telemetry.ClientTelemetryManagerMixin",
+                    "org.embeddedt.modernfix.common.mixin.feature."
+                            + "remove_telemetry.MinecraftMixin_Telemetry"
+            )
     );
 
     private final String id;

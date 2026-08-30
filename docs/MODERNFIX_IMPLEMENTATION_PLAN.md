@@ -101,8 +101,10 @@ Implement these one transformation at a time rather than as feature bundles.
    using exact URL keys, a 60-second access lifetime and a 2,048-entry cap;
    runtime testing still decides whether the installed packs generate enough
    repeat lookups to justify enabling it.
-7. Optional telemetry suppression through VHA's existing deferred
-   `UserApiService` owner, not a competing wrapper.
+7. Optional telemetry suppression. Implemented as a default-off privacy option
+   around the final 1.18.2 `UserApiService`, so it composes with VHA's deferred
+   service when enabled and the vanilla service when disabled. Profile
+   properties and block-list behavior continue to delegate normally.
 8. Optional missing-block-entity client recovery only after reproducing the
    target failure.
 9. Small world-selection and narrator corrections only when their exact 1.18

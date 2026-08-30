@@ -383,6 +383,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.PROFILE_TEXTURE_HASH_CACHE
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.telemetry."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.DISABLE_TELEMETRY
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

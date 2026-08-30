@@ -9,6 +9,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Added a default-off client telemetry privacy option. It disables only the
+  1.18.2 telemetry session and keeps profile properties, block-list checks,
+  and VHA's optional asynchronous user service intact.
+
 - Added a third-party notice and per-file ModernFix provenance ledger that
   records exact upstream commits, source paths, copyrights, and modifications
   for every adapted backport.
