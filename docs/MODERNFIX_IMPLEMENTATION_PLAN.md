@@ -144,14 +144,19 @@ Recipe work remains separate because VHA already owns JEI publication,
 validation, persistent recipe/ingredient caches, CraftTweaker tag binding and
 several mod-specific indexes.
 
+Status: the first three stages are implemented as independent, default-off
+options. Their focused build checks and CMA Remastered isolated/combined runtime
+tests pass. See `MODERNFIX_PHASE_2_RESULTS.md`. The broader pack, transfer,
+low-memory and dedicated-server matrix below remains required before defaults
+can change.
+
 1. Port allocation-free single-tag membership tests and stacking IDs behind an
    experimental option while leaving `Ingredient#getItems()` vanilla. This
    isolates the first measurable hot-path gain from array/caching semantics.
-2. Add soft-reference ingredient expansion as a second independent experiment,
-   then test eviction, tag invalidation, defensive copies and VHA's canonical
-   fingerprints before enabling it anywhere.
-3. Add `Ingredient.ItemValue`/stack deduplication only after both earlier
-   experiments are stable.
+2. Soft-reference ingredient expansion is implemented as a second independent
+   experiment with reload invalidation and defensive result arrays.
+3. `Ingredient.ItemValue`/stack deduplication is implemented with a
+   reference-queue-cleaned weak interner and defensive stack copies.
 4. Validate vanilla crafting, recipe book, JEI transfer/search, CraftTweaker,
    JEITweaker, CoFH/Thermal, Powah, Iron Furnaces, Industrial Foregoing, JER,
    Vault recipes, server reconnect and cluster transfer behavior.
