@@ -447,6 +447,24 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.forge.mixin.perf."
                             + "fast_registry_validation.ForgeRegistryMixin"
             )
+    ),
+    BLOCK_PROPERTY_NAME_DEDUPLICATION(
+            "block_property_name_deduplication",
+            "blockPropertyNameDeduplication",
+            "Block-property name deduplication",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.model_optimizations.PropertyMixin",
+                    "perf.model_optimizations.BooleanPropertyMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "model_optimizations.PropertyMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "model_optimizations.BooleanPropertyMixin"
+            )
     );
 
     private final String id;

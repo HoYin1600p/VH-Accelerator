@@ -13,6 +13,8 @@
     "backport.modernfix.network.HandshakeHandlerMixin",
     "backport.modernfix.loot.LootTablesMixin",
     "backport.modernfix.loot.SimpleJsonResourceReloadListenerMixin",
+    "backport.modernfix.model.property.BooleanPropertyMixin",
+    "backport.modernfix.model.property.PropertyMixin",
     "backport.modernfix.recipe.IngredientMixin",
     "backport.modernfix.recipe.IngredientExpansionCacheMixin",
     "backport.modernfix.recipe.dedup.IngredientItemValueAccess",
