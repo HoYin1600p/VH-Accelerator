@@ -14,6 +14,7 @@
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",
     "backport.modernfix.tag.MappedRegistryTagMixin",
     "backport.modernfix.tag.NamespacedHolderHelperTagMixin",
+    "backport.modernfix.server.MinecraftServerEventLoopMixin",
     "ServerMainMixin",
     "SimpleReloadInstanceMixin",
     "ForgeRegistryMixin",

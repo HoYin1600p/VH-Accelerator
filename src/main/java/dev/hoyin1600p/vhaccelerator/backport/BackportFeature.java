@@ -119,12 +119,12 @@ public enum BackportFeature {
             "Server event-loop correction",
             BackportSide.COMMON,
             false,
-            false,
+            true,
+            List.of("perf.fix_loop_spin_waiting.MinecraftServerMixin"),
             List.of(
-                    "perf.fix_loop_spin_waiting.BlockableEventLoopMixin",
-                    "perf.fix_loop_spin_waiting.MinecraftServerMixin"
-            ),
-            List.of()
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "fix_loop_spin_waiting.MinecraftServerMixin"
+            )
     ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",

@@ -76,6 +76,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Server
 
+- Added a default-off accurate MC-183518 server event-loop correction for
+  integrated and dedicated servers. During the normal between-tick wait, the
+  server now parks for the exact remaining interval while queued tasks still
+  wake it immediately. Exact ownership detection distinguishes this newer
+  server-specific fix from stock ModernFix 5.18's older broad sleep patch.
+
 ### Removed
 
 ## [1.0.13] - 2026-08-27

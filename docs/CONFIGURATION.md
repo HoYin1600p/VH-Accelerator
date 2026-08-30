@@ -142,7 +142,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `compactImposterProtoChunks` | client + server | `false` | Unavailable on 1.18.2. Its read-only wrappers deliberately keep private sections so `getSection()` cannot expose mutable live-chunk sections. The newer upstream aliasing design would remove that isolation, while limiting it to writable wrappers would affect no vanilla 1.18.2 call site. |
 | `compactManifestSignatureData` | client + server | `false` | Unavailable on Forge 1.18.2. SecureJarHandler 1.0.x uses per-entry manifest digests when a class is first loaded, including classes loaded after Minecraft bootstrap. Removing those digests early can bypass later verification; eagerly verifying every entry would add the I/O and hashing this option was meant to avoid. |
 | `forgeTagConcurrencyFixes` | client + server | `false` | Implemented; makes first-time vanilla, Forge holder-helper, and Forge tag-manager wrapper creation atomic while retaining lock-free reads for existing tags. Forge 40's holder-helper layout is handled explicitly. |
-| `serverEventLoopFix` | client + server | `false` | Planned |
+| `serverEventLoopFix` | client + server | `false` | Implemented; lets integrated and dedicated servers park precisely until the next tick while preserving immediate task wakeups. Stock ModernFix 5.18's older broad event-loop patch does not falsely claim the newer server-specific correction. |
 | `compactEntityModels` | client | `false` | Planned |
 
 For each feature, ModernFix's effective option is checked independently. An
