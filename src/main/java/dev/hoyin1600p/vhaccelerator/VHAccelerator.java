@@ -22,6 +22,7 @@ public final class VHAccelerator {
         ConfigMigration.migrateCommon();
         BootstrapCompareMode.capture();
         BootstrapDebugDiagnostics.capture();
+        BootstrapBackportConfig.capture();
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.COMMON,
                 VHAcceleratorConfig.COMMON_SPEC,

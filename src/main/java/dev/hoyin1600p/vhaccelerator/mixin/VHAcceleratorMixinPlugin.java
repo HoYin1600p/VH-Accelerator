@@ -1,5 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin;
 
+import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
+import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
+import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -26,6 +29,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     );
 
     private boolean modernFixLoaded;
+    private boolean modDiscoveryFailed;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
     private boolean jeiLoaded;
@@ -150,6 +154,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 );
             }
         } catch (RuntimeException exception) {
+            modDiscoveryFailed = true;
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
@@ -178,6 +183,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
+
+        BackportOwnershipRegistry.initialize(
+                physicalClient,
+                this::probeModernFixOwnership
+        );
+        LOGGER.info(
+                "ModernFix backport ownership: {}",
+                BackportOwnershipRegistry.summary()
+        );
 
         if (modernFixLoaded) {
             LOGGER.info("ModernFix detected; disabling overlapping VH Accelerator mixins");
@@ -446,6 +460,70 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         return modernFixDynamicResourcesEnabled;
+    }
+
+    private ModernFixOwnership probeModernFixOwnership(
+            BackportFeature feature
+    ) {
+        if (modDiscoveryFailed) {
+            return ModernFixOwnership.UNKNOWN;
+        }
+        if (!modernFixLoaded) {
+            return ModernFixOwnership.ABSENT;
+        }
+
+        ClassLoader loader = VHAcceleratorMixinPlugin.class.getClassLoader();
+        for (String markerClass : feature.modernFixMarkerClasses()) {
+            try {
+                Class.forName(markerClass, false, loader);
+                return ModernFixOwnership.ACTIVE;
+            } catch (ClassNotFoundException ignored) {
+                // This ModernFix build does not contain this unconditional path.
+            } catch (RuntimeException | LinkageError failure) {
+                LOGGER.debug(
+                        "Could not verify ModernFix marker {} for {}",
+                        markerClass,
+                        feature.id(),
+                        failure
+                );
+                return ModernFixOwnership.UNKNOWN;
+            }
+        }
+
+        if (feature.modernFixMixinKeys().isEmpty()) {
+            return ModernFixOwnership.INACTIVE;
+        }
+        try {
+            Class<?> pluginClass = Class.forName(
+                    "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
+                    false,
+                    loader
+            );
+            Field instanceField = pluginClass.getField("instance");
+            Object instance = instanceField.get(null);
+            if (instance == null) {
+                return ModernFixOwnership.UNKNOWN;
+            }
+            Method optionMethod = pluginClass.getMethod(
+                    "isOptionEnabled",
+                    String.class
+            );
+            for (String option : feature.modernFixMixinKeys()) {
+                if (Boolean.TRUE.equals(optionMethod.invoke(instance, option))) {
+                    return ModernFixOwnership.ACTIVE;
+                }
+            }
+            return ModernFixOwnership.INACTIVE;
+        } catch (ReflectiveOperationException
+                 | RuntimeException
+                 | LinkageError failure) {
+            LOGGER.debug(
+                    "Could not query ModernFix ownership for {}",
+                    feature.id(),
+                    failure
+            );
+            return ModernFixOwnership.UNKNOWN;
+        }
     }
 
     @Override

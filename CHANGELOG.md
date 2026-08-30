@@ -12,6 +12,14 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added a third-party notice and per-file ModernFix provenance ledger that
   records exact upstream commits, source paths, copyrights, and modifications
   for every adapted backport.
+- Added the Phase 0 ModernFix backport framework: immutable early option
+  capture, per-feature ownership decisions, physical-side and Compare Mode
+  gates, and fail-closed ModernFix option detection. No performance-changing
+  backport is active in this framework commit.
+- Added `/vha backports` to explain which mod owns each candidate path and why
+  unavailable or disabled paths stayed off for the current launch.
+- Added focused ownership/config tests and a build gate that rejects future
+  ModernFix-derived Java sources with incomplete provenance headers.
 
 ### Changed
 

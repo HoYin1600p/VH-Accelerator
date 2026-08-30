@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
+import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import java.util.function.ToIntFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -108,7 +109,11 @@ public final class VHAcceleratorCommand {
                                 "jei_audit",
                                 VHAcceleratorCommand::setJeiAudit,
                                 VHAcceleratorCommand::reportJeiAudit
-                        ));
+                        ))
+                        .then(Commands.literal("backports")
+                                .executes(context -> reportBackports(
+                                        context.getSource()
+                                )));
         if (updateChecksEnabled != null
                 && updateChecksSetter != null
                 && updateFilter != null
@@ -382,7 +387,31 @@ public final class VHAcceleratorCommand {
                                         VHAcceleratorConfig
                                                 .jeiRecipeAuditEnabled()
                                 )
+                                + ", backports="
+                                + BackportOwnershipRegistry.summary()
                                 + updateState
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int reportBackports(CommandSourceStack source) {
+        source.sendSuccess(
+                new TextComponent(
+                        "[VH Accelerator] Backport ownership for this launch:"
+                ),
+                false
+        );
+        for (String line : BackportOwnershipRegistry.reportLines()) {
+            source.sendSuccess(
+                    new TextComponent("[VH Accelerator] " + line),
+                    false
+            );
+        }
+        source.sendSuccess(
+                new TextComponent(
+                        "[VH Accelerator] Backport settings are restart-bound."
                 ),
                 false
         );

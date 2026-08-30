@@ -1,5 +1,9 @@
 package dev.hoyin1600p.vhaccelerator;
 
+import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -29,6 +33,7 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue lazyBlockStateCache;
         public final ForgeConfigSpec.BooleanValue cacheResourceListing;
         public final ForgeConfigSpec.BooleanValue indexImmutableModResources;
+        public final Map<BackportFeature, ForgeConfigSpec.BooleanValue> backports;
 
         private Common(ForgeConfigSpec.Builder builder) {
             builder.push("diagnostics");
@@ -111,6 +116,28 @@ public final class VHAcceleratorConfig {
                             "reuse the index. Folder packs, live generated packs, empty-prefix",
                             "queries, failed scans, and ModernFix always keep their original path.")
                     .define("indexImmutableModResources", true);
+            builder.pop();
+
+            builder.push("backports");
+            EnumMap<BackportFeature, ForgeConfigSpec.BooleanValue> options =
+                    new EnumMap<>(BackportFeature.class);
+            for (BackportFeature feature : BackportFeature.values()) {
+                options.put(
+                        feature,
+                        builder.comment(
+                                        feature.displayName() + ".",
+                                        "Restart required. VH Accelerator only takes ownership",
+                                        "when this option is enabled, the implementation is present,",
+                                        "the physical side is compatible, Compare Mode is off, and",
+                                        "ModernFix is absent or has the corresponding option disabled."
+                                )
+                                .define(
+                                        feature.configKey(),
+                                        feature.defaultEnabled()
+                                )
+                );
+            }
+            backports = Collections.unmodifiableMap(options);
             builder.pop();
         }
     }

@@ -15,7 +15,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * snapshot deliberately remains stable for the launch so a run can never
  * switch between optimized and baseline behavior partway through startup.</p>
  */
-final class BootstrapCompareMode {
+public final class BootstrapCompareMode {
     private static final List<String> CONFIG_PATH =
             List.of("diagnostics", "compareMode");
     private static volatile Boolean launchValue;
@@ -23,7 +23,7 @@ final class BootstrapCompareMode {
     private BootstrapCompareMode() {
     }
 
-    static boolean enabled() {
+    public static boolean enabled() {
         Boolean captured = launchValue;
         if (captured != null) {
             return captured;
@@ -43,7 +43,7 @@ final class BootstrapCompareMode {
         }
     }
 
-    static synchronized void capture() {
+    public static synchronized void capture() {
         enabled();
     }
 

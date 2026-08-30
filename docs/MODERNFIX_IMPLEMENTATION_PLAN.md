@@ -40,6 +40,9 @@ state:
 
 Build this before the first upstream implementation port.
 
+Status: implemented on the `modernfix-backports` branch. All candidate behavior
+remains unimplemented and default-off until its own port, tests, and commit.
+
 1. Add an early immutable backport-option snapshot that uses the same launch
    safety model as Compare Mode.
 2. Add a feature ownership table whose result is one of `VHA`, `MODERNFIX`,

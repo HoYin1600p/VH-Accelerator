@@ -23,7 +23,7 @@ file-based so a benchmark records a stable launch configuration.
 
 | Command | Behavior |
 | --- | --- |
-| `/vha` | Reports Compare Mode, timers, debug, JEI audit, and client update-check state. |
+| `/vha` | Reports Compare Mode, timers, debug, JEI audit, backport ownership summary, and client update-check state. |
 | `/vha compare` | Reports Compare Mode; identical to `status`. |
 | `/vha compare on` | Saves Compare Mode as enabled. Restart before measuring launch time. |
 | `/vha compare off` | Saves Compare Mode as disabled. Restart before measuring launch time. |
@@ -40,6 +40,7 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha jei_audit on` | Saves the targeted audit as enabled. Reconnect to log every repaired JEI recipe ID, repair reason, changed roles, and cached-versus-live output UIDs. |
 | `/vha jei_audit off` | Saves the targeted audit as disabled and stops its per-recipe logging. |
 | `/vha jei_audit status` | Reports targeted JEI recipe-cache audit state. |
+| `/vha backports` | Reports the immutable owner and reason for every ModernFix backport candidate for the current JVM launch. |
 | `/vha updates` | Reports client update-check state and the selected update types; identical to `status`. |
 | `/vha updates on` | Saves and immediately enables GitHub update checks and notices. |
 | `/vha updates off` | Saves and immediately disables update checks, cancels an active request, and hides notices. |
@@ -122,6 +123,33 @@ settings resume as soon as the recovery rebuild finishes.
 The four experimental switches default to `false` because they can remove
 validation, diagnostic output, or assumptions made by modded blocks. They are
 not part of the recommended release configuration.
+
+### `[backports]`
+
+These restart-bound switches are the isolated ownership boundary for the
+ModernFix backport project. During the Phase 0 framework commit, every option
+defaults to `false` and no candidate implementation is present yet. Enabling a
+placeholder cannot activate behavior; `/vha backports` reports it as
+`UNAVAILABLE` until its separately tested implementation lands.
+
+| Key | Side | Default |
+| --- | --- | --- |
+| `forgeHandshakeBatching` | client + server | `false` |
+| `chunkMeshing` | client | `false` |
+| `bufferBuilderLeakFix` | client | `false` |
+| `attributeSupplierDeduplication` | client + server | `false` |
+| `attachCapabilitiesDispatch` | client + server | `false` |
+| `compactModFileScanData` | client + server | `false` |
+| `compactImposterProtoChunks` | client + server | `false` |
+| `compactManifestSignatureData` | client + server | `false` |
+| `forgeTagConcurrencyFixes` | client + server | `false` |
+| `serverEventLoopFix` | client + server | `false` |
+| `compactEntityModels` | client | `false` |
+
+For each feature, ModernFix's effective option is checked independently. An
+active ModernFix implementation owns the path; an unknown ModernFix state
+fails closed. Compare Mode, an incompatible physical side, a disabled option,
+or an implementation that has not landed also prevents VHA ownership.
 
 ## Client configuration
 
