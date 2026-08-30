@@ -32,6 +32,10 @@ from Sodium and used under LGPL-3.0. Any VH Accelerator port derived from that
 part of ModernFix must additionally preserve the relevant Sodium copyright and
 provenance in this notice and in its file header.
 
+ModernFix credits Uncandango's AllTheLeaks as the original inspiration for its
+ingredient item-value deduplication. VH Accelerator's adaptation is derived
+from ModernFix's implementation and preserves that discovery credit.
+
 ## Other projects
 
 Projects used only for discovery, compatibility research, APIs, or testing are

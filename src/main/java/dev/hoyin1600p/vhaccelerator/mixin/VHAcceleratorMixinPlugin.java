@@ -398,6 +398,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.recipe.dedup."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.INGREDIENT_ITEM_VALUE_DEDUPLICATION
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.recipe."
         )) {
             return BackportOwnershipRegistry.vhaOwns(

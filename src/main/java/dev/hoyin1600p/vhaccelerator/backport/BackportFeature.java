@@ -335,6 +335,22 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "faster_ingredients.IngredientMixin"
             )
+    ),
+    INGREDIENT_ITEM_VALUE_DEDUPLICATION(
+            "ingredient_item_value_deduplication",
+            "ingredientItemValueDeduplication",
+            "Ingredient item-value deduplication",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.ingredient_item_deduplication.IngredientMixin",
+                    "perf.ingredient_item_deduplication.IngredientItemValueMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "ingredient_item_deduplication.IngredientMixin"
+            )
     );
 
     private final String id;
