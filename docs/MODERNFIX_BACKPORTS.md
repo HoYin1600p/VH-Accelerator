@@ -68,6 +68,19 @@ the wrapped `LevelChunk` array would expose mutable live sections through the
 read-only wrapper and remove vanilla's isolation barrier. Applying the alias only
 when `allowWrites=true` would preserve correctness but has no vanilla 1.18.2 call
 site, so it would provide no memory benefit.
+
+The newer in-memory manifest signature-data compactor is also intentionally not
+ported. Its upstream implementation was introduced by ModernFix commit
+`21cbcb0e0491a82b21cd71f168cc560768aef797` and runs during Minecraft
+bootstrap. Forge 40 uses SecureJarHandler 1.0.x, whose `Jar` retains manifest
+digests so `verifyAndGetSigners` can validate each class when that class is first
+loaded. Mod classes may be loaded after bootstrap. Removing their digest-only
+manifest entries at that point makes the verifier report that no hashes exist
+instead of comparing the class bytes. Limiting removal to already verified
+entries would save little, and eagerly reading and verifying every entry would
+trade retained memory for launch I/O and hashing. VHA therefore leaves all
+signature data intact.
+
 - Compare Mode must bypass every performance-changing backport while retaining
   explicitly enabled measurements.
 - Recipe, JEI, DFU, resource-pack, BlockState, and stronghold work require an

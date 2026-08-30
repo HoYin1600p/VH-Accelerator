@@ -598,6 +598,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return "Minecraft 1.18.2 read-only wrappers require private "
                     + "sections for wrapped-chunk write isolation";
         }
+        if (feature == BackportFeature.MANIFEST_SIGNATURE_COMPACTION) {
+            return "SecureJarHandler 1.0.x retains manifest digests for "
+                    + "verification of classes loaded after bootstrap";
+        }
         return null;
     }
 

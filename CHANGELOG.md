@@ -62,6 +62,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Compatibility
 
+- Marked the newer manifest signature-data compactor unavailable on Forge
+  1.18.2 after verifying that SecureJarHandler still needs those digests for
+  classes loaded after bootstrap. VHA preserves later class verification
+  instead of taking the unsafe memory shortcut.
+
 ### Server
 
 ### Removed
