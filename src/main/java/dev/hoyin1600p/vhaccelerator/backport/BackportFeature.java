@@ -260,6 +260,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "faster_loot_loading.ForgeHooksMixin"
             )
+    ),
+    DYNAMIC_CLIENT_LANGUAGES(
+            "dynamic_client_languages",
+            "dynamicClientLanguages",
+            "Dynamic client-language storage",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.dynamic_languages.ClientLanguageMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "dynamic_languages.ClientLanguageMixin"
+            )
     );
 
     private final String id;

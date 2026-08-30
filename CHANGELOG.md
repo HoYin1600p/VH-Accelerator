@@ -40,6 +40,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added default-off beta dynamic client-language storage. Resource-owned
+  translation strings become compact descriptors backed by soft per-file
+  caches, while mod-injected literal translations stay resident. The 1.18.2
+  adaptation reopens and closes fresh resources instead of retaining vanilla's
+  already-consumed single-use streams, and logs the actual releasable entry and
+  character counts for compatibility and memory validation.
+
 - Added a default-off early structure-location rejection path. When chunk
   storage has no decisive result, it uses the generator's existing placement
   table to reject impossible candidate chunks before vanilla's expensive full

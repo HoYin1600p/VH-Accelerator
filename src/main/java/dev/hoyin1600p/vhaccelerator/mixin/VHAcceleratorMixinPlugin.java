@@ -369,6 +369,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.FASTER_LOOT_LOADING
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.language."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.DYNAMIC_CLIENT_LANGUAGES
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

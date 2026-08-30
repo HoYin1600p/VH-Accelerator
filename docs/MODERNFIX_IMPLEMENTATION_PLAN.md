@@ -94,7 +94,9 @@ Implement these one transformation at a time rather than as feature bundles.
 4. Faster 1.18 `LootTables` loading. Implemented by reusing exact source-name
    metadata from the existing JSON read; Forge's event dispatch and
    built-in/custom classification remain unchanged.
-5. Reloadable client-language storage if retained-heap evidence supports it.
+5. Reloadable client-language storage. Implemented as a default-off beta using
+   resource descriptors and fresh 1.18.2 resource-manager lookups; runtime
+   counts provide the retained-memory evidence needed before enabling it.
 6. A bounded profile-texture URL/hash cache if skin/player-head profiling
    supports it.
 7. Optional telemetry suppression through VHA's existing deferred
