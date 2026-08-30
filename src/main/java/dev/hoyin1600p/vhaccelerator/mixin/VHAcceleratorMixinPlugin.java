@@ -594,6 +594,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return "an upstream-incompatible render mod is installed"
                     + " (Isometric Renders or Cracker's Wither Storm Mod)";
         }
+        if (feature == BackportFeature.IMPOSTER_PROTOCHUNK_COMPACTION) {
+            return "Minecraft 1.18.2 read-only wrappers require private "
+                    + "sections for wrapped-chunk write isolation";
+        }
         return null;
     }
 

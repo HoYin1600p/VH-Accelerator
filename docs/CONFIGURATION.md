@@ -139,7 +139,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `attributeSupplierDeduplication` | client + server | `false` | Implemented; canonicalizes identical vanilla attribute templates during mod loading and replaces each supplier's private immutable-map wrapper with a compact fastutil map. Subclassed templates are excluded and interning stops at Forge load completion. |
 | `attachCapabilitiesDispatch` | client + server | `false` | Implemented; supplies Forge's missing constant non-cancelable event override so repeated capability-attachment dispatch avoids the EventBus cancelability slow path. Event order, listener filtering, and capability contents remain unchanged. |
 | `compactModFileScanData` | client + server | `false` | Implemented; after every Forge load-complete listener finishes, canonicalizes repeated ASM types/member names, compacts retained scan sets/maps, and discards build-time-only Mixin, Kotlin, Scala, nullability, and `OnlyIn` annotations. Per-file failures are isolated. |
-| `compactImposterProtoChunks` | client + server | `false` | Planned |
+| `compactImposterProtoChunks` | client + server | `false` | Unavailable on 1.18.2. Its read-only wrappers deliberately keep private sections so `getSection()` cannot expose mutable live-chunk sections. The newer upstream aliasing design would remove that isolation, while limiting it to writable wrappers would affect no vanilla 1.18.2 call site. |
 | `compactManifestSignatureData` | client + server | `false` | Planned |
 | `forgeTagConcurrencyFixes` | client + server | `false` | Planned |
 | `serverEventLoopFix` | client + server | `false` | Planned |

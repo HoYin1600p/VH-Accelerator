@@ -57,6 +57,17 @@ and add the earlier source to `THIRD_PARTY_NOTICES.md`.
   the same active feature unless the exact ModernFix option is disabled and
   the ownership decision is verified.
 - Unknown ModernFix option state fails closed.
+
+## Rejected after 1.18.2 validation
+
+The newer compact `ImposterProtoChunk` mixin is intentionally not ported. In
+Forge/Minecraft 1.18.2, `ChunkMap` creates these wrappers with
+`allowWrites=false`, and `ImposterProtoChunk#getSection` deliberately reads the
+wrapper's private inherited section array in that mode. Replacing the array with
+the wrapped `LevelChunk` array would expose mutable live sections through the
+read-only wrapper and remove vanilla's isolation barrier. Applying the alias only
+when `allowWrites=true` would preserve correctness but has no vanilla 1.18.2 call
+site, so it would provide no memory benefit.
 - Compare Mode must bypass every performance-changing backport while retaining
   explicitly enabled measurements.
 - Recipe, JEI, DFU, resource-pack, BlockState, and stronghold work require an

@@ -71,7 +71,7 @@ These do not require VHA to patch ModernFix's private implementation.
 | 4 | Attribute-supplier template deduplication | common | off | Registration results remain identity/attribute equivalent and interning stops after registration. |
 | 5 | Faster `AttachCapabilitiesEvent` dispatch precursor | common | off | Event order, cancellation, generic filtering, and every attached capability remain identical under a capability-heavy workload. |
 | 6 | `ModFileScanData` post-load compaction | common/loader | off | Late annotation consumers across all supported packs continue to work after compaction; retained heap decreases. |
-| 7 | Compact `ImposterProtoChunk` inherited sections | common/server | off | Fixed-seed chunk data, lighting, block entities, save/reload and wrapped-chunk write isolation remain identical. |
+| 7 | Compact `ImposterProtoChunk` inherited sections | common/server | unavailable | Rejected after bytecode validation: 1.18.2 constructs read-only wrappers and deliberately routes `getSection()` to private protective sections. Aliasing them to the wrapped chunk would expose live mutable sections; writable-only aliasing has no vanilla call site and no benefit. |
 | 8 | In-memory manifest signature-data compaction | common/loader | off | Forge verification completes before removal and no later consumer loses required manifest data. |
 | 9 | Forge tag-registry concurrency corrections | common | off | Repeated asynchronous tag builds produce stable tag/recipe fingerprints with CraftTweaker and JEITweaker present. |
 | 10 | Accurate server MC-183518 event-loop correction | common/server | off | Server startup and idle loops stop spinning without delaying queued tasks or networking. |
