@@ -126,8 +126,18 @@ public enum BackportFeature {
             List.of("perf.fix_loop_spin_waiting.MinecraftServerMixin"),
             List.of(
                     "org.embeddedt.modernfix.common.mixin.perf."
-                            + "fix_loop_spin_waiting.MinecraftServerMixin"
+                    + "fix_loop_spin_waiting.MinecraftServerMixin"
             )
+    ),
+    MODERNFIX_INTEGRATED_WATCHDOG_CORRECTION(
+            "modernfix_integrated_watchdog_correction",
+            "modernFixIntegratedWatchdogCorrection",
+            "ModernFix integrated-watchdog correction",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of(),
+            List.of()
     ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",

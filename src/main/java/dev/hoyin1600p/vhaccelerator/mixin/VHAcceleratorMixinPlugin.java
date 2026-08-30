@@ -258,6 +258,20 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (mixinClassName.contains(
+                ".backport.modernfix.correction.watchdog."
+        )) {
+            return physicalClient
+                    && modernFixLoaded
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature
+                                    .MODERNFIX_INTEGRATED_WATCHDOG_CORRECTION
+                    )
+                    && modernFixOptionEnabled(
+                            "feature.integrated_server_watchdog."
+                                    + "IntegratedWatchdog"
+                    );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.network."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
@@ -699,6 +713,35 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         return modernFixDynamicResourcesEnabled;
+    }
+
+    private boolean modernFixOptionEnabled(String option) {
+        try {
+            Class<?> pluginClass = Class.forName(
+                    "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
+                    false,
+                    VHAcceleratorMixinPlugin.class.getClassLoader()
+            );
+            Field instanceField = pluginClass.getField("instance");
+            Object instance = instanceField.get(null);
+            if (instance == null) {
+                return false;
+            }
+            Method optionMethod = pluginClass.getMethod(
+                    "isOptionEnabled",
+                    String.class
+            );
+            return Boolean.TRUE.equals(optionMethod.invoke(instance, option));
+        } catch (ReflectiveOperationException
+                 | RuntimeException
+                 | LinkageError failure) {
+            LOGGER.debug(
+                    "Could not query ModernFix option {} for a VHA correction",
+                    option,
+                    failure
+            );
+            return false;
+        }
     }
 
     private ModernFixOwnership probeModernFixOwnership(
