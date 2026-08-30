@@ -76,6 +76,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added an independent surface-rule sequence option that removes the matching
   iterator allocation while preserving exact rule order and first-match
   behavior.
+- Added an independent `NoiseChunk` cache-lookup option that removes repeated
+  bound method-reference allocation while deliberately retaining 1.18.2's
+  original map and cache lifecycle.
 
 ### Compatibility
 

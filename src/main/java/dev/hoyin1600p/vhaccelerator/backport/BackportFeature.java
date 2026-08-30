@@ -164,6 +164,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.SequenceRuleMixin"
             )
+    ),
+    WORLDGEN_NOISE_FUNCTION_CACHE(
+            "worldgen_noise_function_cache",
+            "worldgenNoiseFunctionCache",
+            "World-generation noise-function cache lookup",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.NoiseChunkMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.NoiseChunkMixin"
+            )
     );
 
     private final String id;

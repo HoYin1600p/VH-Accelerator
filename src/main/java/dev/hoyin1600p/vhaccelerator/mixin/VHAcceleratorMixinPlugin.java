@@ -327,6 +327,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.WORLDGEN_SURFACE_RULE_ITERATION
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.worldgen.NoiseChunkMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.WORLDGEN_NOISE_FUNCTION_CACHE
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

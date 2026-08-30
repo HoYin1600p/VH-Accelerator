@@ -16,6 +16,7 @@
     "backport.modernfix.tag.NamespacedHolderHelperTagMixin",
     "backport.modernfix.server.MinecraftServerEventLoopMixin",
     "backport.modernfix.worldgen.MaterialRuleListMixin",
+    "backport.modernfix.worldgen.NoiseChunkMixin",
     "backport.modernfix.worldgen.SequenceRuleMixin",
     "ServerMainMixin",
     "SimpleReloadInstanceMixin",
