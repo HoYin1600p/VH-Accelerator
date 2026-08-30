@@ -257,7 +257,9 @@ research; all are documented in [CREDITS.md](CREDITS.md).
 
 No third-party mod jar is bundled. ModernFix-derived backports are identified
 at file level and recorded with their exact upstream source paths and commits
-in [the backport provenance ledger](docs/MODERNFIX_BACKPORTS.md).
+in [the backport provenance ledger](docs/MODERNFIX_BACKPORTS.md). The staged
+implementation, ownership, exclusion, and validation plan is documented in
+[the ModernFix implementation plan](docs/MODERNFIX_IMPLEMENTATION_PLAN.md).
 
 Post-1.0.13 development is licensed under
 [LGPL-3.0-or-later](LICENSE). Releases through 1.0.13 remain available under
