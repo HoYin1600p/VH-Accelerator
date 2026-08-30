@@ -82,6 +82,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added an independent reusable biome-supplier option for surface generation.
   It retains vanilla's lazy once-per-position lookup—including null-result
   memoization—without constructing a lambda and memoizer at every position.
+  Its overwrite also retains the public runtime visibility established by
+  access transformers, preventing first-use mixin failure during chunk generation.
 - Added a default-off direct surface Y-condition option that removes ineffective
   cache bookkeeping from biome, stone-depth, vertical-gradient, water, and
   height rules while retaining caching for conditions that can reuse results.

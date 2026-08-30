@@ -4,10 +4,10 @@
  * Adapted for VH Accelerator from ModernFix.
  * Upstream repository: https://github.com/embeddedt/ModernFix
  * Upstream source: common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/worldgen_allocation/SurfaceRulesContextMixin.java
- * Upstream commit: 2193aa11a408251b7b5b5e03ecfadc3d166c291c
+ * Upstream commit: 2193aa11a408251b7b5b5e03ecfadc3d166c291c; visibility correction 639f0e2c1a763fff5531ee2016354d6c6bf88c1f
  * Original copyright: Copyright (c) 2024 embeddedt and ModernFix contributors
  * VH Accelerator modifications: Copyright (C) 2026 HoYin1600p
- * Modified: 2026-08-30; retargeted protected Minecraft 1.18.2 updateY and a null-safe reusable supplier.
+ * Modified: 2026-08-30; retargeted Minecraft 1.18.2 updateY, retained its runtime-public visibility, and used a null-safe reusable supplier.
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.worldgen;
 
@@ -61,7 +61,7 @@ public abstract class SurfaceRulesContextMixin {
      * @reason Retain lazy biome resolution while eliminating per-position suppliers.
      */
     @Overwrite
-    protected void updateY(
+    public void updateY(
             int stoneDepthAbove,
             int stoneDepthBelow,
             int waterHeight,
