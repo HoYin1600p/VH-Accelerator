@@ -13,6 +13,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.recipe;
 
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientReloadTracker;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientTagValueView;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparators;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -63,7 +64,7 @@ public abstract class IngredientMixin {
     ) {
         Optional<HolderSet.Named<Item>> tag = vha$singleBoundTag();
         if (tag.isPresent() && tag.get().size() > 0) {
-            TagKey<Item> key = ((TagValueAccessor) values[0]).vha$getTag();
+            TagKey<Item> key = ((IngredientTagValueView) values[0]).vha$getTag();
             cir.setReturnValue(stack != null && stack.is(key));
         }
     }
@@ -103,7 +104,7 @@ public abstract class IngredientMixin {
                 || !(this.values[0] instanceof Ingredient.TagValue)) {
             return Optional.empty();
         }
-        TagKey<Item> key = ((TagValueAccessor) this.values[0]).vha$getTag();
+        TagKey<Item> key = ((IngredientTagValueView) this.values[0]).vha$getTag();
         return Registry.ITEM.getTag(key);
     }
 }

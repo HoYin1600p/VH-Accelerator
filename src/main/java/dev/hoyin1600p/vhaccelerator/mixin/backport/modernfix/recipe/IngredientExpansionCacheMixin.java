@@ -15,6 +15,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.recipe;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientExpansionCacheOwner;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientItemStacksSoftReference;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientReloadTracker;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientTagValueView;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
@@ -92,7 +93,7 @@ public abstract class IngredientExpansionCacheMixin
                 && this.values[0] instanceof Ingredient.TagValue
                 && !IngredientReloadTracker.active()) {
             Optional<HolderSet.Named<Item>> tag = Registry.ITEM.getTag(
-                    ((TagValueAccessor) this.values[0]).vha$getTag()
+                    ((IngredientTagValueView) this.values[0]).vha$getTag()
             );
             if (tag.isPresent() && tag.get().size() > 0) {
                 HolderSet.Named<Item> holders = tag.get();

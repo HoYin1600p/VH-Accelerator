@@ -12,14 +12,22 @@
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.recipe;
 
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientTagValueView;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Ingredient;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(Ingredient.TagValue.class)
-public interface TagValueAccessor {
-    @Accessor("tag")
-    TagKey<Item> vha$getTag();
+public abstract class TagValueAccessor implements IngredientTagValueView {
+    @Shadow
+    @Final
+    private TagKey<Item> tag;
+
+    @Override
+    public TagKey<Item> vha$getTag() {
+        return this.tag;
+    }
 }
