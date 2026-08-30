@@ -1,5 +1,8 @@
 # ModernFix 1.18.2 implementation plan
 
+The current reconciled completion count and remaining major projects are
+tracked in [MODERNFIX_HANDOFF_STATUS.md](MODERNFIX_HANDOFF_STATUS.md).
+
 This document is the execution plan for VH Accelerator 1.0.14 development.
 The provenance ledger in `MODERNFIX_BACKPORTS.md` remains the release authority
 for code actually adapted from ModernFix.
