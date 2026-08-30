@@ -377,6 +377,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "model_optimizations.MultiVariantMixin"
             )
+    ),
+    MODEL_TRANSFORMATION_HASH_CACHE(
+            "model_transformation_hash_cache",
+            "modelTransformationHashCache",
+            "Model transformation hash cache",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.model_optimizations.TransformationMatrixMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "model_optimizations.TransformationMatrixMixin"
+            )
     );
 
     private final String id;

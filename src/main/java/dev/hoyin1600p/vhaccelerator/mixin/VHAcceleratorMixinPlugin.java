@@ -391,6 +391,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.client.model.transformation."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.MODEL_TRANSFORMATION_HASH_CACHE
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.client.skin."
         )) {
             return BackportOwnershipRegistry.vhaOwns(

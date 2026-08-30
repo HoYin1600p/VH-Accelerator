@@ -46,6 +46,7 @@
     "backport.modernfix.client.language.ClientLanguageMixin",
     "backport.modernfix.client.model.selector.SelectorMixin",
     "backport.modernfix.client.model.variant.MultiVariantMixin",
+    "backport.modernfix.client.model.transformation.TransformationMixin",
     "backport.modernfix.client.skin.SkinManagerMixin",
     "backport.modernfix.client.telemetry.MinecraftTelemetryMixin",
     "backport.modernfix.client.render.RebuildTaskMixin",
