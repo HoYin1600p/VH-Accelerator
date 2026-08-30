@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeSupplierD
 import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.load.ModFileScanDataCompactor;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.registry.ObjectHolderRedundantCallbackPruner;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.registry.ObjectHolderThrowableCompactor;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import net.minecraftforge.api.distmarker.Dist;
@@ -75,6 +76,11 @@ public final class VHAccelerator {
         )) {
             event.enqueueWork(this::compactObjectHolderThrowables);
         }
+        if (BackportOwnershipRegistry.vhaOwns(
+                BackportFeature.OBJECT_HOLDER_REDUNDANT_CALLBACK_CLEANUP
+        )) {
+            event.enqueueWork(this::removeRedundantObjectHolderCallbacks);
+        }
     }
 
     private void compactModFileScanData() {
@@ -110,6 +116,27 @@ public final class VHAccelerator {
                         + "traces across {} handlers ({} isolated failures)",
                 statistics.throwablesCleared(),
                 statistics.holdersVisited(),
+                statistics.failures()
+        );
+    }
+
+    private void removeRedundantObjectHolderCallbacks() {
+        ObjectHolderRedundantCallbackPruner.Statistics statistics =
+                ObjectHolderRedundantCallbackPruner.pruneForgeHolders();
+        if (!statistics.available()) {
+            LOGGER.warn(
+                    "Forge redundant object-holder cleanup could not be initialized"
+            );
+            return;
+        }
+        LOGGER.info(
+                "Removed {} redundant Forge object-holder callbacks from {} "
+                        + "Forge handlers; retained {} override-sensitive and "
+                        + "{} safety-sensitive callbacks ({} isolated failures)",
+                statistics.redundantCallbacksRemoved(),
+                statistics.forgeHoldersVisited(),
+                statistics.overrideCallbacksRetained(),
+                statistics.safetyCallbacksRetained(),
                 statistics.failures()
         );
     }

@@ -246,6 +246,19 @@ public enum BackportFeature {
                             + "ObjectHolderClearer"
             )
     ),
+    OBJECT_HOLDER_REDUNDANT_CALLBACK_CLEANUP(
+            "object_holder_redundant_callback_cleanup",
+            "removeRedundantObjectHolderCallbacks",
+            "Redundant Forge object-holder callback cleanup",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.object_holder_cleanup.GameDataMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "object_holder_cleanup.GameDataMixin"
+            )
+    ),
     FASTER_LOOT_LOADING(
             "faster_loot_loading",
             "fasterLootLoading",

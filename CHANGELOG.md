@@ -66,6 +66,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added a default-off Forge 40 redundant object-holder cleanup. After load
+  completion it removes only exact Forge callbacks for resolved registry keys
+  with no registered override candidates and a verified current field value.
+  Override-sensitive, dummied, unresolved, mismatched, and mod-provided
+  callbacks remain installed for later registry snapshot injection or restore.
+
 - Added a default-off bounded profile-texture hash cache. Repeated skin and
   player-head registrations for the same exact URL reuse Minecraft's parsed
   hash for 60 seconds, while a 2,048-entry cap prevents unbounded retention.

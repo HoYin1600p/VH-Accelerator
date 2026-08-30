@@ -88,9 +88,11 @@ Implement these one transformation at a time rather than as feature bundles.
 1. Safe worldgen allocation reductions in `NoiseChunk`, surface-rule context,
    sequence rules, iterators, lambdas and suppliers.
 2. A 1.18-specific early structure-location rejection path.
-3. Object-holder diagnostic compaction after Forge load completion. Implemented
-   without removing callbacks: Forge 40 still reapplies them during registry
-   snapshot injection and restoration.
+3. Object-holder cleanup after Forge load completion. Diagnostic throwable
+   compaction retains every callback. The newer callback cleanup is separately
+   gated and removes only exact Forge callbacks for verified single-owner keys;
+   every override-sensitive, unresolved, dummied, mismatched or mod-provided
+   callback remains available for Forge 40 snapshot injection and restoration.
 4. Faster 1.18 `LootTables` loading. Implemented by reusing exact source-name
    metadata from the existing JSON read; Forge's event dispatch and
    built-in/custom classification remain unchanged.
