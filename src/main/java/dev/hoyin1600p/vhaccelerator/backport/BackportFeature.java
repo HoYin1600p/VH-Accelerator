@@ -151,6 +151,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.MaterialRuleListMixin"
             )
+    ),
+    WORLDGEN_SURFACE_RULE_ITERATION(
+            "worldgen_surface_rule_iteration",
+            "worldgenSurfaceRuleIteration",
+            "World-generation surface-rule iteration",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.SequenceRuleMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.SequenceRuleMixin"
+            )
     );
 
     private final String id;

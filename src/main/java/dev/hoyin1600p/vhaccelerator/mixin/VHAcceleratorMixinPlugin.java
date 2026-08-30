@@ -320,6 +320,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.WORLDGEN_MATERIAL_RULE_ITERATION
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.worldgen.SequenceRuleMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.WORLDGEN_SURFACE_RULE_ITERATION
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

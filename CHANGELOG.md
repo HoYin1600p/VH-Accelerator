@@ -73,6 +73,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added the first independently gated world-generation allocation reduction:
   material-rule selection now uses equivalent indexed access instead of
   allocating a list iterator at every density-function position.
+- Added an independent surface-rule sequence option that removes the matching
+  iterator allocation while preserving exact rule order and first-match
+  behavior.
 
 ### Compatibility
 
