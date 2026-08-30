@@ -18,7 +18,8 @@ public final class BackportOwnershipRegistry {
 
     public static synchronized void initialize(
             boolean physicalClient,
-            Function<BackportFeature, ModernFixOwnership> modernFixProbe
+            Function<BackportFeature, ModernFixOwnership> modernFixProbe,
+            Function<BackportFeature, String> compatibilityProbe
     ) {
         BootstrapBackportConfig.capture();
         EnumMap<BackportFeature, BackportDecision> resolved =
@@ -31,7 +32,9 @@ public final class BackportOwnershipRegistry {
                             physicalClient,
                             BootstrapCompareMode.enabled(),
                             BootstrapBackportConfig.enabled(feature),
-                            modernFixProbe.apply(feature)
+                            modernFixProbe.apply(feature),
+                            feature.implemented(),
+                            compatibilityProbe.apply(feature)
                     )
             );
         }

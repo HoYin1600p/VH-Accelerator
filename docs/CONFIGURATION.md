@@ -134,7 +134,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | Key | Side | Default | Status |
 | --- | --- | --- | --- |
 | `forgeHandshakeBatching` | client + server | `false` | Implemented; accelerates the server-owned Forge login payload queue without requiring an optimized peer. |
-| `chunkMeshing` | client | `false` | Planned |
+| `chunkMeshing` | client | `false` | Implemented; replaces vanilla's allocation-heavy section iterator and reuses the first BlockState lookup only when the position still matches. Automatically unavailable with Fluidlogged. |
 | `bufferBuilderLeakFix` | client | `false` | Planned |
 | `attributeSupplierDeduplication` | client + server | `false` | Planned |
 | `attachCapabilitiesDispatch` | client + server | `false` | Planned |

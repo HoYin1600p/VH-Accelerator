@@ -32,6 +32,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean modDiscoveryFailed;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
+    private boolean fluidloggedLoaded;
     private boolean jeiLoaded;
     private int jeiGeneration;
     private boolean vaultHuntersLoaded;
@@ -70,6 +71,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             externalShapeOptimizerLoaded = modList != null
                     && (modList.getModFileById("canary") != null
                     || modList.getModFileById("lithium") != null);
+            fluidloggedLoaded = modList != null
+                    && modList.getModFileById("fluidlogged") != null;
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
                 if (jeiLoaded
@@ -158,6 +161,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
+            fluidloggedLoaded = false;
             jeiLoaded = false;
             jeiGeneration = 0;
             vaultHuntersLoaded = false;
@@ -186,7 +190,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
         BackportOwnershipRegistry.initialize(
                 physicalClient,
-                this::probeModernFixOwnership
+                this::probeModernFixOwnership,
+                this::probeBackportCompatibility
         );
         LOGGER.info(
                 "ModernFix backport ownership: {}",
@@ -249,6 +254,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.FORGE_HANDSHAKE_BATCHING
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.render."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.CHUNK_MESHING
             );
         }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
@@ -531,6 +543,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
             return ModernFixOwnership.UNKNOWN;
         }
+    }
+
+    private String probeBackportCompatibility(BackportFeature feature) {
+        if (feature == BackportFeature.CHUNK_MESHING && fluidloggedLoaded) {
+            return "Fluidlogged changes the chunk meshing state lookup path";
+        }
+        return null;
     }
 
     @Override

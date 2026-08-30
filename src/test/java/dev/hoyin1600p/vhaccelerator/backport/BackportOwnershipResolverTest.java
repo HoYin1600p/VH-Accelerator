@@ -101,6 +101,25 @@ final class BackportOwnershipResolverTest {
         );
     }
 
+    @Test
+    void incompatibleModFailsClosedWithSpecificReason() {
+        BackportDecision decision = BackportOwnershipResolver.resolve(
+                CLIENT,
+                true,
+                false,
+                true,
+                ModernFixOwnership.ABSENT,
+                true,
+                "Fluidlogged changes the chunk meshing state lookup path"
+        );
+
+        assertEquals(BackportOwner.UNAVAILABLE, decision.owner());
+        assertEquals(
+                "Fluidlogged changes the chunk meshing state lookup path",
+                decision.reason()
+        );
+    }
+
     private static void assertOwner(
             BackportOwner expected,
             BackportFeature feature,

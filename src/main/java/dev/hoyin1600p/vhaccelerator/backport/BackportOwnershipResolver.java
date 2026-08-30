@@ -17,7 +17,8 @@ public final class BackportOwnershipResolver {
                 compareMode,
                 configuredEnabled,
                 modernFixOwnership,
-                feature.implemented()
+                feature.implemented(),
+                null
         );
     }
 
@@ -29,11 +30,38 @@ public final class BackportOwnershipResolver {
             ModernFixOwnership modernFixOwnership,
             boolean implementationPresent
     ) {
+        return resolve(
+                feature,
+                physicalClient,
+                compareMode,
+                configuredEnabled,
+                modernFixOwnership,
+                implementationPresent,
+                null
+        );
+    }
+
+    static BackportDecision resolve(
+            BackportFeature feature,
+            boolean physicalClient,
+            boolean compareMode,
+            boolean configuredEnabled,
+            ModernFixOwnership modernFixOwnership,
+            boolean implementationPresent,
+            String compatibilityBlocker
+    ) {
         if (feature.side() == BackportSide.CLIENT && !physicalClient) {
             return decision(
                     feature,
                     BackportOwner.UNAVAILABLE,
                     "not available on a dedicated server"
+            );
+        }
+        if (compatibilityBlocker != null) {
+            return decision(
+                    feature,
+                    BackportOwner.UNAVAILABLE,
+                    compatibilityBlocker
             );
         }
         if (modernFixOwnership == ModernFixOwnership.ACTIVE) {

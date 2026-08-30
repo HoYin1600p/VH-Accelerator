@@ -19,7 +19,7 @@ public enum BackportFeature {
             "Chunk meshing",
             BackportSide.CLIENT,
             false,
-            false,
+            true,
             List.of("perf.chunk_meshing.RebuildTaskMixin"),
             List.of()
     ),

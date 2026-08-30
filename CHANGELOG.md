@@ -39,6 +39,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   packet order, stops when the handshake waits for replies or futures, works
   with unmodified peers, synchronizes the cross-thread acknowledgement list,
   and corrects Forge's early-completion check.
+- Added a default-off client chunk-meshing backport that uses an allocation-
+  light section iterator while preserving vanilla traversal order and avoids
+  the duplicate BlockState lookup in each block render pass. Unexpected bounds
+  and lookup sequences fall back safely, and Fluidlogged disables the feature.
 
 ### Compatibility
 
