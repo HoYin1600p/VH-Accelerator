@@ -24,6 +24,8 @@
   ],
   "client": [
     "backport.modernfix.client.buffer.RenderBuffersMixin",
+    "backport.modernfix.client.entity.CubeDefinitionMixin",
+    "backport.modernfix.client.entity.EntityModelSetMixin",
     "backport.modernfix.client.render.RebuildTaskMixin",
     "client.ClientMainMixin",
     "client.BlockModelShaperLocationMixin",

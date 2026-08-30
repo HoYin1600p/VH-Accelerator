@@ -306,6 +306,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.SERVER_EVENT_LOOP
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.entity."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.ENTITY_MODEL_COMPACTION
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

@@ -75,7 +75,7 @@ These do not require VHA to patch ModernFix's private implementation.
 | 8 | In-memory manifest signature-data compaction | common/loader | unavailable | Rejected after SecureJarHandler 1.0.x source validation: per-entry digests remain necessary for lazily loaded classes. Early removal can bypass later verification, while eagerly verifying all entries defeats the optimization. |
 | 9 | Forge tag-registry concurrency corrections | common | off/implemented | Repeated asynchronous tag builds must produce one canonical wrapper per tag and stable tag/recipe fingerprints with CraftTweaker and JEITweaker present. Forge 40's `NamespacedHolderHelper` layout is patched instead of the newer `NamespacedWrapper` layout. |
 | 10 | Accurate server MC-183518 event-loop correction | common/server | off/implemented | Server startup and idle loops stop spinning without delaying queued tasks or networking. |
-| 11 | Compact entity-model cube data | client | off/beta | Entity models, mod-mutated cubes, armor, Vault gear and resource reloads render identically. |
+| 11 | Compact entity-model cube data | client | off/beta/implemented | Entity models, mod-mutated cubes, armor, Vault gear and resource reloads render identically. |
 
 Each row receives its own commit and its own test jar. Phase A is complete only
 after the combined build passes with every feature enabled and each option has

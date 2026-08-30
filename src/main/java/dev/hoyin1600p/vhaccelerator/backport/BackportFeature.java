@@ -132,9 +132,12 @@ public enum BackportFeature {
             "Entity-model compaction",
             BackportSide.CLIENT,
             false,
-            false,
+            true,
             List.of("perf.compact_entity_models.CubeDefinitionMixin"),
-            List.of()
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "compact_entity_models.CubeDefinitionMixin"
+            )
     );
 
     private final String id;

@@ -66,6 +66,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   It canonicalizes repeated scan metadata, compacts retained collections, keeps
   mutable annotation list values for mod compatibility, removes build-time-only
   annotations, and isolates any failure to the affected mod file.
+- Added a default-off beta entity-model compactor that shares identical,
+  immutable baked cubes across model parts. The 1.18.2 adaptation uses compact
+  primitive-bit keys, avoids Mixin-added static initialization, and drops the
+  previous generation's cache when entity model roots reload.
 
 ### Compatibility
 
