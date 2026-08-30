@@ -8,12 +8,10 @@
  * Original copyright: Copyright (c) 2026 embeddedt and ModernFix contributors
  * VH Accelerator modifications: Copyright (C) 2026 HoYin1600p
  * Modified: 2026-08-30; introduced a 1.18.2 reload-local resource-origin
- * bridge so the generic JSON reader can pass exact source metadata to the
- * loot-table consumer without modifying parsed JSON.
+ * bridge outside the reserved Mixin package so transformed Minecraft classes
+ * can reference it safely.
  */
-package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.loot;
-
-import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginCache;
+package dev.hoyin1600p.vhaccelerator.backport.modernfix.loot;
 
 public interface LootResourceOriginAccess {
     LootResourceOriginCache vhaccelerator$lootResourceOrigins();

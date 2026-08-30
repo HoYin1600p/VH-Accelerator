@@ -12,6 +12,7 @@
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.loot;
 
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginAccess;
 import java.io.IOException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;

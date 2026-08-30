@@ -16,6 +16,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.loot;
 
 import com.google.gson.JsonElement;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginCache;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginAccess;
 import java.io.IOException;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
@@ -23,8 +24,8 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.storage.loot.LootTables;
-import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Dynamic;
+import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

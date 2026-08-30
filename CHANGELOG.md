@@ -115,6 +115,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   Forge 40. Forge 1.18.2 still reapplies those callbacks during snapshot
   injection and registry restoration, so this port limits itself to dead
   diagnostic data rather than changing remap behavior.
+- Kept the loot-origin bridge interface outside the reserved Mixin package so
+  transformed resource listeners can load it normally during asynchronous
+  initial resource preparation.
 
 ### Server
 
