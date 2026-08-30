@@ -127,12 +127,11 @@ not part of the recommended release configuration.
 ### `[backports]`
 
 These restart-bound switches are the isolated ownership boundary for the
-ModernFix backport project. Every implemented option defaults to `true` after
-its combined acceptance test. A switch whose implementation has not landed
-remains `false` and cannot activate behavior; `/vha backports` reports it as
-`UNAVAILABLE` until its separately tested port is present. ModernFix ownership,
-side restrictions, compatibility exclusions, and Compare Mode still take
-precedence over an enabled switch.
+ModernFix backport project. Every listed option has an implementation and
+defaults to `true` after its combined acceptance test. Rejected upstream ideas
+that cannot preserve Minecraft 1.18.2 or Forge 40 semantics are not exposed as
+configuration switches. ModernFix ownership, side restrictions, compatibility
+exclusions, and Compare Mode still take precedence over an enabled switch.
 
 | Key | Side | Default | Status |
 | --- | --- | --- | --- |
@@ -142,8 +141,6 @@ precedence over an enabled switch.
 | `attributeSupplierDeduplication` | client + server | `true` | Implemented; canonicalizes identical vanilla attribute templates during mod loading and replaces each supplier's private immutable-map wrapper with a compact fastutil map. Subclassed templates are excluded and interning stops at Forge load completion. |
 | `attachCapabilitiesDispatch` | client + server | `true` | Implemented; supplies Forge's missing constant non-cancelable event override so repeated capability-attachment dispatch avoids the EventBus cancelability slow path. Event order, listener filtering, and capability contents remain unchanged. |
 | `compactModFileScanData` | client + server | `true` | Implemented; after every Forge load-complete listener finishes, canonicalizes repeated ASM types/member names, compacts retained scan sets/maps, and discards build-time-only Mixin, Kotlin, Scala, nullability, and `OnlyIn` annotations. Per-file failures are isolated. |
-| `compactImposterProtoChunks` | client + server | `false` | Unavailable on 1.18.2. Its read-only wrappers deliberately keep private sections so `getSection()` cannot expose mutable live-chunk sections. The newer upstream aliasing design would remove that isolation, while limiting it to writable wrappers would affect no vanilla 1.18.2 call site. |
-| `compactManifestSignatureData` | client + server | `false` | Unavailable on Forge 1.18.2. SecureJarHandler 1.0.x uses per-entry manifest digests when a class is first loaded, including classes loaded after Minecraft bootstrap. Removing those digests early can bypass later verification; eagerly verifying every entry would add the I/O and hashing this option was meant to avoid. |
 | `forgeTagConcurrencyFixes` | client + server | `true` | Implemented; makes first-time vanilla, Forge holder-helper, and Forge tag-manager wrapper creation atomic while retaining lock-free reads for existing tags. Forge 40's holder-helper layout is handled explicitly. |
 | `serverEventLoopFix` | client + server | `true` | Implemented; lets integrated and dedicated servers park precisely until the next tick while preserving immediate task wakeups. Stock ModernFix 5.18's older broad event-loop patch does not falsely claim the newer server-specific correction. |
 | `compactEntityModels` | client | `true` | Implemented as a beta option; shares immutable baked entity cubes with identical geometry and texture coordinates, uses compact primitive-bit keys, and clears the retained cache at the start of each entity-model resource generation. Mod-mutated or reflection-mutated cubes require explicit compatibility testing before this can default on. |

@@ -72,29 +72,6 @@ public enum BackportFeature {
             List.of(),
             List.of("org.embeddedt.modernfix.forge.load.ModFileScanDataCompactor")
     ),
-    IMPOSTER_PROTOCHUNK_COMPACTION(
-            "imposter_protochunk_compaction",
-            "compactImposterProtoChunks",
-            "ImposterProtoChunk compaction",
-            BackportSide.COMMON,
-            false,
-            false,
-            List.of(
-                    "perf.compact_imposterprotochunks.ImposterProtoChunkMixin",
-                    "perf.compact_imposterprotochunks.ChunkAccessMixin"
-            ),
-            List.of()
-    ),
-    MANIFEST_SIGNATURE_COMPACTION(
-            "manifest_signature_compaction",
-            "compactManifestSignatureData",
-            "Manifest signature-data compaction",
-            BackportSide.COMMON,
-            false,
-            false,
-            List.of(),
-            List.of("org.embeddedt.modernfix.forge.classloading.ManifestCompactor")
-    ),
     FORGE_TAG_CONCURRENCY(
             "forge_tag_concurrency",
             "forgeTagConcurrencyFixes",
