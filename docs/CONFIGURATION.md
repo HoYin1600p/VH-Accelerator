@@ -141,7 +141,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `compactModFileScanData` | client + server | `false` | Implemented; after every Forge load-complete listener finishes, canonicalizes repeated ASM types/member names, compacts retained scan sets/maps, and discards build-time-only Mixin, Kotlin, Scala, nullability, and `OnlyIn` annotations. Per-file failures are isolated. |
 | `compactImposterProtoChunks` | client + server | `false` | Unavailable on 1.18.2. Its read-only wrappers deliberately keep private sections so `getSection()` cannot expose mutable live-chunk sections. The newer upstream aliasing design would remove that isolation, while limiting it to writable wrappers would affect no vanilla 1.18.2 call site. |
 | `compactManifestSignatureData` | client + server | `false` | Unavailable on Forge 1.18.2. SecureJarHandler 1.0.x uses per-entry manifest digests when a class is first loaded, including classes loaded after Minecraft bootstrap. Removing those digests early can bypass later verification; eagerly verifying every entry would add the I/O and hashing this option was meant to avoid. |
-| `forgeTagConcurrencyFixes` | client + server | `false` | Planned |
+| `forgeTagConcurrencyFixes` | client + server | `false` | Implemented; makes first-time vanilla, Forge holder-helper, and Forge tag-manager wrapper creation atomic while retaining lock-free reads for existing tags. Forge 40's holder-helper layout is handled explicitly. |
 | `serverEventLoopFix` | client + server | `false` | Planned |
 | `compactEntityModels` | client | `false` | Planned |
 

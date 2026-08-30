@@ -98,7 +98,7 @@ public enum BackportFeature {
             "Forge tag-registry concurrency",
             BackportSide.COMMON,
             false,
-            false,
+            true,
             List.of(
                     "bugfix.concurrency.MappedRegistryMixin",
                     "bugfix.concurrency.NamespacedWrapperMixin",

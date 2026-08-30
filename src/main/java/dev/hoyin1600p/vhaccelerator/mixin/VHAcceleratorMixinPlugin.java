@@ -292,6 +292,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.ATTACH_CAPABILITIES_DISPATCH
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.tag."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FORGE_TAG_CONCURRENCY
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

@@ -31,6 +31,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Added default-off Forge tag concurrency corrections so parallel first-time
+  requests cannot create and return different wrappers for the same vanilla or
+  Forge registry tag. The port explicitly follows Forge 40's holder-helper
+  layout and leaves established-tag reads lock-free.
+
 ### Performance
 
 - Added a default-off Forge handshake batching backport that sends every
