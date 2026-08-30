@@ -35,6 +35,7 @@
     "backport.modernfix.tag.NamespacedHolderHelperTagMixin",
     "backport.modernfix.server.MinecraftServerEventLoopMixin",
     "backport.modernfix.correction.watchdog.IntegratedWatchdogMixin",
+    "backport.modernfix.correction.jei.JeiBackedSearchTreeMixin",
     "backport.modernfix.structure.ChunkGeneratorAccessor",
     "backport.modernfix.structure.StructureCheckMixin",
     "backport.modernfix.worldgen.ClimateParameterListMixin",

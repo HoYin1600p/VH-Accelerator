@@ -285,6 +285,19 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.correction.jei."
+        )) {
+            return physicalClient
+                    && modernFixLoaded
+                    && jeiGeneration == 10
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
+                    )
+                    && modernFixOptionEnabled(
+                            "perf.blast_search_trees.MinecraftMixin"
+                    );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.blockstate.definition."
         )) {
             return ferriteCoreLoaded

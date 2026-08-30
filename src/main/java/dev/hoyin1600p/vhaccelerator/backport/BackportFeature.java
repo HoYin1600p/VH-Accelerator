@@ -161,6 +161,16 @@ public enum BackportFeature {
             List.of("perf.compact_bit_storage.PalettedContainerMixin"),
             List.of()
     ),
+    MODERNFIX_JEI_SEARCH_SNAPSHOT(
+            "modernfix_jei_search_snapshot",
+            "modernFixJeiSearchSnapshot",
+            "ModernFix JEI search snapshot correction",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of(),
+            List.of()
+    ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",
             "compactEntityModels",
