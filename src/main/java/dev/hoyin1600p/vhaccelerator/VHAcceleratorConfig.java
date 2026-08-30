@@ -129,7 +129,7 @@ public final class VHAcceleratorConfig {
                                         "Restart required. VH Accelerator only takes ownership",
                                         "when this option is enabled, the implementation is present,",
                                         "the physical side is compatible, Compare Mode is off, and",
-                                        "ModernFix is absent or has the corresponding option disabled."
+                                        "VHA's compatibility and exact-option ownership checks select this implementation."
                                 )
                                 .define(
                                         feature.configKey(),

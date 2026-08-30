@@ -7,12 +7,11 @@ individual mixin or helper inside a family.
 
 Status as of 2026-08-30:
 
-- 26 VHA delivery families reviewed;
-- 18 implemented;
+- 35 VHA delivery and maintained-correction families reviewed;
+- 24 implemented;
 - 2 rejected after Minecraft/Forge 1.18.2 validation;
 - 6 major projects remain;
-- 9 additional corrections remain intentionally assigned to a ModernFix fork
-  and are not part of the 26-family VHA count.
+- 3 proposed corrections were proven inapplicable to the ModernFix 5.18 / Minecraft 1.18.2 code paths.
 
 ## Direct and isolated additions
 
@@ -62,21 +61,34 @@ stage rather than being folded into another backport batch.
 6. Resource-pack tree/ZIP takeover with all path, overlay, pack-finder and
    single-use-resource corrections.
 
-## ModernFix-fork corrections not carried by VHA
+## VHA-owned maintained corrections
 
-The original handoff deliberately assigned these nine corrections to a
-ModernFix 1.18.2 fork because they modify subsystems already owned by
-ModernFix 5.18. They remain unapplied in VHA by design:
+No ModernFix fork is required. VHA now carries every correction from the
+original nine-item workstream that actually applies to Minecraft 1.18.2 and
+ModernFix 5.18:
 
-1. Integrated watchdog corrections.
-2. Cache-upgraded-structures stream closure.
-3. Deferred BlockState `Items` initialization.
-4. State-definition graceful fallback.
-5. Invalid compact-palette guard.
-6. Explicit `max.bg.threads` handling and worker limiting.
-7. ModernFix config-path failure handling.
-8. NightConfig watcher correction.
-9. JEI-backed search bridge corrections.
+1. Integrated-watchdog timeout and server-boot spin corrections, as an exact
+   optional ModernFix companion patch.
+2. Graceful state-definition construction, as a full VHA takeover that
+   disables only ModernFix's overlapping option when enabled.
+3. Invalid compact-palette protection, as a full corrected VHA takeover.
+4. Explicit `max.bg.threads` preservation and optional bounded worker count,
+   implemented during VHA bootstrap.
+5. NightConfig watcher classloading/concurrent-modification correction, by
+   replacing the installed 5.18 wrapper without changing its watched data.
+6. JEI 10 collect-before-iterate behavior, adapted to snapshot the list API
+   used by the supported 1.18.2 JEI builds.
+
+Three originally proposed corrections deliberately produce no code:
+
+- Minecraft 1.18.2's `StructureManager` already closes the owning `Resource`
+  around ModernFix's redirected read, so the newer stream-leak patch targets a
+  different resource API.
+- ModernFix 5.18 does not contain the later deferred `<clinit>` BlockState path
+  that required forced `Items` initialization; its 1.18 optimization runs from
+  explicit `Blocks.rebuildCache()` instead.
+- ModernFix 5.18 has neither the newer global-properties path nor its
+  inaccessible-home failure mode, so that config-path patch has no target.
 
 Dynamic DFU cache release remains a separate do-not-stack decision because
 ModernFix, LazyDFU and VHA already share that area. Conditional diagnostics,

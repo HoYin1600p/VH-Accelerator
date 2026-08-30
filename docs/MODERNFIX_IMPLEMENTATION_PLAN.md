@@ -172,26 +172,25 @@ The JEI collect-before-iterate correction is only applied if the supported JEI
 9/10 implementation still contains the upstream concurrency fault. It is a
 targeted compatibility correction, not part of the general ingredient port.
 
-## ModernFix fork workstream
+## VHA-owned maintained-correction workstream
 
-The following corrections belong in a small 1.18.2 ModernFix fork because they
-repair an implementation already owned by ModernFix. VHA must not mix into
-ModernFix's private helpers merely to claim feature parity:
+VHA is the sole delivery vehicle; no ModernFix fork is planned. Corrections to
+an overlapping ModernFix feature use one of two explicit designs:
 
-- integrated watchdog negative-timeout/startup-spin corrections;
-- cache-upgraded-structures stream closure;
-- deferred BlockState cache `Items` initialization;
-- state-definition optimized-map graceful fallback;
-- invalid compact-palette guard;
-- explicit `max.bg.threads` preservation and worker limiting;
-- ModernFix config-path access failure handling;
-- NightConfig watcher correction when owned by that path;
-- JEI-backed `blast_search_trees` bridge corrections; and
-- dynamic DFU cache release, only after selecting one owner among ModernFix,
-  LazyDFU and VHA.
+- an optional companion patch when the target is a stable ModernFix 5.18
+  helper and no duplicate vanilla transformation is introduced; or
+- a full VHA takeover that first disables the exact ModernFix option and only
+  proceeds after ownership is verified.
 
-This fork is built and tested independently. VHA only detects its effective
-options and yields overlapping ownership.
+The integrated watchdog, state-definition fallback, invalid palette guard,
+bounded background-worker policy, NightConfig watcher correction, and JEI 10
+search snapshot have been implemented under those rules. The proposed
+structure-stream, deferred-`Items`, and global-config-path changes were proven
+not to target the Minecraft 1.18.2 / ModernFix 5.18 implementation and are not
+represented by placebo code.
+
+Dynamic DFU cache release remains separate and must not stack until one owner
+is selected among ModernFix, LazyDFU, and VHA.
 
 ## Permanent exclusions
 
@@ -220,8 +219,8 @@ is enabled in the combined build:
    ModernFix commit.
 2. Unit or focused harness tests, mixin initialization safety, package-layout
    verification and all eight Vault/JEI compatibility compile profiles.
-3. ModernFix absent, stock ModernFix present, and forked ModernFix present where
-   applicable.
+3. ModernFix absent and stock ModernFix present, including verified exact-option
+   handoff for every full takeover.
 4. Client-only, server-only and both-sides installation as appropriate; no server
    claim is published before dedicated-server testing exists.
 5. CMA Remastered smoke launch and targeted behavior test.
