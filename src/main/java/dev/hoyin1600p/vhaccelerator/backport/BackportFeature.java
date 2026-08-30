@@ -351,6 +351,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "ingredient_item_deduplication.IngredientMixin"
             )
+    ),
+    MODEL_SELECTOR_PREDICATE_CACHE(
+            "model_selector_predicate_cache",
+            "modelSelectorPredicateCache",
+            "Multipart model-selector predicate cache",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.model_optimizations.SelectorMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "model_optimizations.SelectorMixin"
+            )
     );
 
     private final String id;
