@@ -355,6 +355,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.WORLDGEN_DEFERRED_CLIMATE_TREE
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.structure."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.EARLY_STRUCTURE_LOCATION_REJECTION
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

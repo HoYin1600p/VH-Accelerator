@@ -40,6 +40,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added a default-off early structure-location rejection path. When chunk
+  storage has no decisive result, it uses the generator's existing placement
+  table to reject impossible candidate chunks before vanilla's expensive full
+  structure-generation probe, without changing known starts or valid candidates.
+
 - Added a default-off Forge handshake batching backport that sends every
   immediately progressing login payload in one outer server tick instead of
   artificially limiting the queue to one payload per tick. It preserves

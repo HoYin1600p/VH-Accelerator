@@ -216,6 +216,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "worldgen_allocation.ClimateParameterListMixin"
             )
+    ),
+    EARLY_STRUCTURE_LOCATION_REJECTION(
+            "early_structure_location_rejection",
+            "earlyStructureLocationRejection",
+            "Early structure-location rejection",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.faster_structure_location.StructureCheckMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_structure_location.StructureCheckMixin"
+            )
     );
 
     private final String id;
