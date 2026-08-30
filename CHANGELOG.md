@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.14 development - recipe lab stage one
+
+- Added the default-off `fasterIngredientTagLookups` backport experiment.
+  Single vanilla tag ingredients can test membership and derive sorted stacking
+  IDs without expanding the tag into temporary item stacks.
+- The shortcut is disabled for the complete 1.18.2 server-data reload lifetime,
+  preserving CraftTweaker and other reload-time tag-context behavior.
+- This first stage deliberately leaves `Ingredient#getItems()`, JEI ingredient
+  arrays, VHA recipe fingerprints, and custom ingredient implementations
+  unchanged.
+
 All notable changes to VH Accelerator are recorded here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

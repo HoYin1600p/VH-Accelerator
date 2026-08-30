@@ -144,12 +144,14 @@ Recipe work remains separate because VHA already owns JEI publication,
 validation, persistent recipe/ingredient caches, CraftTweaker tag binding and
 several mod-specific indexes.
 
-1. Port faster `Ingredient` expansion and stacking IDs alone behind an
-   experimental option.
-2. Test soft-reference eviction, tag invalidation, defensive copies and VHA's
-   canonical fingerprints before adding anything else.
-3. Add `Ingredient.ItemValue`/stack deduplication only after the first experiment
-   is stable.
+1. Port allocation-free single-tag membership tests and stacking IDs behind an
+   experimental option while leaving `Ingredient#getItems()` vanilla. This
+   isolates the first measurable hot-path gain from array/caching semantics.
+2. Add soft-reference ingredient expansion as a second independent experiment,
+   then test eviction, tag invalidation, defensive copies and VHA's canonical
+   fingerprints before enabling it anywhere.
+3. Add `Ingredient.ItemValue`/stack deduplication only after both earlier
+   experiments are stable.
 4. Validate vanilla crafting, recipe book, JEI transfer/search, CraftTweaker,
    JEITweaker, CoFH/Thermal, Powah, Iron Furnaces, Industrial Foregoing, JER,
    Vault recipes, server reconnect and cluster transfer behavior.

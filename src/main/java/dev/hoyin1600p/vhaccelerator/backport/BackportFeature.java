@@ -304,6 +304,24 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.feature."
                             + "remove_telemetry.MinecraftMixin_Telemetry"
             )
+    ),
+    FASTER_INGREDIENT_TAG_LOOKUPS(
+            "faster_ingredient_tag_lookups",
+            "fasterIngredientTagLookups",
+            "Faster ingredient tag lookups",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.faster_ingredients.IngredientMixin",
+                    "perf.faster_ingredients.ForgeHooksMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_ingredients.IngredientMixin",
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "faster_ingredients.IngredientMixin"
+            )
     );
 
     private final String id;
