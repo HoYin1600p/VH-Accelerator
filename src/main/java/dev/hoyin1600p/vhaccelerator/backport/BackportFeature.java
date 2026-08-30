@@ -171,6 +171,16 @@ public enum BackportFeature {
             List.of(),
             List.of()
     ),
+    MODERNFIX_NIGHT_CONFIG_WATCHER_CORRECTION(
+            "modernfix_night_config_watcher_correction",
+            "modernFixNightConfigWatcherCorrection",
+            "ModernFix NightConfig watcher correction",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(),
+            List.of()
+    ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",
             "compactEntityModels",

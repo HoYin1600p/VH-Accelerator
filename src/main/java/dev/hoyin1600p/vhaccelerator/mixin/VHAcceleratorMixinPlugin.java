@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
 import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
 import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.config.NightConfigWatcherCorrection;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -208,6 +209,22 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.COMPACT_PALETTE_VALIDATION,
                 "mixin.perf.compact_bit_storage"
         );
+        if (modernFixLoaded
+                && !BootstrapCompareMode.enabled()
+                && BootstrapBackportConfig.enabled(
+                        BackportFeature
+                                .MODERNFIX_NIGHT_CONFIG_WATCHER_CORRECTION
+                )) {
+            if (NightConfigWatcherCorrection.apply()) {
+                LOGGER.info(
+                        "Applied the VHA-owned ModernFix NightConfig watcher correction"
+                );
+            } else {
+                LOGGER.warn(
+                        "Could not apply the ModernFix NightConfig watcher correction; retained the installed watcher"
+                );
+            }
+        }
 
         BackportOwnershipRegistry.initialize(
                 physicalClient,
@@ -926,6 +943,18 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (feature == BackportFeature.STATE_DEFINITION_CONSTRUCTION
                 && !ferriteCoreLoaded) {
             return "FerriteCore is required for the array-first state map";
+        }
+        if ((feature == BackportFeature
+                        .MODERNFIX_INTEGRATED_WATCHDOG_CORRECTION
+                || feature == BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
+                || feature == BackportFeature
+                        .MODERNFIX_NIGHT_CONFIG_WATCHER_CORRECTION)
+                && !modernFixLoaded) {
+            return "ModernFix 5.18 is required for this compatibility correction";
+        }
+        if (feature == BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
+                && jeiGeneration != 10) {
+            return "the validated JEI 10 search bridge is not installed";
         }
         if (feature == BackportFeature.IMPOSTER_PROTOCHUNK_COMPACTION) {
             return "Minecraft 1.18.2 read-only wrappers require private "
