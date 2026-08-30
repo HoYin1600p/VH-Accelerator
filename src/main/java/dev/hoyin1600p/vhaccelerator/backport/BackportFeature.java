@@ -465,6 +465,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "model_optimizations.BooleanPropertyMixin"
             )
+    ),
+    RESOURCE_KEY_INTERNING(
+            "resource_key_interning",
+            "resourceKeyInterning",
+            "Allocation-light resource-key interning",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.mojang_registry_size.ResourceKeyMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "mojang_registry_size.ResourceKeyMixin"
+            )
     );
 
     private final String id;

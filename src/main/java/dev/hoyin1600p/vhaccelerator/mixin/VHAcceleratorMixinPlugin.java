@@ -454,6 +454,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.registry.resourcekey."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.RESOURCE_KEY_INTERNING
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.model.property."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
