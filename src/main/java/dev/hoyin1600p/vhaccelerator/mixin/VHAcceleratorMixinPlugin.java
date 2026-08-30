@@ -313,6 +313,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.ENTITY_MODEL_COMPACTION
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.worldgen.MaterialRuleListMixin"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.WORLDGEN_MATERIAL_RULE_ITERATION
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

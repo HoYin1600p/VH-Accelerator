@@ -138,6 +138,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "compact_entity_models.CubeDefinitionMixin"
             )
+    ),
+    WORLDGEN_MATERIAL_RULE_ITERATION(
+            "worldgen_material_rule_iteration",
+            "worldgenMaterialRuleIteration",
+            "World-generation material-rule iteration",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.worldgen_allocation.MaterialRuleListMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "worldgen_allocation.MaterialRuleListMixin"
+            )
     );
 
     private final String id;

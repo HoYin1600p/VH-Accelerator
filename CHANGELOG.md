@@ -70,6 +70,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   immutable baked cubes across model parts. The 1.18.2 adaptation uses compact
   primitive-bit keys, avoids Mixin-added static initialization, and drops the
   previous generation's cache when entity model roots reload.
+- Added the first independently gated world-generation allocation reduction:
+  material-rule selection now uses equivalent indexed access instead of
+  allocating a list iterator at every density-function position.
 
 ### Compatibility
 
