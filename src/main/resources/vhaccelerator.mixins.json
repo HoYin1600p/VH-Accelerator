@@ -6,6 +6,8 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "vhaccelerator.refmap.json",
   "mixins": [
+    "backport.modernfix.network.HandshakeHandlerAccess",
+    "backport.modernfix.network.HandshakeHandlerMixin",
     "ServerMainMixin",
     "SimpleReloadInstanceMixin",
     "ForgeRegistryMixin",

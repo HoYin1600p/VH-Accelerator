@@ -9,7 +9,7 @@ public enum BackportFeature {
             "Forge handshake batching",
             BackportSide.COMMON,
             false,
-            false,
+            true,
             List.of("perf.fix_handshake_stall.HandshakeHandlerMixin"),
             List.of()
     ),

@@ -33,6 +33,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added a default-off Forge handshake batching backport that sends every
+  immediately progressing login payload in one outer server tick instead of
+  artificially limiting the queue to one payload per tick. It preserves
+  packet order, stops when the handshake waits for replies or futures, works
+  with unmodified peers, synchronizes the cross-thread acknowledgement list,
+  and corrects Forge's early-completion check.
+
 ### Compatibility
 
 ### Server

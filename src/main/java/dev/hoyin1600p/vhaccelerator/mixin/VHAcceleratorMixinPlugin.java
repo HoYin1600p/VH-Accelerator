@@ -244,6 +244,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains(
+                ".backport.modernfix.network."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FORGE_HANDSHAKE_BATCHING
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

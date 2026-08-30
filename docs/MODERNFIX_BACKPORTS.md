@@ -40,11 +40,9 @@ and add the earlier source to `THIRD_PARTY_NOTICES.md`.
 
 ## Port ledger
 
-No ModernFix-derived implementation file has been committed yet.
-
 | Feature | VH Accelerator destination | Upstream source path | Upstream commit | Original notice and license | Modification summary | Default and side |
 | --- | --- | --- | --- | --- | --- | --- |
-| _Add one row per port before implementation is committed._ | | | | | | |
+| Forge handshake batching/stall correction | `backport/modernfix/network/ForgeHandshakeBatcher.java`<br>`mixin/backport/modernfix/network/HandshakeHandlerAccess.java`<br>`mixin/backport/modernfix/network/HandshakeHandlerMixin.java` | `src/main/java/org/embeddedt/modernfix/common/mixin/perf/fix_handshake_stall/HandshakeHandlerMixin.java` | `c2f585da9551d925c01b391ddd151e02c5037382` (includes introduction at `79d2b28d5b8098779874b01e4d46a9567ae788f0`) | Copyright (c) 2022; embeddedt and ModernFix contributors; LGPL-3.0-or-later | Replaced MixinExtras wrappers with standard Mixin redirects, extracted the progress loop for unit testing, retained the synchronized acknowledgement list, and retained the Forge off-by-one completion correction. | Off; common (the accelerated path executes on the server handshake owner and remains wire-compatible with unmodified peers) |
 
 ## Ownership rules
 

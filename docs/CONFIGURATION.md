@@ -127,24 +127,23 @@ not part of the recommended release configuration.
 ### `[backports]`
 
 These restart-bound switches are the isolated ownership boundary for the
-ModernFix backport project. During the Phase 0 framework commit, every option
-defaults to `false` and no candidate implementation is present yet. Enabling a
-placeholder cannot activate behavior; `/vha backports` reports it as
-`UNAVAILABLE` until its separately tested implementation lands.
+ModernFix backport project. Every option defaults to `false`. A switch whose
+implementation has not landed cannot activate behavior; `/vha backports`
+reports it as `UNAVAILABLE` until its separately tested port is present.
 
-| Key | Side | Default |
-| --- | --- | --- |
-| `forgeHandshakeBatching` | client + server | `false` |
-| `chunkMeshing` | client | `false` |
-| `bufferBuilderLeakFix` | client | `false` |
-| `attributeSupplierDeduplication` | client + server | `false` |
-| `attachCapabilitiesDispatch` | client + server | `false` |
-| `compactModFileScanData` | client + server | `false` |
-| `compactImposterProtoChunks` | client + server | `false` |
-| `compactManifestSignatureData` | client + server | `false` |
-| `forgeTagConcurrencyFixes` | client + server | `false` |
-| `serverEventLoopFix` | client + server | `false` |
-| `compactEntityModels` | client | `false` |
+| Key | Side | Default | Status |
+| --- | --- | --- | --- |
+| `forgeHandshakeBatching` | client + server | `false` | Implemented; accelerates the server-owned Forge login payload queue without requiring an optimized peer. |
+| `chunkMeshing` | client | `false` | Planned |
+| `bufferBuilderLeakFix` | client | `false` | Planned |
+| `attributeSupplierDeduplication` | client + server | `false` | Planned |
+| `attachCapabilitiesDispatch` | client + server | `false` | Planned |
+| `compactModFileScanData` | client + server | `false` | Planned |
+| `compactImposterProtoChunks` | client + server | `false` | Planned |
+| `compactManifestSignatureData` | client + server | `false` | Planned |
+| `forgeTagConcurrencyFixes` | client + server | `false` | Planned |
+| `serverEventLoopFix` | client + server | `false` | Planned |
+| `compactEntityModels` | client | `false` | Planned |
 
 For each feature, ModernFix's effective option is checked independently. An
 active ModernFix implementation owns the path; an unknown ModernFix state
