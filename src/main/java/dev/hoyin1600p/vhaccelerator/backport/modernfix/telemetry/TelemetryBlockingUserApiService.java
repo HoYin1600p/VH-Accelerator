@@ -25,6 +25,13 @@ public final class TelemetryBlockingUserApiService implements UserApiService {
         this.delegate = Objects.requireNonNull(delegate, "delegate");
     }
 
+    public static UserApiService wrap(UserApiService service) {
+        if (service instanceof TelemetryBlockingUserApiService) {
+            return service;
+        }
+        return new TelemetryBlockingUserApiService(service);
+    }
+
     @Override
     public UserProperties properties() {
         return delegate.properties();

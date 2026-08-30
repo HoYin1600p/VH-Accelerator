@@ -46,5 +46,6 @@ final class TelemetryBlockingUserApiServiceTest {
                 TelemetrySession.DISABLED,
                 service.newTelemetrySession(Runnable::run)
         );
+        assertSame(service, TelemetryBlockingUserApiService.wrap(service));
     }
 }

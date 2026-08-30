@@ -31,11 +31,8 @@ public abstract class MinecraftTelemetryMixin {
             CallbackInfoReturnable<UserApiService> callback
     ) {
         UserApiService service = callback.getReturnValue();
-        if (service != null
-                && !(service instanceof TelemetryBlockingUserApiService)) {
-            callback.setReturnValue(
-                    new TelemetryBlockingUserApiService(service)
-            );
+        if (service != null) {
+            callback.setReturnValue(TelemetryBlockingUserApiService.wrap(service));
         }
     }
 }

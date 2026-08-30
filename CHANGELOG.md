@@ -35,6 +35,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Telemetry suppression now also wraps VHA's asynchronous user-service result
+  at its early return point. The separate vanilla return hook cannot observe a
+  cancellable HEAD return, which otherwise allowed a telemetry session to be
+  created whenever `asyncUserApiService` was enabled.
+
 - Added default-off Forge tag concurrency corrections so parallel first-time
   requests cannot create and return different wrappers for the same vanilla or
   Forge registry tag. The port explicitly follows Forge 40's holder-helper

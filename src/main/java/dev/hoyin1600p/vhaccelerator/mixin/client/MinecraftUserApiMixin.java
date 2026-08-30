@@ -3,6 +3,9 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import com.mojang.authlib.minecraft.UserApiService;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
+import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.telemetry.TelemetryBlockingUserApiService;
 import dev.hoyin1600p.vhaccelerator.client.DeferredUserApiService;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.concurrent.CompletableFuture;
@@ -47,6 +50,12 @@ public abstract class MinecraftUserApiMixin {
             }
         }, Util.ioPool());
 
-        callback.setReturnValue(new DeferredUserApiService(serviceFuture));
+        UserApiService service = new DeferredUserApiService(serviceFuture);
+        if (BackportOwnershipRegistry.vhaOwns(
+                BackportFeature.DISABLE_TELEMETRY
+        )) {
+            service = TelemetryBlockingUserApiService.wrap(service);
+        }
+        callback.setReturnValue(service);
     }
 }
