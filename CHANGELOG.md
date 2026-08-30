@@ -34,7 +34,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added default-off Forge tag concurrency corrections so parallel first-time
   requests cannot create and return different wrappers for the same vanilla or
   Forge registry tag. The port explicitly follows Forge 40's holder-helper
-  layout and leaves established-tag reads lock-free.
+  layout and leaves established-tag reads lock-free. Exact class markers keep
+  stock ModernFix 5.18's broad concurrency setting from falsely claiming these
+  newer fixes.
 
 ### Performance
 

@@ -104,7 +104,14 @@ public enum BackportFeature {
                     "bugfix.concurrency.NamespacedWrapperMixin",
                     "bugfix.concurrency.ForgeRegistryTagManagerMixin"
             ),
-            List.of()
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.bugfix.concurrency."
+                            + "MappedRegistryMixin",
+                    "org.embeddedt.modernfix.common.mixin.bugfix.concurrency."
+                            + "NamespacedWrapperMixin",
+                    "org.embeddedt.modernfix.common.mixin.bugfix.concurrency."
+                            + "ForgeRegistryTagManagerMixin"
+            )
     ),
     SERVER_EVENT_LOOP(
             "server_event_loop",
