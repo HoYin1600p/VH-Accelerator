@@ -364,6 +364,19 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "model_optimizations.SelectorMixin"
             )
+    ),
+    MODEL_VARIANT_TRAVERSAL(
+            "model_variant_traversal",
+            "modelVariantTraversal",
+            "Allocation-light model-variant traversal",
+            BackportSide.CLIENT,
+            false,
+            true,
+            List.of("perf.model_optimizations.MultiVariantMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "model_optimizations.MultiVariantMixin"
+            )
     );
 
     private final String id;
