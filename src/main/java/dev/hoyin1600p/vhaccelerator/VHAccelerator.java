@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator;
 
 import com.mojang.logging.LogUtils;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeInstanceTemplates;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeSupplierDeduplication;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -8,6 +10,8 @@ import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -28,6 +32,8 @@ public final class VHAccelerator {
                 VHAcceleratorConfig.COMMON_SPEC,
                 ConfigMigration.COMMON_CONFIG
         );
+        FMLJavaModLoadingContext.get().getModEventBus()
+                .addListener(this::onLoadComplete);
 
         // Keep every reference to client-only Minecraft classes behind this physical-side gate.
         DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> VHAcceleratorClient::initialize);
@@ -41,6 +47,20 @@ public final class VHAccelerator {
 
     private void onServerStarted(ServerStartedEvent event) {
         ServerLaunchTimer.markEnd();
+    }
+
+    private void onLoadComplete(FMLLoadCompleteEvent event) {
+        AttributeSupplierDeduplication.closeStartupWindow();
+        AttributeInstanceTemplates.Statistics statistics =
+                AttributeInstanceTemplates.statistics();
+        if (statistics.requests() != 0) {
+            LOGGER.info(
+                    "Attribute-supplier startup deduplication retained {} "
+                            + "unique templates and reused {} duplicates",
+                    statistics.uniqueTemplates(),
+                    statistics.reusedTemplates()
+            );
+        }
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {

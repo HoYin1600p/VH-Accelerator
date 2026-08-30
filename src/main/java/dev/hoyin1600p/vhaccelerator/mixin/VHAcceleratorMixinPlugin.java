@@ -278,6 +278,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.BUFFER_BUILDER_LEAK_FIX
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.attribute."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.ATTRIBUTE_SUPPLIER_DEDUPLICATION
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }

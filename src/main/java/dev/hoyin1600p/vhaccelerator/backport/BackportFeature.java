@@ -42,12 +42,12 @@ public enum BackportFeature {
             "Attribute-supplier deduplication",
             BackportSide.COMMON,
             false,
-            false,
+            true,
             List.of(
                     "perf.attribute_supplier_dedup.AttributeSupplierMixin",
                     "perf.attribute_supplier_dedup.AttributeSupplierBuilderMixin"
             ),
-            List.of()
+            List.of("org.embeddedt.modernfix.entity.AttributeInstanceTemplates")
     ),
     ATTACH_CAPABILITIES_DISPATCH(
             "attach_capabilities_dispatch",

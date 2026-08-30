@@ -47,6 +47,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   render-type registration from allocating and abandoning a native
   `BufferBuilder`. It remains independently owned beside stock ModernFix's
   older finalizer recovery and retains upstream mod exclusions.
+- Added default-off common attribute-supplier compaction that interns identical
+  vanilla attribute templates during mod loading and uses a compact private map
+  per supplier. Subclasses remain untouched, and interning stops when Forge
+  load completion closes the startup window.
 
 ### Compatibility
 
