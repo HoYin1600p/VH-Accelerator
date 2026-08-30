@@ -425,6 +425,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.FASTER_INGREDIENT_EXPANSION_CACHE
             );
         }
+        if (mixinClassName.endsWith(
+                ".backport.modernfix.recipe.TagValueAccessor"
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_INGREDIENT_EXPANSION_CACHE
+            ) || BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_INGREDIENT_TAG_LOOKUPS
+            );
+        }
         if (mixinClassName.contains(
                 ".backport.modernfix.recipe.dedup."
         )) {
