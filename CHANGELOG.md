@@ -51,6 +51,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   vanilla attribute templates during mod loading and uses a compact private map
   per supplier. Subclasses remain untouched, and interning stops when Forge
   load completion closes the startup window.
+- Added a default-off common `AttachCapabilitiesEvent` dispatch precursor that
+  supplies Forge's missing constant non-cancelable answer. This bypasses the
+  EventBus cancelability slow path without changing listener order, generic
+  filtering, cancellation semantics, or attached capability contents.
 
 ### Compatibility
 

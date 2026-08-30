@@ -137,7 +137,7 @@ reports it as `UNAVAILABLE` until its separately tested port is present.
 | `chunkMeshing` | client | `false` | Implemented; replaces vanilla's allocation-heavy section iterator and reuses the first BlockState lookup only when the position still matches. Automatically unavailable with Fluidlogged. |
 | `bufferBuilderLeakFix` | client | `false` | Implemented; prevents a later duplicate RenderType registration from allocating and abandoning a second native BufferBuilder. Automatically unavailable with the two upstream-incompatible render mods. |
 | `attributeSupplierDeduplication` | client + server | `false` | Implemented; canonicalizes identical vanilla attribute templates during mod loading and replaces each supplier's private immutable-map wrapper with a compact fastutil map. Subclassed templates are excluded and interning stops at Forge load completion. |
-| `attachCapabilitiesDispatch` | client + server | `false` | Planned |
+| `attachCapabilitiesDispatch` | client + server | `false` | Implemented; supplies Forge's missing constant non-cancelable event override so repeated capability-attachment dispatch avoids the EventBus cancelability slow path. Event order, listener filtering, and capability contents remain unchanged. |
 | `compactModFileScanData` | client + server | `false` | Planned |
 | `compactImposterProtoChunks` | client + server | `false` | Planned |
 | `compactManifestSignatureData` | client + server | `false` | Planned |

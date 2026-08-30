@@ -55,11 +55,8 @@ public enum BackportFeature {
             "AttachCapabilitiesEvent dispatch",
             BackportSide.COMMON,
             false,
-            false,
-            List.of(
-                    "perf.forge_cap_retrieval.AttachCapabilitiesEventMixin",
-                    "perf.faster_capabilities.bytecode_analysis.AttachCapabilitiesEventMixin"
-            ),
+            true,
+            List.of("perf.forge_cap_retrieval.AttachCapabilitiesEventMixin"),
             List.of()
     ),
     MOD_FILE_SCAN_DATA_COMPACTION(

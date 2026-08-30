@@ -285,6 +285,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     BackportFeature.ATTRIBUTE_SUPPLIER_DEDUPLICATION
             );
         }
+        if (mixinClassName.contains(
+                ".backport.modernfix.capability."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.ATTACH_CAPABILITIES_DISPATCH
+            );
+        }
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }
