@@ -3,6 +3,8 @@ package dev.hoyin1600p.vhaccelerator.mixin;
 import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
+import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
+import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -196,6 +198,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
 
+        if (ferriteCoreLoaded) {
+            claimModernFixOption(
+                    BackportFeature.STATE_DEFINITION_CONSTRUCTION,
+                    "mixin.perf.state_definition_construct"
+            );
+        }
+
         BackportOwnershipRegistry.initialize(
                 physicalClient,
                 this::probeModernFixOwnership,
@@ -269,6 +278,14 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     && modernFixOptionEnabled(
                             "feature.integrated_server_watchdog."
                                     + "IntegratedWatchdog"
+                    );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.blockstate.definition."
+        )) {
+            return ferriteCoreLoaded
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature.STATE_DEFINITION_CONSTRUCTION
                     );
         }
         if (mixinClassName.contains(
@@ -744,6 +761,60 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
     }
 
+    private void claimModernFixOption(
+            BackportFeature feature,
+            String optionName
+    ) {
+        if (!modernFixLoaded
+                || modDiscoveryFailed
+                || BootstrapCompareMode.enabled()
+                || !BootstrapBackportConfig.enabled(feature)) {
+            return;
+        }
+        try {
+            Class<?> pluginClass = Class.forName(
+                    "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
+                    false,
+                    VHAcceleratorMixinPlugin.class.getClassLoader()
+            );
+            Object instance = pluginClass.getField("instance").get(null);
+            if (instance == null) {
+                return;
+            }
+            Object config = pluginClass.getField("config").get(instance);
+            if (config == null) {
+                return;
+            }
+            Object optionMap = config.getClass()
+                    .getMethod("getOptionMap")
+                    .invoke(config);
+            if (!(optionMap instanceof java.util.Map<?, ?> options)) {
+                return;
+            }
+            Object option = options.get(optionName);
+            if (option == null) {
+                return;
+            }
+            option.getClass()
+                    .getMethod("addModOverride", boolean.class, String.class)
+                    .invoke(option, false, "vhaccelerator");
+            LOGGER.info(
+                    "VH Accelerator claimed ModernFix option {} for {}",
+                    optionName,
+                    feature.id()
+            );
+        } catch (ReflectiveOperationException
+                 | RuntimeException
+                 | LinkageError failure) {
+            LOGGER.warn(
+                    "Could not claim ModernFix option {} for {}; leaving it to ModernFix",
+                    optionName,
+                    feature.id(),
+                    failure
+            );
+        }
+    }
+
     private ModernFixOwnership probeModernFixOwnership(
             BackportFeature feature
     ) {
@@ -827,6 +898,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 && (isometricRendersLoaded || witherStormModLoaded)) {
             return "an upstream-incompatible render mod is installed"
                     + " (Isometric Renders or Cracker's Wither Storm Mod)";
+        }
+        if (feature == BackportFeature.STATE_DEFINITION_CONSTRUCTION
+                && !ferriteCoreLoaded) {
+            return "FerriteCore is required for the array-first state map";
         }
         if (feature == BackportFeature.IMPOSTER_PROTOCHUNK_COMPACTION) {
             return "Minecraft 1.18.2 read-only wrappers require private "

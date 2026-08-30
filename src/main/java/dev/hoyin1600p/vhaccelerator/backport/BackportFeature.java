@@ -139,6 +139,18 @@ public enum BackportFeature {
             List.of(),
             List.of()
     ),
+    STATE_DEFINITION_CONSTRUCTION(
+            "state_definition_construction",
+            "stateDefinitionConstruction",
+            "Graceful blockstate-definition construction",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of(
+                    "perf.state_definition_construct.StateDefinitionMixin"
+            ),
+            List.of()
+    ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",
             "compactEntityModels",
