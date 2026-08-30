@@ -204,6 +204,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     "mixin.perf.state_definition_construct"
             );
         }
+        claimModernFixOption(
+                BackportFeature.COMPACT_PALETTE_VALIDATION,
+                "mixin.perf.compact_bit_storage"
+        );
 
         BackportOwnershipRegistry.initialize(
                 physicalClient,
@@ -287,6 +291,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     && BackportOwnershipRegistry.vhaOwns(
                             BackportFeature.STATE_DEFINITION_CONSTRUCTION
                     );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.blockstate.palette."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.COMPACT_PALETTE_VALIDATION
+            );
         }
         if (mixinClassName.contains(
                 ".backport.modernfix.network."

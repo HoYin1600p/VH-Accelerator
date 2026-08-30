@@ -9,6 +9,7 @@
     "backport.modernfix.attribute.AttributeSupplierBuilderMixin",
     "backport.modernfix.attribute.AttributeSupplierMixin",
     "backport.modernfix.blockstate.definition.StateDefinitionMixin",
+    "backport.modernfix.blockstate.palette.PalettedContainerMixin",
     "backport.modernfix.capability.AttachCapabilitiesEventMixin",
     "backport.modernfix.network.HandshakeHandlerAccess",
     "backport.modernfix.network.HandshakeHandlerMixin",

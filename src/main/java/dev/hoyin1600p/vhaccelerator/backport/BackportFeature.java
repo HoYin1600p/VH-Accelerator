@@ -151,6 +151,16 @@ public enum BackportFeature {
             ),
             List.of()
     ),
+    COMPACT_PALETTE_VALIDATION(
+            "compact_palette_validation",
+            "compactPaletteValidation",
+            "Guarded compact palette validation",
+            BackportSide.COMMON,
+            false,
+            true,
+            List.of("perf.compact_bit_storage.PalettedContainerMixin"),
+            List.of()
+    ),
     ENTITY_MODEL_COMPACTION(
             "entity_model_compaction",
             "compactEntityModels",
