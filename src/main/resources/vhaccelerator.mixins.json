@@ -76,6 +76,7 @@
     "client.ForgeLogoutTimingMixin",
     "client.ForgeRecipeEventTimingMixin",
     "client.FMLModContainerRegistryProfilerMixin",
+    "client.ForgeRegistryAddProfilerMixin",
     "client.FerriteCoreQuadCacheCapacityMixin",
     "client.GameRendererTimingMixin",
     "client.JeiStartEventObserverMixin",

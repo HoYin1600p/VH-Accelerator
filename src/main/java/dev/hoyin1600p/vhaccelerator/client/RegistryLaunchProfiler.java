@@ -1,8 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,6 +22,10 @@ public final class RegistryLaunchProfiler {
             new ConcurrentHashMap<>();
     private static final Map<String, Timing> HOLDER_TIMINGS =
             new ConcurrentHashMap<>();
+    private static final Map<String, Timing> REGISTRATION_TIMINGS =
+            new ConcurrentHashMap<>();
+    private static final ThreadLocal<Deque<Long>> REGISTRATION_STARTS =
+            ThreadLocal.withInitial(ArrayDeque::new);
     private static final Map<ResourceLocation, Long> REGISTRY_STARTS =
             new ConcurrentHashMap<>();
     private static final Map<String, Timing> TRANSITION_TIMINGS =
@@ -83,16 +89,38 @@ public final class RegistryLaunchProfiler {
         );
     }
 
+    public static void beginRegistration() {
+        if (active()) {
+            REGISTRATION_STARTS.get().push(System.nanoTime());
+        }
+    }
+
+    public static void finishRegistration(ResourceLocation registryName) {
+        Deque<Long> starts = REGISTRATION_STARTS.get();
+        if (!starts.isEmpty()) {
+            record(
+                    REGISTRATION_TIMINGS,
+                    String.valueOf(registryName),
+                    starts.pop()
+            );
+        }
+        if (starts.isEmpty()) {
+            REGISTRATION_STARTS.remove();
+        }
+    }
+
     public static void finish() {
         if (!FINISHED.compareAndSet(false, true)) {
             return;
         }
         if (VHAcceleratorClientConfig.launchProfilingEnabled()) {
             report("registry callback", EVENT_TIMINGS, 20);
+            report("registry add", REGISTRATION_TIMINGS, 20);
             report("registry transition", TRANSITION_TIMINGS, 20);
             report("object-holder registry", HOLDER_TIMINGS, 20);
         }
         EVENT_TIMINGS.clear();
+        REGISTRATION_TIMINGS.clear();
         REGISTRY_STARTS.clear();
         TRANSITION_TIMINGS.clear();
         HOLDER_TIMINGS.clear();
