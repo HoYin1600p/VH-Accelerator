@@ -27,7 +27,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             "dev.hoyin1600p.vhaccelerator.mixin.ForgeRegistryMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.BlockStateMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.ReloadableResourceManagerMixin",
-            "dev.hoyin1600p.vhaccelerator.mixin.PathResourcePackIndexMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.BlockModelMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryMixin"
     );
@@ -209,6 +208,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         claimModernFixOption(
                 BackportFeature.COMPACT_PALETTE_VALIDATION,
                 "mixin.perf.compact_bit_storage"
+        );
+        claimModernFixOption(
+                BackportFeature.RESOURCE_PACK_INDEXING,
+                "mixin.perf.resourcepacks"
         );
         if (modernFixLoaded
                 && !BootstrapCompareMode.enabled()
@@ -567,6 +570,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.BLOCK_PROPERTY_NAME_DEDUPLICATION
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.resource."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.RESOURCE_PACK_INDEXING
             );
         }
         if (mixinClassName.contains(

@@ -38,10 +38,11 @@ public final class BootstrapBackportConfig {
         EnumMap<BackportFeature, Boolean> resolved =
                 new EnumMap<>(BackportFeature.class);
         for (BackportFeature feature : BackportFeature.values()) {
-            Object configured = lookup.apply(List.of(
-                    "backports",
-                    feature.configKey()
-            ));
+            List<String> configPath = feature
+                    == BackportFeature.RESOURCE_PACK_INDEXING
+                    ? List.of("optimizations", feature.configKey())
+                    : List.of("backports", feature.configKey());
+            Object configured = lookup.apply(configPath);
             resolved.put(
                     feature,
                     configured instanceof Boolean enabled

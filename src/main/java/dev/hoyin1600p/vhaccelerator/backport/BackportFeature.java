@@ -521,6 +521,21 @@ public enum BackportFeature {
                             + "model_optimizations.BooleanPropertyMixin"
             )
     ),
+    RESOURCE_PACK_INDEXING(
+            "resource_pack_indexing",
+            "indexImmutableModResources",
+            "Immutable resource-pack tree indexing",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.resourcepacks.ModFileResourcePackMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.perf.resourcepacks."
+                            + "ModFileResourcePackMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf.resourcepacks."
+                            + "ForgePathPackResourcesMixin"
+            )
+    ),
     RESOURCE_KEY_INTERNING(
             "resource_key_interning",
             "resourceKeyInterning",

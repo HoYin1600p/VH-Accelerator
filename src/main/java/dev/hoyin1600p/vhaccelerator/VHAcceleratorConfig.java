@@ -111,10 +111,10 @@ public final class VHAcceleratorConfig {
                     .define("cacheResourceListing", true);
             indexImmutableModResources = builder
                     .comment(
-                            "Indexes each immutable jar-backed mod resource namespace once.",
+                            "Indexes immutable jar-backed mod resource packs as a lazy tree.",
                             "Repeated model, blockstate, texture, and existence queries",
-                            "reuse the index. Folder packs, live generated packs, empty-prefix",
-                            "queries, failed scans, and ModernFix always keep their original path.")
+                            "reuse the index. Folder packs, live generated packs, and failed",
+                            "or suspicious scans always keep Forge's original path.")
                     .define("indexImmutableModResources", true);
             builder.pop();
 
@@ -122,6 +122,10 @@ public final class VHAcceleratorConfig {
             EnumMap<BackportFeature, ForgeConfigSpec.BooleanValue> options =
                     new EnumMap<>(BackportFeature.class);
             for (BackportFeature feature : BackportFeature.values()) {
+                if (feature == BackportFeature.RESOURCE_PACK_INDEXING) {
+                    options.put(feature, indexImmutableModResources);
+                    continue;
+                }
                 options.put(
                         feature,
                         builder.comment(

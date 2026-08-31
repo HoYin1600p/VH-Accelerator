@@ -28,6 +28,7 @@
     "backport.modernfix.registry.resourcekey.ResourceKeyConstructor",
     "backport.modernfix.registry.resourcekey.ResourceKeyMixin",
     "backport.modernfix.registry.validation.ForgeRegistryMixin",
+    "backport.modernfix.resource.PathResourcePackIndexMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",
@@ -48,8 +49,7 @@
     "SimpleReloadInstanceMixin",
     "ForgeRegistryMixin",
     "BlockStateMixin",
-    "ReloadableResourceManagerMixin",
-    "PathResourcePackIndexMixin"
+    "ReloadableResourceManagerMixin"
   ],
   "client": [
     "backport.modernfix.client.buffer.RenderBuffersMixin",

@@ -36,6 +36,19 @@ final class BootstrapBackportConfigTest {
         assertTrue(values.get(BackportFeature.FORGE_HANDSHAKE_BATCHING));
     }
 
+    @Test
+    void resourcePackIndexRetainsItsLegacyOptimizationPath() {
+        Map<BackportFeature, Boolean> values =
+                BootstrapBackportConfig.resolveValues(path ->
+                        path.equals(List.of(
+                                "optimizations",
+                                "indexImmutableModResources"
+                        )) ? Boolean.FALSE : null
+                );
+
+        assertFalse(values.get(BackportFeature.RESOURCE_PACK_INDEXING));
+    }
+
     private static boolean matches(
             List<String> path,
             BackportFeature feature
