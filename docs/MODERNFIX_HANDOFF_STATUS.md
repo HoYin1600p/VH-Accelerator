@@ -8,7 +8,8 @@ individual mixin or helper inside a family.
 Status as of 2026-08-30:
 
 - 35 VHA delivery and maintained-correction families reviewed;
-- 24 implemented;
+- 20 implemented in VH Accelerator;
+- 4 client-render families transferred to VRO;
 - 2 rejected after Minecraft/Forge 1.18.2 validation;
 - 6 major projects remain;
 - 3 proposed corrections were proven inapplicable to the ModernFix 5.18 / Minecraft 1.18.2 code paths.
@@ -18,8 +19,8 @@ Status as of 2026-08-30:
 | Family | Status |
 | --- | --- |
 | Forge handshake batching/stall correction | Implemented |
-| Chunk meshing iterator and duplicate lookup removal | Implemented |
-| Additional `BufferBuilder` leak correction | Implemented |
+| Chunk meshing iterator and duplicate lookup removal | Transferred to VRO |
+| Additional `BufferBuilder` leak correction | Transferred to VRO |
 | Attribute-supplier deduplication | Implemented |
 | `AttachCapabilitiesEvent` dispatch precursor | Implemented; exact ModernFix ownership marker corrected |
 | `ModFileScanData` compaction | Implemented |
@@ -27,7 +28,7 @@ Status as of 2026-08-30:
 | Manifest signature-data compaction | Rejected; unsafe with SecureJarHandler 1.0 deferred verification |
 | Forge tag-registry concurrency corrections | Implemented |
 | Accurate server MC-183518 event-loop correction | Implemented |
-| Compact entity-model data | Implemented; beta/default-off |
+| Compact entity-model data | Transferred to VRO |
 
 ## Measured additions
 
@@ -38,7 +39,7 @@ Status as of 2026-08-30:
 | Object-holder cleanup | Implemented as separate throwable compaction and verified single-owner callback pruning |
 | Faster loot loading | Implemented; beta/default-off |
 | Dynamic client languages | Implemented; beta/default-off |
-| Profile texture URL cache | Implemented; beta/default-off |
+| Profile texture URL cache | Transferred to VRO |
 | Telemetry suppression | Implemented; optional/default-off |
 
 ## Recipe laboratory

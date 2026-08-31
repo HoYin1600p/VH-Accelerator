@@ -36,21 +36,6 @@ ModernFix credits Uncandango's AllTheLeaks as the original inspiration for its
 ingredient item-value deduplication. VH Accelerator's adaptation is derived
 from ModernFix's implementation and preserves that discovery credit.
 
-## GTNewHorizons lwjgl3ify
-
-- Project: [GTNewHorizons/lwjgl3ify](https://github.com/GTNewHorizons/lwjgl3ify)
-- Contributors: the contributors recorded in lwjgl3ify's Git history
-- License: LGPL-3.0
-- Audited source commit: `f21364cd3d178aef863458a2faa1f5718a4e350d`
-- Source used by ModernFix:
-  [`StbStitcher.java`](https://github.com/GTNewHorizons/lwjgl3ify/blob/f21364cd3d178aef863458a2faa1f5718a4e350d/src/main/java/me/eigenraven/lwjgl3ify/textures/StbStitcher.java)
-- [License at the audited commit](https://github.com/GTNewHorizons/lwjgl3ify/blob/f21364cd3d178aef863458a2faa1f5718a4e350d/LICENSE)
-
-ModernFix's faster texture stitcher credits and adapts lwjgl3ify's STB
-rectangle-packing implementation. VH Accelerator derives its Minecraft 1.18.2
-implementation from ModernFix and preserves the transitive source and license
-notice here and in the adapted source header.
-
 ## Other projects
 
 Projects used only for discovery, compatibility research, APIs, or testing are

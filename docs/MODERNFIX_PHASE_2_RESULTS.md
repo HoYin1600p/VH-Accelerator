@@ -4,10 +4,15 @@ This document records the second large VH Accelerator 1.0.14 backport batch on
 the `modernfix-backports` branch. The authoritative per-file source, commit,
 copyright and license records remain in `MODERNFIX_BACKPORTS.md`.
 
-All features in this batch remain independently configurable, restart-bound,
-Compare-Mode aware and disabled by default. A reported `client + server` side
-means the transformed class is common code; it is not a dedicated-server
-support claim. Dedicated-server testing has not happened yet.
+The client render features recorded here were subsequently transferred to
+Vault Render Optimization and are no longer present in VH Accelerator. This
+file remains as historical validation evidence for the original batch.
+
+At the time of this validation, all features in the batch were independently
+configurable, restart-bound, Compare-Mode aware and disabled by default. A
+reported `client + server` side means the transformed class is common code; it
+is not a dedicated-server support claim. Dedicated-server testing had not
+happened yet.
 
 ## Implemented batch
 
@@ -113,4 +118,3 @@ These are deferred for evidence and safety, not rejected permanently.
   Storage/Backpacks, Curios, sleeping bags and Vault workstations.
 - Real Compare Mode A/B launch and join benchmarks with the same installed-mod
   state on both sides of each comparison.
-

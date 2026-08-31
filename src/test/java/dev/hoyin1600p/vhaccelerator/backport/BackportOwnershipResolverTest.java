@@ -8,7 +8,7 @@ final class BackportOwnershipResolverTest {
     private static final BackportFeature COMMON =
             BackportFeature.FORGE_HANDSHAKE_BATCHING;
     private static final BackportFeature CLIENT =
-            BackportFeature.CHUNK_MESHING;
+            BackportFeature.DYNAMIC_CLIENT_LANGUAGES;
 
     @Test
     void modernFixActiveAlwaysOwnsCompatiblePath() {
@@ -110,12 +110,12 @@ final class BackportOwnershipResolverTest {
                 true,
                 ModernFixOwnership.ABSENT,
                 true,
-                "Fluidlogged changes the chunk meshing state lookup path"
+                "synthetic client compatibility blocker"
         );
 
         assertEquals(BackportOwner.UNAVAILABLE, decision.owner());
         assertEquals(
-                "Fluidlogged changes the chunk meshing state lookup path",
+                "synthetic client compatibility blocker",
                 decision.reason()
         );
     }

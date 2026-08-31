@@ -26,7 +26,7 @@ final class BootstrapBackportConfigTest {
 
     @Test
     void eachConfiguredValueIsResolvedIndependently() {
-        BackportFeature selected = BackportFeature.CHUNK_MESHING;
+        BackportFeature selected = BackportFeature.DYNAMIC_CLIENT_LANGUAGES;
         Map<BackportFeature, Boolean> values =
                 BootstrapBackportConfig.resolveValues(path ->
                         matches(path, selected) ? Boolean.FALSE : null

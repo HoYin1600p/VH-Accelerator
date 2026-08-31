@@ -13,29 +13,6 @@ public enum BackportFeature {
             List.of("perf.fix_handshake_stall.HandshakeHandlerMixin"),
             List.of()
     ),
-    CHUNK_MESHING(
-            "chunk_meshing",
-            "chunkMeshing",
-            "Chunk meshing",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.chunk_meshing.RebuildTaskMixin"),
-            List.of()
-    ),
-    BUFFER_BUILDER_LEAK_FIX(
-            "buffer_builder_leak_fix",
-            "bufferBuilderLeakFix",
-            "BufferBuilder leak correction",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("bugfix.buffer_builder_leak.RenderBuffersMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.bugfix."
-                            + "buffer_builder_leak.RenderBuffersMixin"
-            )
-    ),
     ATTRIBUTE_SUPPLIER_DEDUPLICATION(
             "attribute_supplier_deduplication",
             "attributeSupplierDeduplication",
@@ -167,19 +144,6 @@ public enum BackportFeature {
             true,
             List.of(),
             List.of()
-    ),
-    ENTITY_MODEL_COMPACTION(
-            "entity_model_compaction",
-            "compactEntityModels",
-            "Entity-model compaction",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.compact_entity_models.CubeDefinitionMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "compact_entity_models.CubeDefinitionMixin"
-            )
     ),
     WORLDGEN_MATERIAL_RULE_ITERATION(
             "worldgen_material_rule_iteration",
@@ -329,19 +293,6 @@ public enum BackportFeature {
                             + "dynamic_languages.ClientLanguageMixin"
             )
     ),
-    PROFILE_TEXTURE_HASH_CACHE(
-            "profile_texture_hash_cache",
-            "profileTextureHashCache",
-            "Profile-texture hash cache",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.cache_profile_texture_url.SkinManagerMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "cache_profile_texture_url.SkinManagerMixin"
-            )
-    ),
     DISABLE_TELEMETRY(
             "disable_telemetry",
             "disableTelemetry",
@@ -405,58 +356,6 @@ public enum BackportFeature {
             List.of(
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "ingredient_item_deduplication.IngredientMixin"
-            )
-    ),
-    MODEL_SELECTOR_PREDICATE_CACHE(
-            "model_selector_predicate_cache",
-            "modelSelectorPredicateCache",
-            "Multipart model-selector predicate cache",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.model_optimizations.SelectorMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "model_optimizations.SelectorMixin"
-            )
-    ),
-    MODEL_VARIANT_TRAVERSAL(
-            "model_variant_traversal",
-            "modelVariantTraversal",
-            "Allocation-light model-variant traversal",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.model_optimizations.MultiVariantMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "model_optimizations.MultiVariantMixin"
-            )
-    ),
-    MODEL_TRANSFORMATION_HASH_CACHE(
-            "model_transformation_hash_cache",
-            "modelTransformationHashCache",
-            "Model transformation hash cache",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.model_optimizations.TransformationMatrixMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "model_optimizations.TransformationMatrixMixin"
-            )
-    ),
-    OBJ_MODEL_CACHE_CONCURRENCY(
-            "obj_model_cache_concurrency",
-            "objModelCacheConcurrency",
-            "Thread-safe Forge OBJ model caches",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.model_optimizations.OBJLoaderMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.forge.mixin.perf."
-                            + "model_optimizations.OBJLoaderMixin"
             )
     ),
     MAPPED_REGISTRY_GROWTH(
@@ -534,45 +433,6 @@ public enum BackportFeature {
                             + "ModFileResourcePackMixin",
                     "org.embeddedt.modernfix.common.mixin.perf.resourcepacks."
                             + "ForgePathPackResourcesMixin"
-            )
-    ),
-    FASTER_TEXTURE_STITCHING(
-            "faster_texture_stitching",
-            "fasterTextureStitching",
-            "Faster texture atlas stitching",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("perf.faster_texture_stitching.StitcherMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.common.mixin.perf."
-                            + "faster_texture_stitching.StitcherMixin"
-            )
-    ),
-    MODEL_DATA_MANAGER_CONCURRENCY(
-            "model_data_manager_concurrency",
-            "modelDataManagerConcurrencyFix",
-            "Forge model-data concurrency correction",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("bugfix.model_data_manager_cme.ModelDataManagerMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.forge.mixin.bugfix."
-                            + "model_data_manager_cme.ModelDataManagerMixin"
-            )
-    ),
-    CTM_METADATA_CACHE_CONCURRENCY(
-            "ctm_metadata_cache_concurrency",
-            "ctmMetadataCacheConcurrencyFix",
-            "ConnectedTexturesMod metadata-cache concurrency correction",
-            BackportSide.CLIENT,
-            true,
-            true,
-            List.of("bugfix.ctm_resourceutil_cme.ResourceUtilMixin"),
-            List.of(
-                    "org.embeddedt.modernfix.forge.mixin.bugfix."
-                            + "ctm_resourceutil_cme.ResourceUtilMixin"
             )
     ),
     DEDUPLICATE_WALL_SHAPES(

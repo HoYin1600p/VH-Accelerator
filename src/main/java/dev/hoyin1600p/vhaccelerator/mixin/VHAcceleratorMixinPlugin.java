@@ -54,11 +54,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean modDiscoveryFailed;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
-    private boolean rubidiumLoaded;
-    private boolean embeddiumLoaded;
-    private boolean fluidloggedLoaded;
-    private boolean isometricRendersLoaded;
-    private boolean witherStormModLoaded;
     private boolean optifinePresent;
     private boolean jeiLoaded;
     private int jeiGeneration;
@@ -115,16 +110,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             externalShapeOptimizerLoaded = modList != null
                     && (modList.getModFileById("canary") != null
                     || modList.getModFileById("lithium") != null);
-            rubidiumLoaded = modList != null
-                    && modList.getModFileById("rubidium") != null;
-            embeddiumLoaded = modList != null
-                    && modList.getModFileById("embeddium") != null;
-            fluidloggedLoaded = modList != null
-                    && modList.getModFileById("fluidlogged") != null;
-            isometricRendersLoaded = modList != null
-                    && modList.getModFileById("isometric-renders") != null;
-            witherStormModLoaded = modList != null
-                    && modList.getModFileById("witherstormmod") != null;
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
                 if (jeiLoaded
@@ -218,11 +203,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
-            rubidiumLoaded = false;
-            embeddiumLoaded = false;
-            fluidloggedLoaded = false;
-            isometricRendersLoaded = false;
-            witherStormModLoaded = false;
             jeiLoaded = false;
             jeiGeneration = 0;
             vaultHuntersLoaded = false;
@@ -263,18 +243,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         claimModernFixOption(
                 BackportFeature.RESOURCE_PACK_INDEXING,
                 "mixin.perf.resourcepacks"
-        );
-        // Retain an active ModernFix texture stitcher. In a Remastered-sized
-        // client pack, forcing ownership to VHA added roughly two seconds to
-        // the warm initial resource reload. VHA still owns this feature when
-        // ModernFix is absent or its corresponding mixin is inactive.
-        claimModernFixOption(
-                BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY,
-                "mixin.bugfix.model_data_manager_cme"
-        );
-        claimModernFixOption(
-                BackportFeature.CTM_METADATA_CACHE_CONCURRENCY,
-                "mixin.bugfix.ctm_resourceutil_cme"
         );
         claimModernFixOption(
                 BackportFeature.TICKING_CHUNK_ALLOCATIONS,
@@ -438,20 +406,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
-                ".backport.modernfix.client.render."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.CHUNK_MESHING
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.buffer."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.BUFFER_BUILDER_LEAK_FIX
-            );
-        }
-        if (mixinClassName.contains(
                 ".backport.modernfix.attribute."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
@@ -498,13 +452,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.TICKING_CHUNK_ALLOCATIONS
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.entity."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.ENTITY_MODEL_COMPACTION
             );
         }
         if (mixinClassName.endsWith(
@@ -571,68 +518,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
-                ".backport.modernfix.client.model.selector."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.MODEL_SELECTOR_PREDICATE_CACHE
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.model.variant."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.MODEL_VARIANT_TRAVERSAL
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.model.transformation."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.MODEL_TRANSFORMATION_HASH_CACHE
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.model.obj."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.OBJ_MODEL_CACHE_CONCURRENCY
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.skin."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.PROFILE_TEXTURE_HASH_CACHE
-            );
-        }
-        if (mixinClassName.contains(
                 ".backport.modernfix.client.telemetry."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.DISABLE_TELEMETRY
             );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.texture."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.FASTER_TEXTURE_STITCHING
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.modeldata."
-        )) {
-            return BackportOwnershipRegistry.vhaOwns(
-                    BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY
-            );
-        }
-        if (mixinClassName.contains(
-                ".backport.modernfix.client.ctm."
-        )) {
-            return ctmCompatible
-                    && BackportOwnershipRegistry.vhaOwns(
-                            BackportFeature.CTM_METADATA_CACHE_CONCURRENCY
-                    );
         }
         if (mixinClassName.endsWith(
                 ".backport.modernfix.recipe.IngredientExpansionCacheMixin"
@@ -1103,14 +993,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     }
 
     private String probeBackportCompatibility(BackportFeature feature) {
-        if (feature == BackportFeature.CHUNK_MESHING && fluidloggedLoaded) {
-            return "Fluidlogged changes the chunk meshing state lookup path";
-        }
-        if (feature == BackportFeature.BUFFER_BUILDER_LEAK_FIX
-                && (isometricRendersLoaded || witherStormModLoaded)) {
-            return "an upstream-incompatible render mod is installed"
-                    + " (Isometric Renders or Cracker's Wither Storm Mod)";
-        }
         if (feature == BackportFeature.STATE_DEFINITION_CONSTRUCTION
                 && !ferriteCoreLoaded) {
             return "FerriteCore is required for the array-first state map";
@@ -1126,15 +1008,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (feature == BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
                 && jeiGeneration != 10) {
             return "the validated JEI 10 search bridge is not installed";
-        }
-        if (feature == BackportFeature.CTM_METADATA_CACHE_CONCURRENCY
-                && !ctmCompatible) {
-            return "the validated ConnectedTexturesMod version is not installed";
-        }
-        if (feature == BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY
-                && rubidiumLoaded
-                && !embeddiumLoaded) {
-            return "legacy Rubidium refreshes Forge model data only on worker threads";
         }
         return null;
     }

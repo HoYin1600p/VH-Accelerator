@@ -69,8 +69,8 @@ These do not require VHA to patch ModernFix's private implementation.
 | Order | Port | Side | Initial default | Primary acceptance test |
 | ---: | --- | --- | --- | --- |
 | 1 | Forge handshake batching/stall correction | common/server | off | Identical payload order and completion with fewer stalled login ticks; client-only installs remain compatible. |
-| 2 | Chunk meshing iterator and duplicate BlockState lookup removal | client | off | Fixed-scene chunk rebuild output is identical; retain the upstream fluidlogged exclusion. |
-| 3 | Additional BufferBuilder lifetime/leak correction | client | off | Repeated world joins, reloads and renderer rebuilds show no missing geometry, use-after-free, or retained builder growth. |
+| 2 | Chunk meshing iterator and duplicate BlockState lookup removal | client | moved to VRO | Fixed-scene chunk rebuild output is identical; retain the upstream fluidlogged exclusion. |
+| 3 | Additional BufferBuilder lifetime/leak correction | client | moved to VRO | Repeated world joins, reloads and renderer rebuilds show no missing geometry, use-after-free, or retained builder growth. |
 | 4 | Attribute-supplier template deduplication | common | off | Registration results remain identity/attribute equivalent and interning stops after registration. |
 | 5 | Faster `AttachCapabilitiesEvent` dispatch precursor | common | off | Event order, cancellation, generic filtering, and every attached capability remain identical under a capability-heavy workload. |
 | 6 | `ModFileScanData` post-load compaction | common/loader | off | Late annotation consumers across all supported packs continue to work after compaction; retained heap decreases. |
@@ -102,10 +102,8 @@ Implement these one transformation at a time rather than as feature bundles.
 5. Reloadable client-language storage. Implemented as a default-off beta using
    resource descriptors and fresh 1.18.2 resource-manager lookups; runtime
    counts provide the retained-memory evidence needed before enabling it.
-6. A bounded profile-texture URL/hash cache. Implemented as a default-off beta
-   using exact URL keys, a 60-second access lifetime and a 2,048-entry cap;
-   runtime testing still decides whether the installed packs generate enough
-   repeat lookups to justify enabling it.
+6. A bounded profile-texture URL/hash cache. Transferred to VRO with its exact
+   URL keys, 60-second access lifetime and 2,048-entry cap.
 7. Optional telemetry suppression. Implemented as a default-off privacy option
    around the final 1.18.2 `UserApiService`, so it composes with VHA's deferred
    service when enabled and the vanilla service when disabled. Profile

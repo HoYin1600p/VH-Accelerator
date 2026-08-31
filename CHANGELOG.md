@@ -38,6 +38,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Moved the recent ModernFix-derived client render backports to Vault Render
+  Optimization. VH Accelerator no longer transforms chunk meshing,
+  `RenderBuffers`, entity-model cubes, profile textures, multipart selectors,
+  model variants, transformation hashes, Forge OBJ caches, texture stitching,
+  Forge model-data refreshes, or CTM metadata caching.
+
 - Diagnostic-only mixins are now omitted during bootstrap when `debug=false`,
   instead of remaining woven into game classes behind runtime checks. Shared
   packet, disconnect, model-bake, launch, and login hooks keep only the
@@ -54,15 +60,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   notices, and ModernFix provenance ledger.
 
 ### Fixed
-
-- Added a Forge model-data concurrency correction for clients that do not use
-  legacy Rubidium. Refresh requests now use a true concurrent set and worker
-  model queries cannot refresh block entities off the client thread. Legacy
-  Rubidium retains its original path because it only requests model data from
-  workers; Embeddium and non-Rubidium clients remain eligible.
-- Added a guarded ConnectedTexturesMod metadata-cache correction. The optional
-  CTM mixin loads only for the validated 1.18.2 CTM layout and synchronizes its
-  nullable metadata cache during parallel model loading.
 
 - Corrected ModernFix ownership detection for the newer
   `AttachCapabilitiesEvent` dispatch precursor. ModernFix 5.18's older
@@ -96,20 +93,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   remains live even when first observed empty, tightening an upstream semantic
   compromise, and reflective Either access falls back to vanilla if unavailable.
 
-- Added guarded STB rectangle packing for large texture atlases. Atlases with
-  fewer than 100 sprites and candidates that exceed Minecraft's configured
-  atlas limits keep vanilla stitching, preserving alignment-sensitive JEI and
-  mod behavior. Exact-option ownership prevents duplicate ModernFix handling.
-
 - Added a default-off Forge 40 redundant object-holder cleanup. After load
   completion it removes only exact Forge callbacks for resolved registry keys
   with no registered override candidates and a verified current field value.
   Override-sensitive, dummied, unresolved, mismatched, and mod-provided
   callbacks remain installed for later registry snapshot injection or restore.
-
-- Added a default-off bounded profile-texture hash cache. Repeated skin and
-  player-head registrations for the same exact URL reuse Minecraft's parsed
-  hash for 60 seconds, while a 2,048-entry cap prevents unbounded retention.
 
 - Added default-off beta dynamic client-language storage. Resource-owned
   translation strings become compact descriptors backed by soft per-file
@@ -129,14 +117,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   packet order, stops when the handshake waits for replies or futures, works
   with unmodified peers, synchronizes the cross-thread acknowledgement list,
   and corrects Forge's early-completion check.
-- Added a default-off client chunk-meshing backport that uses an allocation-
-  light section iterator while preserving vanilla traversal order and avoids
-  the duplicate BlockState lookup in each block render pass. Unexpected bounds
-  and lookup sequences fall back safely, and Fluidlogged disables the feature.
-- Added a default-off client `RenderBuffers` correction that prevents duplicate
-  render-type registration from allocating and abandoning a native
-  `BufferBuilder`. It remains independently owned beside stock ModernFix's
-  older finalizer recovery and retains upstream mod exclusions.
 - Added default-off common attribute-supplier compaction that interns identical
   vanilla attribute templates during mod loading and uses a compact private map
   per supplier. Subclasses remain untouched, and interning stops when Forge
@@ -149,10 +129,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   It canonicalizes repeated scan metadata, compacts retained collections, keeps
   mutable annotation list values for mod compatibility, removes build-time-only
   annotations, and isolates any failure to the affected mod file.
-- Added a default-off beta entity-model compactor that shares identical,
-  immutable baked cubes across model parts. The 1.18.2 adaptation uses compact
-  primitive-bit keys, avoids Mixin-added static initialization, and drops the
-  previous generation's cache when entity model roots reload.
 - Added the first independently gated world-generation allocation reduction:
   material-rule selection now uses equivalent indexed access instead of
   allocating a list iterator at every density-function position.
