@@ -375,6 +375,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 && !BootstrapDebugDiagnostics.enabled()) {
             return false;
         }
+        if (mixinClassName.endsWith(
+                ".client.ModernFixTextureAtlasWorkerMixin"
+        )) {
+            return physicalClient && modernFixLoaded;
+        }
         if (mixinClassName.contains(
                 ".backport.modernfix.correction.watchdog."
         )) {

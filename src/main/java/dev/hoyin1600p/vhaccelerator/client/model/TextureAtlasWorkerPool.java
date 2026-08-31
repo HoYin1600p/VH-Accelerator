@@ -47,6 +47,29 @@ public final class TextureAtlasWorkerPool {
         return Holder.EXECUTOR;
     }
 
+    public static ExecutorService selectService(
+            ExecutorService vanillaExecutor
+    ) {
+        return (ExecutorService) select(vanillaExecutor);
+    }
+
+    public static ExecutorService selectModernFixService() {
+        try {
+            Class<?> modernFix = Class.forName(
+                    "org.embeddedt.modernfix.ModernFix"
+            );
+            ExecutorService original = (ExecutorService) modernFix
+                    .getMethod("resourceReloadExecutor")
+                    .invoke(null);
+            return selectService(original);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException(
+                    "ModernFix texture executor was not available",
+                    failure
+            );
+        }
+    }
+
     public static int recommendedWorkerCount(int availableProcessors) {
         int processors = Math.max(1, availableProcessors);
         return Math.max(1, Math.min(MAX_WORKERS, processors / 2));

@@ -111,6 +111,7 @@
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
     "client.ModernFixPersistentModelMaterialMixin",
+    "client.ModernFixTextureAtlasWorkerMixin",
     "client.ModelMaterialCollectionMixin",
     "client.ParallelBlockModelShaperMixin",
     "client.ReloadListenerProfilerMixin",
