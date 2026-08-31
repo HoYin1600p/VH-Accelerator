@@ -26,20 +26,4 @@ public abstract class TextureAtlasWorkerMixin {
         return TextureAtlasWorkerPool.select(vanillaExecutor);
     }
 
-    @ModifyArg(
-            method = "getLoadedSprites",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Ljava/util/concurrent/CompletableFuture;"
-                            + "runAsync(Ljava/lang/Runnable;"
-                            + "Ljava/util/concurrent/Executor;)"
-                            + "Ljava/util/concurrent/CompletableFuture;"
-            ),
-            index = 1
-    )
-    private Executor vhaccelerator$routeSpriteLoading(
-            Executor vanillaExecutor
-    ) {
-        return TextureAtlasWorkerPool.select(vanillaExecutor);
-    }
 }

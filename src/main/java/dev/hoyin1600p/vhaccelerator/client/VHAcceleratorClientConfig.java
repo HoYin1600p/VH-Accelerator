@@ -199,7 +199,7 @@ public final class VHAcceleratorClientConfig {
             parallelAtlasStitching = builder
                     .comment(
                             "Prepares independent texture atlases concurrently and routes",
-                            "vanilla metadata/PNG child jobs through dedicated adaptive",
+                            "vanilla texture metadata child jobs through dedicated adaptive",
                             "workers so resource-reload parents cannot starve their own work."
                     )
                     .define("parallelAtlasStitching", true);

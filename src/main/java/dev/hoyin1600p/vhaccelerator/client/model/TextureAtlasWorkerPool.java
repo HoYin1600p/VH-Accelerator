@@ -13,10 +13,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Keeps TextureAtlas child work off the resource-reload pool that waits for it.
  *
  * <p>Vanilla prepares atlases on resource-reload workers, submits every texture
- * metadata and PNG decode job to Minecraft's shared background pool, and joins
+ * metadata and PNG-header job to Minecraft's shared background pool, and joins
  * those children. Large packs can occupy that pool with the parent reload jobs,
  * leaving even tiny atlases waiting for an available worker. A separate bounded
- * pool removes that nested-executor starvation without changing any texture,
+ * pool removes that nested-executor starvation without changing texture decode,
  * stitch, or publication logic.</p>
  */
 public final class TextureAtlasWorkerPool {
@@ -39,7 +39,7 @@ public final class TextureAtlasWorkerPool {
         }
         if (REPORTED.compareAndSet(false, true)) {
             VHAccelerator.LOGGER.info(
-                    "Using {} dedicated texture worker(s) to avoid nested "
+                    "Using {} dedicated texture metadata worker(s) to avoid nested "
                             + "resource-reload starvation",
                     WORKERS
             );
