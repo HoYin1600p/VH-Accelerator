@@ -35,6 +35,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean modDiscoveryFailed;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
+    private boolean rubidiumLoaded;
+    private boolean embeddiumLoaded;
     private boolean fluidloggedLoaded;
     private boolean isometricRendersLoaded;
     private boolean witherStormModLoaded;
@@ -93,6 +95,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             externalShapeOptimizerLoaded = modList != null
                     && (modList.getModFileById("canary") != null
                     || modList.getModFileById("lithium") != null);
+            rubidiumLoaded = modList != null
+                    && modList.getModFileById("rubidium") != null;
+            embeddiumLoaded = modList != null
+                    && modList.getModFileById("embeddium") != null;
             fluidloggedLoaded = modList != null
                     && modList.getModFileById("fluidlogged") != null;
             isometricRendersLoaded = modList != null
@@ -187,6 +193,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
+            rubidiumLoaded = false;
+            embeddiumLoaded = false;
             fluidloggedLoaded = false;
             isometricRendersLoaded = false;
             witherStormModLoaded = false;
@@ -1046,6 +1054,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (feature == BackportFeature.CTM_METADATA_CACHE_CONCURRENCY
                 && !ctmCompatible) {
             return "the validated ConnectedTexturesMod version is not installed";
+        }
+        if (feature == BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY
+                && rubidiumLoaded
+                && !embeddiumLoaded) {
+            return "legacy Rubidium refreshes Forge model data only on worker threads";
         }
         return null;
     }
