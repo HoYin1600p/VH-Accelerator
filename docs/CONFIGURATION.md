@@ -158,6 +158,7 @@ exclusions, and Compare Mode still take precedence over an enabled switch.
 | `profileTextureHashCache` | client | `true` | Implemented as a beta option; caches Minecraft profile-texture basename/hash results by exact URL for 60 seconds. The cache is local to the client skin manager and capped at 2,048 URLs, so repeated player-head or skin registration avoids repeated URL parsing without retaining profiles indefinitely. |
 | `disableTelemetry` | client | `true` | Optional privacy feature; returns Minecraft 1.18.2's disabled telemetry session while preserving the selected online/offline user service for profile properties, block-list checks, and refreshes. Works with or without `asyncUserApiService`. This is not expected to materially change launch or login time. |
 | `fasterIngredientTagLookups` | common | `true` | Experimental recipe-lab stage one. Single vanilla tag ingredients test membership and build sorted stacking IDs directly from the item registry, avoiding temporary ItemStack arrays. The shortcut is disabled throughout server-data reloads, and `Ingredient#getItems()` remains unchanged. |
+| `fasterTextureStitching` | client | `true` | Uses LWJGL STB packing for atlases with at least 100 sprites. Small or oversized candidates retain vanilla stitching for alignment and maximum-size safety. VHA yields when ModernFix owns the same exact option. |
 
 For each feature, ModernFix's effective option is checked independently. An
 active ModernFix implementation owns the path; an unknown ModernFix state

@@ -66,6 +66,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added guarded STB rectangle packing for large texture atlases. Atlases with
+  fewer than 100 sprites and candidates that exceed Minecraft's configured
+  atlas limits keep vanilla stitching, preserving alignment-sensitive JEI and
+  mod behavior. Exact-option ownership prevents duplicate ModernFix handling.
+
 - Added a default-off Forge 40 redundant object-holder cleanup. After load
   completion it removes only exact Forge callbacks for resolved registry keys
   with no registered override candidates and a verified current field value.
