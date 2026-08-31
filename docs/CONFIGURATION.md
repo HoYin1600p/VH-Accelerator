@@ -191,7 +191,7 @@ or an implementation that has not landed also prevents VHA ownership.
 | `overlapModelPreparation` | `true` | Starts independent model-key, blockstate, and model preparation together, then joins at bakery discovery. |
 | `parallelModelLoading` | `true` | Reads and parses eligible plain model JSON concurrently. |
 | `parallelBlockStateLoading` | `true` | Reads registered blockstate resource stacks concurrently while retaining original parsing semantics. |
-| `parallelAtlasStitching` | `true` | Prepares independent atlases in bounded batches and routes vanilla texture metadata child jobs through a dedicated CPU-scaled pool to prevent nested resource-reload starvation; PNG decoding, unsafe model graphs, and publication retain their original paths. |
+| `parallelAtlasStitching` | `true` | Prepares independent atlases in bounded batches; unsafe graphs use the original path. |
 | `parallelModelBaking` | `true` | Bakes eligible top-level models in bounded batches with whole-pass sequential recovery. |
 | `optimizeVoxelShapeMerging` | `true` | Uses an equivalent flat-array coordinate merger for complex voxel shapes; automatically yields to Lithium or Canary. |
 | `persistentModelJsonCache` | `true` | Stores fingerprinted raw model JSON; never stores parsed custom geometry or baked models. |

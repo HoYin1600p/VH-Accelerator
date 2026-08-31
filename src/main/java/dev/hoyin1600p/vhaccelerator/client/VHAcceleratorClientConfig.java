@@ -197,11 +197,7 @@ public final class VHAcceleratorClientConfig {
                             "used by newer Minecraft versions.")
                     .define("parallelBlockStateLoading", true);
             parallelAtlasStitching = builder
-                    .comment(
-                            "Prepares independent texture atlases concurrently and routes",
-                            "vanilla texture metadata child jobs through dedicated adaptive",
-                            "workers so resource-reload parents cannot starve their own work."
-                    )
+                    .comment("Prepares independent texture atlases concurrently.")
                     .define("parallelAtlasStitching", true);
             parallelModelBaking = builder
                     .comment("Bakes top-level models in batches on Minecraft's background executor.")
