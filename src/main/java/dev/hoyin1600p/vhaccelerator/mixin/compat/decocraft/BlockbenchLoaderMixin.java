@@ -21,14 +21,19 @@ public abstract class BlockbenchLoaderMixin {
             method = "read(Lcom/google/gson/JsonDeserializationContext;"
                     + "Lcom/google/gson/JsonObject;)Lcom/razz/decocraft/"
                     + "models/bbmodel/BlockbenchModel;",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void vhaccelerator$beginModelRead(
             JsonDeserializationContext context,
             JsonObject definition,
             CallbackInfoReturnable<Object> callback
     ) {
-        DecocraftBbModelCache.begin(definition);
+        Object reused = DecocraftBbModelCache.beginAndReuse(definition);
+        if (reused != null) {
+            DecocraftBbModelCache.finish();
+            callback.setReturnValue(reused);
+        }
     }
 
     @Inject(

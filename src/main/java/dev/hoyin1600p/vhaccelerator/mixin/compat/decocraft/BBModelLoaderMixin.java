@@ -17,22 +17,6 @@ public abstract class BBModelLoaderMixin {
     @Inject(
             method = "loadModel(Ljava/io/Reader;)Lcom/razz/decocraft/"
                     + "models/bbmodel/BBModel;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void vhaccelerator$reuseParsedModel(
-            Reader reader,
-            CallbackInfoReturnable<Object> callback
-    ) {
-        Object cached = DecocraftBbModelCache.find();
-        if (cached != null) {
-            callback.setReturnValue(cached);
-        }
-    }
-
-    @Inject(
-            method = "loadModel(Ljava/io/Reader;)Lcom/razz/decocraft/"
-                    + "models/bbmodel/BBModel;",
             at = @At("RETURN")
     )
     private void vhaccelerator$rememberParsedModel(
