@@ -81,6 +81,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean cloudStorageModelBakeCompatible;
     private boolean megaCellsModelBakeCompatible;
     private boolean everyCompatDebugDumpCompatible;
+    private boolean decocraftCompatible;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
@@ -196,6 +197,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "selene",
                         "1.18.2-1.17.14"
                 );
+                decocraftCompatible = hasVersion(
+                        modList,
+                        "decocraft",
+                        "3.0.4-1.18.2"
+                );
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -238,6 +244,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             cloudStorageModelBakeCompatible = false;
             megaCellsModelBakeCompatible = false;
             everyCompatDebugDumpCompatible = false;
+            decocraftCompatible = false;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
@@ -742,6 +749,9 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains(".compat.everycomp.")) {
             return everyCompatDebugDumpCompatible;
+        }
+        if (mixinClassName.contains(".compat.decocraft.")) {
+            return decocraftCompatible;
         }
         if (mixinClassName.contains(".compat.powah.")) {
             return powahLoaded;

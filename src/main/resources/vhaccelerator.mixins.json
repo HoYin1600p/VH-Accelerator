@@ -149,6 +149,8 @@
     "compat.crafttweaker.ThroughRecipeScriptRunManagerMixin",
     "compat.ctm.TextureMetadataHandlerMixin",
     "compat.everycomp.ClientDynamicResourcesHandlerMixin",
+    "compat.decocraft.BBModelLoaderMixin",
+    "compat.decocraft.BlockbenchLoaderMixin",
     "compat.thermal.SingleItemFuelManagerAccessor",
     "compat.thermal.StirlingFuelManagerMixin",
     "compat.thermal.ThermalRecipeManagersMixin",

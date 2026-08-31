@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.compat.decocraft.DecocraftBbModelCache;
 import dev.hoyin1600p.vhaccelerator.client.model.PlaceboItemMappingProfiler;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -226,6 +227,7 @@ public abstract class ModelBakeryLoadProfilerMixin {
         vhaccelerator$currentLoad = null;
         vhaccelerator$loadStarted = 0L;
         PlaceboItemMappingProfiler.reportAndReset();
+        DecocraftBbModelCache.report();
 
         if (timings == null || timings.isEmpty()) {
             return;

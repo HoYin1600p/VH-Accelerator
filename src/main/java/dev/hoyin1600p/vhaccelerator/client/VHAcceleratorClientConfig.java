@@ -136,6 +136,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
         public final ForgeConfigSpec.BooleanValue
                 disableEveryCompatDebugResourceDump;
+        public final ForgeConfigSpec.BooleanValue cacheDecocraftBbModels;
         public final ForgeConfigSpec.BooleanValue parallelJeiIngredientSorting;
         public final ForgeConfigSpec.BooleanValue indexPowahWikiRecipes;
         public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
@@ -343,6 +344,14 @@ public final class VHAcceleratorClientConfig {
                             "disableEveryCompatDebugResourceDump",
                             true
                     );
+            cacheDecocraftBbModels = builder
+                    .comment(
+                            "Reuses Decocraft's parsed Blockbench geometry when many",
+                            "material variants reference the same .bbmodel file.",
+                            "The cache is memory-only, cleared on every resource reload,",
+                            "and enabled only for the explicitly validated Decocraft build."
+                    )
+                    .define("cacheDecocraftBbModels", true);
             parallelJeiIngredientSorting = builder
                     .comment(
                             "Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.",
