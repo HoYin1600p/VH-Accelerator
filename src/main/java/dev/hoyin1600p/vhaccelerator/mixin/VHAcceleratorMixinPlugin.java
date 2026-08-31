@@ -33,6 +33,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     );
     private static final Set<String> DEBUG_ONLY_MIXINS = Set.of(
             "dev.hoyin1600p.vhaccelerator.mixin.client.ClientModLoaderProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ClientPacketListenerDiagnosticsMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ConnectionProtocolMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.DeferredRegisterProfilerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ForgeHooksClientModelBakeProfilerMixin",
@@ -42,6 +43,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             "dev.hoyin1600p.vhaccelerator.mixin.client.GameDataRegistryProfilerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.GameRendererTimingMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.LevelRendererTimingMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.MinecraftClearLevelDiagnosticsMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryLoadProfilerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryPreparationProfilerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ReloadListenerProfilerMixin"
