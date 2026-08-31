@@ -114,6 +114,7 @@
     "client.ModelMaterialCollectionMixin",
     "client.ParallelBlockModelShaperMixin",
     "client.ReloadListenerProfilerMixin",
+    "client.TextureAtlasPreparationProfilerMixin",
     "client.SkullBlockEntityMixin",
     "client.ShapesCoordinateMergerMixin",
     "client.BlockModelMixin",

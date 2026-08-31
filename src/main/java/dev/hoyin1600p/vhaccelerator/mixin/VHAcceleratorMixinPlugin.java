@@ -46,7 +46,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             "dev.hoyin1600p.vhaccelerator.mixin.client.MinecraftClearLevelDiagnosticsMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryLoadProfilerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryPreparationProfilerMixin",
-            "dev.hoyin1600p.vhaccelerator.mixin.client.ReloadListenerProfilerMixin"
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ReloadListenerProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.TextureAtlasPreparationProfilerMixin"
     );
 
     private boolean modernFixLoaded;
