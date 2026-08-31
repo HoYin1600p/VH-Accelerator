@@ -376,7 +376,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return false;
         }
         if (mixinClassName.endsWith(
-                ".client.ModernFixTextureAtlasWorkerMixin"
+                ".compat.modernfix.ModernFixResourceReloadExecutorMixin"
         )) {
             return physicalClient && modernFixLoaded;
         }

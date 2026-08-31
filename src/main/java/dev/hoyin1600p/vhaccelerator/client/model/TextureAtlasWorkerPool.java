@@ -3,11 +3,13 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.concurrent.Executor;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
 /**
  * Keeps TextureAtlas child work off the resource-reload pool that waits for it.
@@ -25,6 +27,10 @@ public final class TextureAtlasWorkerPool {
             Runtime.getRuntime().availableProcessors()
     );
     private static final AtomicBoolean REPORTED = new AtomicBoolean();
+    private static final ThreadLocal<Integer> METADATA_DEPTH =
+            ThreadLocal.withInitial(() -> 0);
+    private static volatile ExecutorService modernFixDelegate;
+    private static volatile ExecutorService modernFixWrapper;
 
     private TextureAtlasWorkerPool() {
     }
@@ -53,20 +59,32 @@ public final class TextureAtlasWorkerPool {
         return (ExecutorService) select(vanillaExecutor);
     }
 
-    public static ExecutorService selectModernFixService() {
-        try {
-            Class<?> modernFix = Class.forName(
-                    "org.embeddedt.modernfix.ModernFix"
-            );
-            ExecutorService original = (ExecutorService) modernFix
-                    .getMethod("resourceReloadExecutor")
-                    .invoke(null);
-            return selectService(original);
-        } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException(
-                    "ModernFix texture executor was not available",
-                    failure
-            );
+    public static void beginMetadataPhase() {
+        METADATA_DEPTH.set(METADATA_DEPTH.get() + 1);
+    }
+
+    public static void endMetadataPhase() {
+        int depth = METADATA_DEPTH.get() - 1;
+        if (depth <= 0) {
+            METADATA_DEPTH.remove();
+        } else {
+            METADATA_DEPTH.set(depth);
+        }
+    }
+
+    public static ExecutorService wrapModernFixService(
+            ExecutorService original
+    ) {
+        ExecutorService wrapper = modernFixWrapper;
+        if (wrapper != null && modernFixDelegate == original) {
+            return wrapper;
+        }
+        synchronized (TextureAtlasWorkerPool.class) {
+            if (modernFixWrapper == null || modernFixDelegate != original) {
+                modernFixDelegate = original;
+                modernFixWrapper = new PhaseRoutingExecutorService(original);
+            }
+            return modernFixWrapper;
         }
     }
 
@@ -83,6 +101,51 @@ public final class TextureAtlasWorkerPool {
                 );
 
         private Holder() {
+        }
+    }
+
+    private static final class PhaseRoutingExecutorService
+            extends AbstractExecutorService {
+        private final ExecutorService delegate;
+
+        private PhaseRoutingExecutorService(ExecutorService delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void shutdown() {
+            delegate.shutdown();
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return delegate.shutdownNow();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return delegate.isShutdown();
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return delegate.isTerminated();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout,
+                                        java.util.concurrent.TimeUnit unit)
+                throws InterruptedException {
+            return delegate.awaitTermination(timeout, unit);
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            if (METADATA_DEPTH.get() > 0) {
+                selectService(delegate).execute(command);
+            } else {
+                delegate.execute(command);
+            }
         }
     }
 
