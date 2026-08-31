@@ -37,9 +37,48 @@ public abstract class ModelBakeryPreparationProfilerMixin {
             return;
         }
         vhaccelerator$stageNanos = new LinkedHashMap<>();
-        vhaccelerator$currentStage =
-                "preparation-and-missing-model";
+        vhaccelerator$currentStage = "startup-hooks";
         vhaccelerator$stageStarted = System.nanoTime();
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraftforge/client/model/"
+                            + "ModelLoaderRegistry;onModelLoadingStart()V",
+                    shift = At.Shift.BEFORE,
+                    remap = false
+            ),
+            require = 0,
+            remap = false
+    )
+    private void vhaccelerator$profileForgeModelRegistryStart(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("forge-model-registry-event");
+    }
+
+    @Inject(
+            method = "processLoading",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraftforge/client/model/"
+                            + "ModelLoaderRegistry;onModelLoadingStart()V",
+                    shift = At.Shift.AFTER,
+                    remap = false
+            ),
+            require = 0,
+            remap = false
+    )
+    private void vhaccelerator$profileMissingModel(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        vhaccelerator$transitionTo("missing-model");
     }
 
     @Inject(
