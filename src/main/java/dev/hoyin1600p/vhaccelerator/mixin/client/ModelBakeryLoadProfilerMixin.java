@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import net.minecraft.core.Registry;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.client.resources.model.UnbakedModel;
@@ -22,7 +20,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -66,7 +63,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
     @Unique
     private int vhaccelerator$itemCachedCalls;
     @Unique
-    private long vhaccelerator$itemKeySetNanos;
     @Unique
 
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
@@ -85,28 +81,7 @@ public abstract class ModelBakeryLoadProfilerMixin {
             vhaccelerator$itemTopLevelCalls = 0;
             vhaccelerator$itemMissingCalls = 0;
             vhaccelerator$itemCachedCalls = 0;
-            vhaccelerator$itemKeySetNanos = 0L;
         }
-    }
-
-    @Redirect(
-            method = "processLoading",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/core/Registry;keySet()"
-                            + "Ljava/util/Set;"
-            )
-    )
-    private Set<ResourceLocation> vhaccelerator$profileItemKeySet(
-            Registry<?> registry
-    ) {
-        if (!vhaccelerator$profileLoads) {
-            return registry.keySet();
-        }
-        long started = System.nanoTime();
-        Set<ResourceLocation> keys = registry.keySet();
-        vhaccelerator$itemKeySetNanos += System.nanoTime() - started;
-        return keys;
     }
 
     @Inject(method = "loadTopLevel", at = @At("HEAD"))
@@ -229,15 +204,13 @@ public abstract class ModelBakeryLoadProfilerMixin {
         VHAccelerator.LOGGER.info(
                 "Item top-level discovery: {} ms across {} item(s) "
                         + "[missing={} ms/{} item(s), "
-                        + "already-cached={} ms/{} item(s), "
-                        + "registry-key-set={} ms]",
+                        + "already-cached={} ms/{} item(s)]",
                 vhaccelerator$millis(vhaccelerator$itemTopLevelNanos),
                 vhaccelerator$itemTopLevelCalls,
                 vhaccelerator$millis(vhaccelerator$itemMissingNanos),
                 vhaccelerator$itemMissingCalls,
                 vhaccelerator$millis(vhaccelerator$itemCachedNanos),
-                vhaccelerator$itemCachedCalls,
-                vhaccelerator$millis(vhaccelerator$itemKeySetNanos)
+                vhaccelerator$itemCachedCalls
         );
         for (int index = 0;
              index < Math.min(REPORT_LIMIT, entries.size());
