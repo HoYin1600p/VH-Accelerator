@@ -1,14 +1,15 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.RegistryLaunchProfiler;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.IModBusEvent;
 import net.minecraftforge.fml.javafmlmod.FMLModContainer;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Attributes synchronous Forge registry callbacks to their owning mods while
@@ -16,32 +17,50 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(value = FMLModContainer.class, remap = false)
 public abstract class FMLModContainerRegistryProfilerMixin {
-    @Redirect(
+    @Unique
+    private long vhaccelerator$registryCallbackStarted;
+
+    @Unique
+    private ResourceLocation vhaccelerator$registryCallbackName;
+
+    @Inject(
             method = "acceptEvent",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraftforge/eventbus/api/IEventBus;"
-                            + "post(Lnet/minecraftforge/eventbus/api/Event;)Z"
-            ),
-            remap = false
+            at = @At("HEAD"),
+            remap = false,
+            require = 1
     )
-    private <T extends Event & IModBusEvent> boolean
-            vhaccelerator$profileRegistryCallback(
-                    IEventBus eventBus,
-                    Event event
-            ) {
+    private void vhaccelerator$beginRegistryCallback(
+            Event event,
+            CallbackInfo callbackInfo
+    ) {
+        vhaccelerator$registryCallbackStarted = 0L;
+        vhaccelerator$registryCallbackName = null;
         if (!(event instanceof RegistryEvent.Register<?> registerEvent)
                 || !RegistryLaunchProfiler.active()) {
-            return eventBus.post(event);
+            return;
         }
+        vhaccelerator$registryCallbackName = registerEvent.getName();
+        vhaccelerator$registryCallbackStarted = RegistryLaunchProfiler.begin();
+    }
 
-        long started = RegistryLaunchProfiler.begin();
-        try {
-            return eventBus.post(event);
-        } finally {
+    @Inject(
+            method = "acceptEvent",
+            at = @At("RETURN"),
+            remap = false,
+            require = 1
+    )
+    private void vhaccelerator$finishRegistryCallback(
+            Event event,
+            CallbackInfo callbackInfo
+    ) {
+        long started = vhaccelerator$registryCallbackStarted;
+        ResourceLocation registryName = vhaccelerator$registryCallbackName;
+        vhaccelerator$registryCallbackStarted = 0L;
+        vhaccelerator$registryCallbackName = null;
+        if (started != 0L && registryName != null) {
             RegistryLaunchProfiler.recordEvent(
                     ((FMLModContainer) (Object) this).getModId(),
-                    registerEvent.getName(),
+                    registryName,
                     started
             );
         }
