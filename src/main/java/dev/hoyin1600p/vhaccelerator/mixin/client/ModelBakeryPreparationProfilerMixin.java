@@ -84,11 +84,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 0
+                    args = "ldc=static_definitions"
             ),
             require = 0
     )
@@ -103,11 +103,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 1
+                    args = "ldc=blocks"
             ),
             require = 0
     )
@@ -122,11 +122,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 2
+                    args = "ldc=items"
             ),
             require = 0
     )
@@ -141,11 +141,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 3
+                    args = "ldc=special"
             ),
             require = 0
     )
@@ -160,11 +160,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 4
+                    args = "ldc=textures"
             ),
             require = 0
     )
@@ -179,11 +179,11 @@ public abstract class ModelBakeryPreparationProfilerMixin {
     @Inject(
             method = "processLoading",
             at = @At(
-                    value = "INVOKE",
+                    value = "INVOKE_STRING",
                     target = "Lnet/minecraft/util/profiling/"
                             + "ProfilerFiller;popPush("
                             + "Ljava/lang/String;)V",
-                    ordinal = 5
+                    args = "ldc=stitching"
             ),
             require = 0
     )
