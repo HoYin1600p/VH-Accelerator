@@ -169,7 +169,7 @@ public final class ImmutablePathPackIndex {
             return null;
         }
         if (maxDepth < 0) {
-            return List.of();
+            return new ArrayList<>();
         }
         Snapshot current = snapshot();
         if (current == null) {
@@ -178,17 +178,17 @@ public final class ImmutablePathPackIndex {
 
         Node typeRoot = current.root(type);
         if (typeRoot == null) {
-            return List.of();
+            return new ArrayList<>();
         }
         Node namespaceRoot = typeRoot.children.get(namespace);
         if (namespaceRoot == null) {
-            return List.of();
+            return new ArrayList<>();
         }
 
         String[] components = split(prefix);
         Node requestedRoot = namespaceRoot.find(components);
         if (requestedRoot == null) {
-            return List.of();
+            return new ArrayList<>();
         }
 
         String normalizedPrefix = String.join("/", components);
@@ -201,7 +201,11 @@ public final class ImmutablePathPackIndex {
                 filter,
                 matches
         );
-        return List.copyOf(matches);
+        // Minecraft 1.18.2's DefaultClientPackResources appends generated
+        // resources directly to the collection returned by this method.
+        // Return a fresh mutable list even though the backing index is
+        // immutable; returning List.of/List.copyOf crashes vanilla callers.
+        return matches;
     }
 
     @Nullable

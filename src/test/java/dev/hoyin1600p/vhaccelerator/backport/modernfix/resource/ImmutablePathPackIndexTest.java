@@ -135,19 +135,38 @@ final class ImmutablePathPackIndexTest {
             ImmutablePathPackIndex index =
                     ImmutablePathPackIndex.createVanilla(roots);
 
+            Collection<ResourceLocation> resources = index.resources(
+                    PackType.CLIENT_RESOURCES,
+                    "minecraft",
+                    "models/block",
+                    Integer.MAX_VALUE,
+                    name -> true
+            );
             assertEquals(
                     Set.of(new ResourceLocation(
                             "minecraft",
                             "models/block/stone.json"
                     )),
-                    Set.copyOf(index.resources(
-                            PackType.CLIENT_RESOURCES,
-                            "minecraft",
-                            "models/block",
-                            Integer.MAX_VALUE,
-                            name -> true
-                    ))
+                    Set.copyOf(resources)
             );
+            resources.add(new ResourceLocation(
+                    "minecraft",
+                    "models/block/generated.json"
+            ));
+            assertEquals(2, resources.size());
+
+            Collection<ResourceLocation> missing = index.resources(
+                    PackType.CLIENT_RESOURCES,
+                    "minecraft",
+                    "missing",
+                    Integer.MAX_VALUE,
+                    name -> true
+            );
+            missing.add(new ResourceLocation(
+                    "minecraft",
+                    "generated.json"
+            ));
+            assertEquals(1, missing.size());
         }
     }
 
