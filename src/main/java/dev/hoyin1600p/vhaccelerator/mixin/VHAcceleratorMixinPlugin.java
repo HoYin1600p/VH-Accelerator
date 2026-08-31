@@ -264,10 +264,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.RESOURCE_PACK_INDEXING,
                 "mixin.perf.resourcepacks"
         );
-        claimModernFixOption(
-                BackportFeature.FASTER_TEXTURE_STITCHING,
-                "mixin.perf.faster_texture_stitching"
-        );
+        // Retain an active ModernFix texture stitcher. In a Remastered-sized
+        // client pack, forcing ownership to VHA added roughly two seconds to
+        // the warm initial resource reload. VHA still owns this feature when
+        // ModernFix is absent or its corresponding mixin is inactive.
         claimModernFixOption(
                 BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY,
                 "mixin.bugfix.model_data_manager_cme"
