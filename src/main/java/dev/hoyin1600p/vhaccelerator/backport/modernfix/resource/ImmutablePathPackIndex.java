@@ -82,6 +82,42 @@ public final class ImmutablePathPackIndex {
         }
     }
 
+    /** Creates an index for vanilla's already-resolved immutable type roots. */
+    @Nullable
+    public static ImmutablePathPackIndex createVanilla(
+            Map<PackType, Path> roots
+    ) {
+        try {
+            for (PackType type : INDEXED_TYPES) {
+                Path root = roots.get(type);
+                if (root == null || !immutableFileSystem(root)) {
+                    return null;
+                }
+            }
+            Path debugRoot = roots.get(PackType.CLIENT_RESOURCES);
+            return new ImmutablePathPackIndex(
+                    paths -> {
+                        if (paths.length != 1) {
+                            throw new IllegalArgumentException(
+                                    "expected one vanilla pack root"
+                            );
+                        }
+                        for (PackType type : INDEXED_TYPES) {
+                            if (type.getDirectory().equals(paths[0])) {
+                                return roots.get(type);
+                            }
+                        }
+                        throw new IllegalArgumentException(
+                                "unsupported pack root " + paths[0]
+                        );
+                    },
+                    debugRoot.toAbsolutePath().toString()
+            );
+        } catch (RuntimeException | LinkageError failure) {
+            return null;
+        }
+    }
+
     /**
      * Returns null until another indexed operation has built the snapshot.
      * Namespace discovery therefore never turns one cheap query into a full
@@ -255,6 +291,12 @@ public final class ImmutablePathPackIndex {
                 (System.nanoTime() - started) / 1_000_000L
         );
         return complete;
+    }
+
+    private static boolean immutableFileSystem(Path path) {
+        String scheme = path.getFileSystem().provider().getScheme();
+        return "jar".equalsIgnoreCase(scheme)
+                || "union".equalsIgnoreCase(scheme);
     }
 
     private static String[] components(Path relative) {

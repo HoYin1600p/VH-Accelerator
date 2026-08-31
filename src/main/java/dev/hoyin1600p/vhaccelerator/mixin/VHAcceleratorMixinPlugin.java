@@ -38,6 +38,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean fluidloggedLoaded;
     private boolean isometricRendersLoaded;
     private boolean witherStormModLoaded;
+    private boolean optifinePresent;
     private boolean jeiLoaded;
     private int jeiGeneration;
     private boolean vaultHuntersLoaded;
@@ -67,6 +68,22 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(String mixinPackage) {
+        try {
+            Class.forName(
+                    "optifine.OptiFineTransformationService",
+                    false,
+                    VHAcceleratorMixinPlugin.class.getClassLoader()
+            );
+            optifinePresent = true;
+        } catch (ClassNotFoundException ignored) {
+            optifinePresent = false;
+        } catch (RuntimeException | LinkageError failure) {
+            optifinePresent = true;
+            LOGGER.debug(
+                    "Could not safely exclude OptiFine from vanilla resource indexing",
+                    failure
+            );
+        }
         physicalClient = FMLEnvironment.dist == Dist.CLIENT;
         try {
             LoadingModList modList = LoadingModList.get();
@@ -575,6 +592,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains(
                 ".backport.modernfix.resource."
         )) {
+            if (mixinClassName.endsWith(
+                    ".resource.VanillaPackResourcesMixin"
+            ) && optifinePresent) {
+                return false;
+            }
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.RESOURCE_PACK_INDEXING
             );

@@ -31,6 +31,7 @@
     "backport.modernfix.resource.FilePackResourcesMixin",
     "backport.modernfix.resource.MinecraftServerResourcePackMixin",
     "backport.modernfix.resource.PathResourcePackIndexMixin",
+    "backport.modernfix.resource.VanillaPackResourcesMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
     "backport.modernfix.tag.ForgeRegistryTagManagerMixin",

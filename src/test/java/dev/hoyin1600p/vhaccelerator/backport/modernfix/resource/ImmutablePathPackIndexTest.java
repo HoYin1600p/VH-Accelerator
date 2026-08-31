@@ -11,6 +11,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
@@ -110,6 +111,42 @@ final class ImmutablePathPackIndexTest {
             assertEquals(
                     Set.of(new ResourceLocation("demo", "root.json")),
                     Set.copyOf(shallow)
+            );
+        }
+    }
+
+    @Test
+    void vanillaFactoryUsesResolvedImmutableRoots() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("vanilla.jar");
+        URI uri = URI.create("jar:" + archive.toUri());
+        try (FileSystem fileSystem = FileSystems.newFileSystem(
+                uri,
+                Map.of("create", "true")
+        )) {
+            Path root = fileSystem.getPath("/");
+            Path assets = root.resolve("assets");
+            Path data = root.resolve("data");
+            write(root, "assets/minecraft/models/block/stone.json");
+            write(root, "data/minecraft/recipes/stone.json");
+            EnumMap<PackType, Path> roots = new EnumMap<>(PackType.class);
+            roots.put(PackType.CLIENT_RESOURCES, assets);
+            roots.put(PackType.SERVER_DATA, data);
+
+            ImmutablePathPackIndex index =
+                    ImmutablePathPackIndex.createVanilla(roots);
+
+            assertEquals(
+                    Set.of(new ResourceLocation(
+                            "minecraft",
+                            "models/block/stone.json"
+                    )),
+                    Set.copyOf(index.resources(
+                            PackType.CLIENT_RESOURCES,
+                            "minecraft",
+                            "models/block",
+                            Integer.MAX_VALUE,
+                            name -> true
+                    ))
             );
         }
     }
