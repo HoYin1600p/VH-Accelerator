@@ -168,11 +168,16 @@ public final class PersistentModelJsonCache {
             );
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
-                    "Could not enumerate model JSON resources for the "
-                            + "persistent client asset cache",
+                    "Normal model JSON enumeration failed; attempting "
+                            + "safe per-pack recovery",
                     failure
             );
-            return null;
+            listed = SafeModelResourceEnumeration.recover(
+                    resourceManager
+            );
+            if (listed == null) {
+                return null;
+            }
         }
         if (listed.size() > MAX_ENTRIES) {
             VHAccelerator.LOGGER.warn(
