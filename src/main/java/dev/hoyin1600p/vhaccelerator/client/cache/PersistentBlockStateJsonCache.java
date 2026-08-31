@@ -16,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -375,6 +376,15 @@ public final class PersistentBlockStateJsonCache {
                 ResourceLocation location
         ) {
             return restored ? resources.get(location) : null;
+        }
+
+        /**
+         * Returns the validated cached location index only when this session
+         * restored a complete cache for the active asset fingerprint.
+         */
+        @Nullable
+        public Set<ResourceLocation> restoredLocations() {
+            return restored ? resources.keySet() : null;
         }
 
         public void record(

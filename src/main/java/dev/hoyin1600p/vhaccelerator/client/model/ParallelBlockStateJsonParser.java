@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -109,11 +110,23 @@ public final class ParallelBlockStateJsonParser {
                 PersistentBlockStateJsonCache.begin(
                         resourceManager
                 );
-        Collection<ResourceLocation> listed =
-                resourceManager.listResources(
-                        "blockstates",
-                        path -> path.endsWith(SUFFIX)
-                );
+        Set<ResourceLocation> restoredLocations = persistent == null
+                ? null
+                : persistent.restoredLocations();
+        Collection<ResourceLocation> listed;
+        if (restoredLocations != null) {
+            listed = restoredLocations;
+            VHAccelerator.LOGGER.info(
+                    "Reused {} validated blockstate locations from the "
+                            + "persistent client asset cache",
+                    restoredLocations.size()
+            );
+        } else {
+            listed = resourceManager.listResources(
+                    "blockstates",
+                    path -> path.endsWith(SUFFIX)
+            );
+        }
         List<ResourceLocation> locations =
                 new ArrayList<>(listed);
         Map<ResourceLocation, List<Resource>> cached =
