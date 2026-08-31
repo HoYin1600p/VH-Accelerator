@@ -1,8 +1,14 @@
 /*
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * Derived from ModernFix's cached ChunkAccess structure-reference view.
- * See THIRD_PARTY_NOTICES.md and docs/MODERNFIX_BACKPORTS.md.
+ * Adapted for VH Accelerator from ModernFix.
+ * Upstream repository: https://github.com/embeddedt/ModernFix
+ * Upstream source: common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/ticking_chunk_alloc/ChunkAccessMixin.java
+ * Upstream commit: 8cca316fb521b96da9428beb0d2cb4da21ca0658
+ * Original copyright: Copyright (c) embeddedt and ModernFix contributors
+ * VH Accelerator modifications: replaced the upstream empty-map snapshot with
+ * a fully unmodifiable live view that reuses empty collection singletons.
+ * Modified: 2026-08-30
  */
 package dev.hoyin1600p.vhaccelerator.backport.modernfix.world;
 

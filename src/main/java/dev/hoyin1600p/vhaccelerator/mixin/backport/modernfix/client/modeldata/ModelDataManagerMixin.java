@@ -1,8 +1,14 @@
 /*
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * Adapted from ModernFix's Forge 1.18.2 model-data concurrency correction.
- * See THIRD_PARTY_NOTICES.md and docs/MODERNFIX_BACKPORTS.md.
+ * Adapted for VH Accelerator from ModernFix.
+ * Upstream repository: https://github.com/embeddedt/ModernFix
+ * Upstream source: forge/src/main/java/org/embeddedt/modernfix/forge/mixin/bugfix/model_data_manager_cme/ModelDataManagerMixin.java
+ * Upstream commit: e253833b685e0bb4ee5de62860ce81b7d886a311
+ * Original copyright: Copyright (c) embeddedt and ModernFix contributors
+ * VH Accelerator modifications: retargeted Forge 40 static APIs, added exact
+ * option ownership, and retained the legacy Rubidium exclusion.
+ * Modified: 2026-08-30
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.client.modeldata;
 

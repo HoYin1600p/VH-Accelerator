@@ -1,8 +1,14 @@
 /*
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * Adapted from ModernFix's ticking-chunk allocation reductions.
- * See THIRD_PARTY_NOTICES.md and docs/MODERNFIX_BACKPORTS.md.
+ * Adapted for VH Accelerator from ModernFix.
+ * Upstream repository: https://github.com/embeddedt/ModernFix
+ * Upstream source: common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/ticking_chunk_alloc/ChunkAccessMixin.java
+ * Upstream commit: 8cca316fb521b96da9428beb0d2cb4da21ca0658
+ * Original copyright: Copyright (c) embeddedt and ModernFix contributors
+ * VH Accelerator modifications: preserves a live view from the initially
+ * empty state and delegates mutation safety to an external tested helper.
+ * Modified: 2026-08-30
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.tickalloc;
 

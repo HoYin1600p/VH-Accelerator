@@ -1,8 +1,14 @@
 /*
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * Adapted from ModernFix's Forge 1.18.2 CTM metadata-cache correction.
- * See THIRD_PARTY_NOTICES.md and docs/MODERNFIX_BACKPORTS.md.
+ * Adapted for VH Accelerator from ModernFix.
+ * Upstream repository: https://github.com/embeddedt/ModernFix
+ * Upstream source: forge/src/main/java/org/embeddedt/modernfix/forge/mixin/bugfix/ctm_resourceutil_cme/ResourceUtilMixin.java
+ * Upstream commit: 5de87576ca17b920e88f9c4fc289f3df064ef694
+ * Original copyright: Copyright (c) embeddedt and ModernFix contributors
+ * VH Accelerator modifications: made CTM an optional string target and gated
+ * the mixin to VHA's validated CTM 1.18.2 layout.
+ * Modified: 2026-08-30
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.client.ctm;
 

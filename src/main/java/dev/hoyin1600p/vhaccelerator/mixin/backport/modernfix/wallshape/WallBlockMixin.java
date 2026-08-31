@@ -1,8 +1,14 @@
 /*
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * Adapted from ModernFix's wall-shape deduplication implementation.
- * See THIRD_PARTY_NOTICES.md and docs/MODERNFIX_BACKPORTS.md.
+ * Adapted for VH Accelerator from ModernFix.
+ * Upstream repository: https://github.com/embeddedt/ModernFix
+ * Upstream source: common/src/main/java/org/embeddedt/modernfix/common/mixin/perf/deduplicate_wall_shapes/WallBlockMixin.java
+ * Upstream commit: 94c848b0debbb5291ab3c709353e3f11613fd14d
+ * Original copyright: Copyright (c) embeddedt and ModernFix contributors
+ * VH Accelerator modifications: delegated static cache state to a normal
+ * holder class and added independent ownership selection.
+ * Modified: 2026-08-30
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.wallshape;
 
