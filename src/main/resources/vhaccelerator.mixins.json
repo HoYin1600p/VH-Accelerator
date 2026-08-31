@@ -121,6 +121,7 @@
     "client.ModelBakeryMixin",
     "client.TagNetworkPayloadAccessor",
     "compat.jei.v9.IngredientFilterMixin",
+    "compat.placebo.ModelMapRegistryProfilerMixin",
     "compat.jei.v9.IngredientBlacklistInternalMixin",
     "compat.jei.v9.IngredientManagerMixin",
     "compat.jei.v9.IngredientVisibilityMixin",

@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.PlaceboItemMappingProfiler;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -70,6 +71,9 @@ public abstract class ModelBakeryLoadProfilerMixin {
     ) {
         vhaccelerator$profileLoads =
                 VHAcceleratorClientConfig.launchProfilingEnabled();
+        PlaceboItemMappingProfiler.beginSession(
+                vhaccelerator$profileLoads
+        );
         if (vhaccelerator$profileLoads) {
             vhaccelerator$loadTimings = new HashMap<>();
             vhaccelerator$itemTopLevelNanos = 0L;
@@ -171,6 +175,7 @@ public abstract class ModelBakeryLoadProfilerMixin {
         vhaccelerator$loadTimings = null;
         vhaccelerator$currentLoad = null;
         vhaccelerator$loadStarted = 0L;
+        PlaceboItemMappingProfiler.reportAndReset();
 
         if (timings == null || timings.isEmpty()) {
             return;

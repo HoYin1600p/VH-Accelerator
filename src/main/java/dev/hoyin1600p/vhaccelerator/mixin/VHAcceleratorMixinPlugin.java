@@ -51,6 +51,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     );
 
     private boolean modernFixLoaded;
+    private boolean placeboLoaded;
     private boolean modDiscoveryFailed;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
@@ -109,6 +110,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         try {
             LoadingModList modList = LoadingModList.get();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
+            placeboLoaded = modList != null
+                    && modList.getModFileById("placebo") != null;
             ferriteCoreLoaded = modList != null
                     && modList.getModFileById("ferritecore") != null;
             externalShapeOptimizerLoaded = modList != null
@@ -374,6 +377,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (DEBUG_ONLY_MIXINS.contains(mixinClassName)
                 && !BootstrapDebugDiagnostics.enabled()) {
             return false;
+        }
+        if (mixinClassName.endsWith(
+                ".compat.placebo.ModelMapRegistryProfilerMixin"
+        )) {
+            return physicalClient
+                    && placeboLoaded
+                    && BootstrapDebugDiagnostics.enabled();
         }
         if (mixinClassName.contains(
                 ".backport.modernfix.correction.watchdog."
