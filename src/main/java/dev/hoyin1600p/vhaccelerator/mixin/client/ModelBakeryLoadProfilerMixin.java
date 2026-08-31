@@ -62,9 +62,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
     private int vhaccelerator$itemMissingCalls;
     @Unique
     private int vhaccelerator$itemCachedCalls;
-    @Unique
-    @Unique
-
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void vhaccelerator$beginLoadProfile(
             ProfilerFiller profiler,
