@@ -65,6 +65,7 @@
     "backport.modernfix.client.model.obj.OBJLoaderMixin",
     "backport.modernfix.client.skin.SkinManagerMixin",
     "backport.modernfix.client.telemetry.MinecraftTelemetryMixin",
+    "backport.modernfix.client.texture.StitcherMixin",
     "backport.modernfix.client.render.RebuildTaskMixin",
     "client.ClientMainMixin",
     "client.BlockModelShaperLocationMixin",

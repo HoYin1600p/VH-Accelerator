@@ -536,6 +536,19 @@ public enum BackportFeature {
                             + "ForgePathPackResourcesMixin"
             )
     ),
+    FASTER_TEXTURE_STITCHING(
+            "faster_texture_stitching",
+            "fasterTextureStitching",
+            "Faster texture atlas stitching",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of("perf.faster_texture_stitching.StitcherMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_texture_stitching.StitcherMixin"
+            )
+    ),
     RESOURCE_KEY_INTERNING(
             "resource_key_interning",
             "resourceKeyInterning",

@@ -230,6 +230,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.RESOURCE_PACK_INDEXING,
                 "mixin.perf.resourcepacks"
         );
+        claimModernFixOption(
+                BackportFeature.FASTER_TEXTURE_STITCHING,
+                "mixin.perf.faster_texture_stitching"
+        );
         if (modernFixLoaded
                 && !BootstrapCompareMode.enabled()
                 && BootstrapBackportConfig.enabled(
@@ -529,6 +533,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.DISABLE_TELEMETRY
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.texture."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_TEXTURE_STITCHING
             );
         }
         if (mixinClassName.endsWith(
