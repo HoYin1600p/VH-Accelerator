@@ -932,6 +932,16 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 || !BootstrapBackportConfig.enabled(feature)) {
             return;
         }
+        String compatibilityIssue = probeBackportCompatibility(feature);
+        if (compatibilityIssue != null) {
+            LOGGER.debug(
+                    "VH Accelerator did not claim ModernFix option {} for {} because {}",
+                    optionName,
+                    feature.id(),
+                    compatibilityIssue
+            );
+            return;
+        }
         try {
             Class<?> pluginClass = Class.forName(
                     "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
