@@ -234,6 +234,14 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.FASTER_TEXTURE_STITCHING,
                 "mixin.perf.faster_texture_stitching"
         );
+        claimModernFixOption(
+                BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY,
+                "mixin.bugfix.model_data_manager_cme"
+        );
+        claimModernFixOption(
+                BackportFeature.CTM_METADATA_CACHE_CONCURRENCY,
+                "mixin.bugfix.ctm_resourceutil_cme"
+        );
         if (modernFixLoaded
                 && !BootstrapCompareMode.enabled()
                 && BootstrapBackportConfig.enabled(
@@ -541,6 +549,21 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.FASTER_TEXTURE_STITCHING
             );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.modeldata."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.MODEL_DATA_MANAGER_CONCURRENCY
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.ctm."
+        )) {
+            return ctmCompatible
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature.CTM_METADATA_CACHE_CONCURRENCY
+                    );
         }
         if (mixinClassName.endsWith(
                 ".backport.modernfix.recipe.IngredientExpansionCacheMixin"
@@ -1019,6 +1042,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (feature == BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
                 && jeiGeneration != 10) {
             return "the validated JEI 10 search bridge is not installed";
+        }
+        if (feature == BackportFeature.CTM_METADATA_CACHE_CONCURRENCY
+                && !ctmCompatible) {
+            return "the validated ConnectedTexturesMod version is not installed";
         }
         return null;
     }

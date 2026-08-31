@@ -549,6 +549,32 @@ public enum BackportFeature {
                             + "faster_texture_stitching.StitcherMixin"
             )
     ),
+    MODEL_DATA_MANAGER_CONCURRENCY(
+            "model_data_manager_concurrency",
+            "modelDataManagerConcurrencyFix",
+            "Forge model-data concurrency correction",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of("bugfix.model_data_manager_cme.ModelDataManagerMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.bugfix."
+                            + "model_data_manager_cme.ModelDataManagerMixin"
+            )
+    ),
+    CTM_METADATA_CACHE_CONCURRENCY(
+            "ctm_metadata_cache_concurrency",
+            "ctmMetadataCacheConcurrencyFix",
+            "ConnectedTexturesMod metadata-cache concurrency correction",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of("bugfix.ctm_resourceutil_cme.ResourceUtilMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.bugfix."
+                            + "ctm_resourceutil_cme.ResourceUtilMixin"
+            )
+    ),
     RESOURCE_KEY_INTERNING(
             "resource_key_interning",
             "resourceKeyInterning",
