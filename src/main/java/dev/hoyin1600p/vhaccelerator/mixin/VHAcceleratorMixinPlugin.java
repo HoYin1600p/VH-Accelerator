@@ -986,18 +986,19 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return ModernFixOwnership.ABSENT;
         }
 
-        ClassLoader loader = VHAcceleratorMixinPlugin.class.getClassLoader();
         boolean markerPresent = false;
         for (String markerClass : feature.modernFixMarkerClasses()) {
             try {
-                Class.forName(markerClass, false, loader);
-                markerPresent = true;
-                break;
-            } catch (ClassNotFoundException ignored) {
-                // This ModernFix build does not contain this unconditional path.
+                LoadingModList modList = LoadingModList.get();
+                if (modList != null && modList.findResource(
+                        markerClass.replace('.', '/') + ".class"
+                ) != null) {
+                    markerPresent = true;
+                    break;
+                }
             } catch (RuntimeException | LinkageError failure) {
                 LOGGER.debug(
-                        "Could not verify ModernFix marker {} for {}",
+                        "Could not locate ModernFix marker {} for {}",
                         markerClass,
                         feature.id(),
                         failure
@@ -1019,6 +1020,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return ModernFixOwnership.INACTIVE;
         }
         try {
+            ClassLoader loader = VHAcceleratorMixinPlugin.class.getClassLoader();
             Class<?> pluginClass = Class.forName(
                     "org.embeddedt.modernfix.core.ModernFixMixinPlugin",
                     false,
