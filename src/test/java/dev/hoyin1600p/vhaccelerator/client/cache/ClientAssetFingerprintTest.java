@@ -62,4 +62,17 @@ class ClientAssetFingerprintTest {
                 "vault_render_optimization-client.toml"
         ));
     }
+
+    @Test
+    void excludesCmaRuntimeEvidenceWithoutIgnoringUnrelatedConfig() {
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "cma/runtime/bridge-instance.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "cma/observations/latest.json"
+        ));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "camera-client.toml"
+        ));
+    }
 }

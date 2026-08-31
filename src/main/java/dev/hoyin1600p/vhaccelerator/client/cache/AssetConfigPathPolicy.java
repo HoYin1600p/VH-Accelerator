@@ -28,6 +28,7 @@ final class AssetConfigPathPolicy {
                 )
                 || normalized.startsWith("xaerominimap")
                 || normalized.startsWith("xaeroworldmap")
+                || normalized.startsWith("cma/")
                 || normalized.startsWith("voicechat/")
                 || normalized.startsWith("byg/backups/")
                 || normalized.startsWith("konkrete/locals/");
