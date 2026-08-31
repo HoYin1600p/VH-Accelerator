@@ -440,6 +440,20 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.wallshape."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.DEDUPLICATE_WALL_SHAPES
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.spawns."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.POTENTIAL_SPAWN_COPY_ON_WRITE
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.client.entity."
         )) {
             return BackportOwnershipRegistry.vhaOwns(

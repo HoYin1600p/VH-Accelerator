@@ -575,6 +575,37 @@ public enum BackportFeature {
                             + "ctm_resourceutil_cme.ResourceUtilMixin"
             )
     ),
+    DEDUPLICATE_WALL_SHAPES(
+            "deduplicate_wall_shapes",
+            "deduplicateWallShapes",
+            "Wall-block shape deduplication",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.deduplicate_wall_shapes.WallBlockMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "deduplicate_wall_shapes.WallBlockMixin"
+            )
+    ),
+    POTENTIAL_SPAWN_COPY_ON_WRITE(
+            "potential_spawn_copy_on_write",
+            "potentialSpawnCopyOnWrite",
+            "Forge potential-spawn copy-on-write lists",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of(
+                    "perf.potential_spawns_alloc.PotentialSpawnsMixin",
+                    "perf.potential_spawns_alloc.ForgeEventFactoryMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "potential_spawns_alloc.PotentialSpawnsMixin",
+                    "org.embeddedt.modernfix.forge.mixin.perf."
+                            + "potential_spawns_alloc.ForgeEventFactoryMixin"
+            )
+    ),
     RESOURCE_KEY_INTERNING(
             "resource_key_interning",
             "resourceKeyInterning",
