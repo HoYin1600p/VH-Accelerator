@@ -122,7 +122,7 @@ final class SafeModelResourceEnumeration {
             );
         } catch (RuntimeException | LinkageError failure) {
             failedPacks.incrementAndGet();
-            VHAccelerator.LOGGER.debug(
+            VHAccelerator.LOGGER.warn(
                     "Could not enumerate namespaces from client resource "
                             + "pack {}",
                     pack.getName(),
@@ -152,7 +152,7 @@ final class SafeModelResourceEnumeration {
                 ));
             } catch (RuntimeException | LinkageError failure) {
                 failedPacks.incrementAndGet();
-                VHAccelerator.LOGGER.debug(
+                VHAccelerator.LOGGER.warn(
                         "Could not enumerate model JSON resources from "
                                 + "client resource pack {} namespace {}",
                         pack.getName(),
@@ -211,7 +211,7 @@ final class SafeModelResourceEnumeration {
                     });
         } catch (IOException | RuntimeException failure) {
             failedPacks.incrementAndGet();
-            VHAccelerator.LOGGER.debug(
+            VHAccelerator.LOGGER.warn(
                     "Could not safely enumerate model JSON resources from "
                             + "path pack {} namespace {}",
                     pack.getName(),
@@ -245,7 +245,7 @@ final class SafeModelResourceEnumeration {
                     ? (List<PackResources>) value
                     : null;
         } catch (IllegalAccessException | RuntimeException failure) {
-            VHAccelerator.LOGGER.debug(
+            VHAccelerator.LOGGER.warn(
                     "Could not inspect delegated client resource packs",
                     failure
             );
