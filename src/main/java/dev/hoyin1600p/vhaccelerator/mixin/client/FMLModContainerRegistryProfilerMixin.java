@@ -23,6 +23,9 @@ public abstract class FMLModContainerRegistryProfilerMixin {
     @Unique
     private ResourceLocation vhaccelerator$registryCallbackName;
 
+    @Unique
+    private String vhaccelerator$modEventName;
+
     @Inject(
             method = "acceptEvent",
             at = @At("HEAD"),
@@ -35,12 +38,15 @@ public abstract class FMLModContainerRegistryProfilerMixin {
     ) {
         vhaccelerator$registryCallbackStarted = 0L;
         vhaccelerator$registryCallbackName = null;
-        if (!(event instanceof RegistryEvent.Register<?> registerEvent)
-                || !RegistryLaunchProfiler.active()) {
+        vhaccelerator$modEventName = null;
+        if (!RegistryLaunchProfiler.active()) {
             return;
         }
-        vhaccelerator$registryCallbackName = registerEvent.getName();
         vhaccelerator$registryCallbackStarted = RegistryLaunchProfiler.begin();
+        vhaccelerator$modEventName = event.getClass().getName();
+        if (event instanceof RegistryEvent.Register<?> registerEvent) {
+            vhaccelerator$registryCallbackName = registerEvent.getName();
+        }
     }
 
     @Inject(
@@ -55,8 +61,17 @@ public abstract class FMLModContainerRegistryProfilerMixin {
     ) {
         long started = vhaccelerator$registryCallbackStarted;
         ResourceLocation registryName = vhaccelerator$registryCallbackName;
+        String eventName = vhaccelerator$modEventName;
         vhaccelerator$registryCallbackStarted = 0L;
         vhaccelerator$registryCallbackName = null;
+        vhaccelerator$modEventName = null;
+        if (started != 0L && eventName != null) {
+            RegistryLaunchProfiler.recordModEvent(
+                    ((FMLModContainer) (Object) this).getModId(),
+                    eventName,
+                    started
+            );
+        }
         if (started != 0L && registryName != null) {
             RegistryLaunchProfiler.recordEvent(
                     ((FMLModContainer) (Object) this).getModId(),
