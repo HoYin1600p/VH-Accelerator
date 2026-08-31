@@ -58,6 +58,12 @@ public abstract class ModelBakeryLoadProfilerMixin {
     @Unique
     private long vhaccelerator$itemCachedNanos;
     @Unique
+    private long vhaccelerator$itemBetweenCallNanos;
+    @Unique
+    private long vhaccelerator$itemMaxBetweenCallNanos;
+    @Unique
+    private long vhaccelerator$itemPreviousFinished;
+    @Unique
     private int vhaccelerator$itemTopLevelCalls;
     @Unique
     private int vhaccelerator$itemMissingCalls;
@@ -79,6 +85,9 @@ public abstract class ModelBakeryLoadProfilerMixin {
             vhaccelerator$itemTopLevelNanos = 0L;
             vhaccelerator$itemMissingNanos = 0L;
             vhaccelerator$itemCachedNanos = 0L;
+            vhaccelerator$itemBetweenCallNanos = 0L;
+            vhaccelerator$itemMaxBetweenCallNanos = 0L;
+            vhaccelerator$itemPreviousFinished = 0L;
             vhaccelerator$itemTopLevelCalls = 0;
             vhaccelerator$itemMissingCalls = 0;
             vhaccelerator$itemCachedCalls = 0;
@@ -93,10 +102,20 @@ public abstract class ModelBakeryLoadProfilerMixin {
         if (!vhaccelerator$profileLoads
                 || !"inventory".equals(location.getVariant())) {
             vhaccelerator$itemTopLevelStarted = 0L;
+            vhaccelerator$itemPreviousFinished = 0L;
             return;
         }
         vhaccelerator$itemWasCached = unbakedCache.containsKey(location);
-        vhaccelerator$itemTopLevelStarted = System.nanoTime();
+        long now = System.nanoTime();
+        if (vhaccelerator$itemPreviousFinished != 0L) {
+            long between = now - vhaccelerator$itemPreviousFinished;
+            vhaccelerator$itemBetweenCallNanos += between;
+            vhaccelerator$itemMaxBetweenCallNanos = Math.max(
+                    vhaccelerator$itemMaxBetweenCallNanos,
+                    between
+            );
+        }
+        vhaccelerator$itemTopLevelStarted = now;
     }
 
     @Inject(method = "loadTopLevel", at = @At("RETURN"))
@@ -107,9 +126,10 @@ public abstract class ModelBakeryLoadProfilerMixin {
         if (vhaccelerator$itemTopLevelStarted == 0L) {
             return;
         }
-        long elapsed = System.nanoTime()
-                - vhaccelerator$itemTopLevelStarted;
+        long finished = System.nanoTime();
+        long elapsed = finished - vhaccelerator$itemTopLevelStarted;
         vhaccelerator$itemTopLevelStarted = 0L;
+        vhaccelerator$itemPreviousFinished = finished;
         vhaccelerator$itemTopLevelNanos += elapsed;
         vhaccelerator$itemTopLevelCalls++;
         if (vhaccelerator$itemWasCached) {
@@ -206,13 +226,20 @@ public abstract class ModelBakeryLoadProfilerMixin {
         VHAccelerator.LOGGER.info(
                 "Item top-level discovery: {} ms across {} item(s) "
                         + "[missing={} ms/{} item(s), "
-                        + "already-cached={} ms/{} item(s)]",
+                        + "already-cached={} ms/{} item(s), "
+                        + "between-calls={} ms, max-gap={} ms]",
                 vhaccelerator$millis(vhaccelerator$itemTopLevelNanos),
                 vhaccelerator$itemTopLevelCalls,
                 vhaccelerator$millis(vhaccelerator$itemMissingNanos),
                 vhaccelerator$itemMissingCalls,
                 vhaccelerator$millis(vhaccelerator$itemCachedNanos),
-                vhaccelerator$itemCachedCalls
+                vhaccelerator$itemCachedCalls,
+                vhaccelerator$millis(
+                        vhaccelerator$itemBetweenCallNanos
+                ),
+                vhaccelerator$millis(
+                        vhaccelerator$itemMaxBetweenCallNanos
+                )
         );
         for (int index = 0;
              index < Math.min(REPORT_LIMIT, entries.size());
