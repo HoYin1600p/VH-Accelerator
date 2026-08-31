@@ -606,6 +606,23 @@ public enum BackportFeature {
                             + "potential_spawns_alloc.ForgeEventFactoryMixin"
             )
     ),
+    TICKING_CHUNK_ALLOCATIONS(
+            "ticking_chunk_allocations",
+            "reduceTickingChunkAllocations",
+            "Ticking chunk allocation reductions",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.ticking_chunk_alloc"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "ticking_chunk_alloc.ChunkHolderMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "ticking_chunk_alloc.ChunkAccessMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "ticking_chunk_alloc.BatMixin"
+            )
+    ),
     RESOURCE_KEY_INTERNING(
             "resource_key_interning",
             "resourceKeyInterning",

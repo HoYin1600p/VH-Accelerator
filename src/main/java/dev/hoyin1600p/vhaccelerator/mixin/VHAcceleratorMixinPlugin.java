@@ -250,6 +250,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.CTM_METADATA_CACHE_CONCURRENCY,
                 "mixin.bugfix.ctm_resourceutil_cme"
         );
+        claimModernFixOption(
+                BackportFeature.TICKING_CHUNK_ALLOCATIONS,
+                "mixin.perf.ticking_chunk_alloc"
+        );
         if (modernFixLoaded
                 && !BootstrapCompareMode.enabled()
                 && BootstrapBackportConfig.enabled(
@@ -451,6 +455,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.POTENTIAL_SPAWN_COPY_ON_WRITE
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.tickalloc."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.TICKING_CHUNK_ALLOCATIONS
             );
         }
         if (mixinClassName.contains(
