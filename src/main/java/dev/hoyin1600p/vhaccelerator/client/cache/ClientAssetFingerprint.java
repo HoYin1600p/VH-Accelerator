@@ -1078,23 +1078,7 @@ public final class ClientAssetFingerprint {
      * launch.</p>
      */
     private static boolean isVolatileNonAssetConfig(String relative) {
-        String normalized =
-                relative.toLowerCase(java.util.Locale.ROOT);
-        return normalized.equals("distanthorizons.toml")
-                || normalized.equals("embeddium-options.json")
-                || normalized.equals("forge-client.toml")
-                || normalized.equals("oculus.properties")
-                || normalized.equals("powah.json5")
-                || normalized.equals("reforgium-renderer.properties")
-                || normalized.equals("sidebar_buttons.json")
-                || normalized.equals("vaultlootbeams.json")
-                || normalized.equals(
-                        "modernstartupqol/startup_times.json"
-                )
-                || normalized.startsWith("xaerominimap")
-                || normalized.startsWith("xaeroworldmap")
-                || normalized.startsWith("voicechat/")
-                || normalized.startsWith("konkrete/locals/");
+        return AssetConfigPathPolicy.isVolatileNonAssetConfig(relative);
     }
 
     private static void appendResourcePackMetadata(
