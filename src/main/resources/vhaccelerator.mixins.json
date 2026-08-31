@@ -28,6 +28,7 @@
     "backport.modernfix.registry.resourcekey.ResourceKeyConstructor",
     "backport.modernfix.registry.resourcekey.ResourceKeyMixin",
     "backport.modernfix.registry.validation.ForgeRegistryMixin",
+    "backport.modernfix.resource.FilePackResourcesMixin",
     "backport.modernfix.resource.PathResourcePackIndexMixin",
     "backport.modernfix.recipe.ReloadableServerResourcesMixin",
     "backport.modernfix.recipe.TagValueAccessor",
