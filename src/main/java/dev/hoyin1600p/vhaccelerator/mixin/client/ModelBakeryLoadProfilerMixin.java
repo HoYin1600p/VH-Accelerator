@@ -11,9 +11,12 @@ import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.ProfilerFiller;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -27,6 +30,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ModelBakeryLoadProfilerMixin {
     private static final int REPORT_LIMIT = 16;
 
+    @Shadow
+    @Final
+    private static ModelResourceLocation MISSING_MODEL_LOCATION;
+
+    @Shadow
+    @Final
+    private Map<ResourceLocation, UnbakedModel> unbakedCache;
+
     @Unique
     private boolean vhaccelerator$profileLoads;
     @Unique
@@ -35,6 +46,22 @@ public abstract class ModelBakeryLoadProfilerMixin {
     private String vhaccelerator$currentLoad;
     @Unique
     private Map<String, long[]> vhaccelerator$loadTimings;
+    @Unique
+    private long vhaccelerator$itemTopLevelStarted;
+    @Unique
+    private boolean vhaccelerator$itemWasCached;
+    @Unique
+    private long vhaccelerator$itemTopLevelNanos;
+    @Unique
+    private long vhaccelerator$itemMissingNanos;
+    @Unique
+    private long vhaccelerator$itemCachedNanos;
+    @Unique
+    private int vhaccelerator$itemTopLevelCalls;
+    @Unique
+    private int vhaccelerator$itemMissingCalls;
+    @Unique
+    private int vhaccelerator$itemCachedCalls;
 
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void vhaccelerator$beginLoadProfile(
@@ -46,6 +73,51 @@ public abstract class ModelBakeryLoadProfilerMixin {
                 VHAcceleratorClientConfig.launchProfilingEnabled();
         if (vhaccelerator$profileLoads) {
             vhaccelerator$loadTimings = new HashMap<>();
+            vhaccelerator$itemTopLevelNanos = 0L;
+            vhaccelerator$itemMissingNanos = 0L;
+            vhaccelerator$itemCachedNanos = 0L;
+            vhaccelerator$itemTopLevelCalls = 0;
+            vhaccelerator$itemMissingCalls = 0;
+            vhaccelerator$itemCachedCalls = 0;
+        }
+    }
+
+    @Inject(method = "loadTopLevel", at = @At("HEAD"))
+    private void vhaccelerator$beginItemTopLevelLoad(
+            ModelResourceLocation location,
+            CallbackInfo callback
+    ) {
+        if (!vhaccelerator$profileLoads
+                || !"inventory".equals(location.getVariant())) {
+            vhaccelerator$itemTopLevelStarted = 0L;
+            return;
+        }
+        vhaccelerator$itemWasCached = unbakedCache.containsKey(location);
+        vhaccelerator$itemTopLevelStarted = System.nanoTime();
+    }
+
+    @Inject(method = "loadTopLevel", at = @At("RETURN"))
+    private void vhaccelerator$finishItemTopLevelLoad(
+            ModelResourceLocation location,
+            CallbackInfo callback
+    ) {
+        if (vhaccelerator$itemTopLevelStarted == 0L) {
+            return;
+        }
+        long elapsed = System.nanoTime()
+                - vhaccelerator$itemTopLevelStarted;
+        vhaccelerator$itemTopLevelStarted = 0L;
+        vhaccelerator$itemTopLevelNanos += elapsed;
+        vhaccelerator$itemTopLevelCalls++;
+        if (vhaccelerator$itemWasCached) {
+            vhaccelerator$itemCachedNanos += elapsed;
+            vhaccelerator$itemCachedCalls++;
+        }
+        UnbakedModel loaded = unbakedCache.get(location);
+        UnbakedModel missing = unbakedCache.get(MISSING_MODEL_LOCATION);
+        if (loaded != null && loaded == missing) {
+            vhaccelerator$itemMissingNanos += elapsed;
+            vhaccelerator$itemMissingCalls++;
         }
     }
 
@@ -126,6 +198,17 @@ public abstract class ModelBakeryLoadProfilerMixin {
                 vhaccelerator$millis(total),
                 entries.size(),
                 Math.min(REPORT_LIMIT, entries.size())
+        );
+        VHAccelerator.LOGGER.info(
+                "Item top-level discovery: {} ms across {} item(s) "
+                        + "[missing={} ms/{} item(s), "
+                        + "already-cached={} ms/{} item(s)]",
+                vhaccelerator$millis(vhaccelerator$itemTopLevelNanos),
+                vhaccelerator$itemTopLevelCalls,
+                vhaccelerator$millis(vhaccelerator$itemMissingNanos),
+                vhaccelerator$itemMissingCalls,
+                vhaccelerator$millis(vhaccelerator$itemCachedNanos),
+                vhaccelerator$itemCachedCalls
         );
         for (int index = 0;
              index < Math.min(REPORT_LIMIT, entries.size());
