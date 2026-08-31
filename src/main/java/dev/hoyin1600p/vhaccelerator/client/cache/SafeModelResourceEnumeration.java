@@ -41,6 +41,9 @@ final class SafeModelResourceEnumeration {
             "net.minecraftforge.jarjar.nio.pathfs.PathFileSystem";
     @Nullable
     private static final Field DELEGATES_FIELD = findDelegatesField();
+    @Nullable
+    private static final Method PATH_PACK_RESOLVE_METHOD =
+            findPathPackResolveMethod();
 
     private SafeModelResourceEnumeration() {
     }
@@ -176,9 +179,29 @@ final class SafeModelResourceEnumeration {
             AtomicInteger invalidPaths,
             AtomicInteger failedPacks
     ) {
-        if (isJarJarPathFileSystem(pack.getSource().getFileSystem())) {
+        Path root;
+        try {
+            root = resolvePackPath(
+                    pack,
+                    PackType.CLIENT_RESOURCES.getDirectory(),
+                    namespace
+            ).toAbsolutePath();
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            failedPacks.incrementAndGet();
+            VHAccelerator.LOGGER.warn(
+                    "Could not resolve client resource root from path pack "
+                            + "{} namespace {}",
+                    pack.getName(),
+                    namespace,
+                    failure
+            );
+            return;
+        }
+
+        if (isJarJarPathFileSystem(root.getFileSystem())) {
             collectJarJarPathPack(
                     pack,
+                    root.getFileSystem(),
                     namespace,
                     recovered,
                     invalidPaths,
@@ -187,10 +210,6 @@ final class SafeModelResourceEnumeration {
             return;
         }
 
-        Path root = pack.getSource()
-                .resolve(PackType.CLIENT_RESOURCES.getDirectory())
-                .resolve(namespace)
-                .toAbsolutePath();
         try {
             collectDirectory(
                     pack,
@@ -219,16 +238,17 @@ final class SafeModelResourceEnumeration {
 
     private static void collectJarJarPathPack(
             PathResourcePack pack,
+            FileSystem fileSystem,
             String namespace,
             Set<ResourceLocation> recovered,
             AtomicInteger invalidPaths,
             AtomicInteger failedPacks
     ) {
         try {
-            Method getTarget = pack.getSource().getFileSystem()
+            Method getTarget = fileSystem
                     .getClass().getMethod("getTarget");
             Object targetValue = getTarget.invoke(
-                    pack.getSource().getFileSystem()
+                    fileSystem
             );
             if (!(targetValue instanceof Path target)) {
                 throw new IOException(
@@ -269,6 +289,25 @@ final class SafeModelResourceEnumeration {
                     failure
             );
         }
+    }
+
+    private static Path resolvePackPath(
+            PathResourcePack pack,
+            String... segments
+    ) throws ReflectiveOperationException {
+        Method method = PATH_PACK_RESOLVE_METHOD;
+        if (method == null) {
+            throw new NoSuchMethodException(
+                    "PathResourcePack.resolve(String...)"
+            );
+        }
+        Object value = method.invoke(pack, (Object) segments);
+        if (value instanceof Path path) {
+            return path;
+        }
+        throw new ReflectiveOperationException(
+                "PathResourcePack resolver returned no path"
+        );
     }
 
     private static void collectDirectory(
@@ -400,6 +439,19 @@ final class SafeModelResourceEnumeration {
                     .getDeclaredField("delegates");
             return field.trySetAccessible() ? field : null;
         } catch (NoSuchFieldException | RuntimeException failure) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private static Method findPathPackResolveMethod() {
+        try {
+            Method method = PathResourcePack.class.getDeclaredMethod(
+                    "resolve",
+                    String[].class
+            );
+            return method.trySetAccessible() ? method : null;
+        } catch (NoSuchMethodException | RuntimeException failure) {
             return null;
         }
     }

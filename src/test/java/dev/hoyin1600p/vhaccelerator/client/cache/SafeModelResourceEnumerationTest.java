@@ -96,6 +96,39 @@ class SafeModelResourceEnumerationTest {
         assertEquals(1, invalid.get());
     }
 
+    @Test
+    void honorsForgeModPackResourceResolverOverrides() throws IOException {
+        Path actualRoot = temporaryDirectory.resolve("actual-pack-root");
+        Path models = actualRoot.resolve("assets/example/models/item");
+        Files.createDirectories(models);
+        Files.writeString(models.resolve("resolved_model.json"), "{}");
+
+        PathResourcePack pack = new PathResourcePack(
+                "resolver override pack",
+                temporaryDirectory.resolve("misleading-source")
+        ) {
+            @Override
+            protected Path resolve(String... segments) {
+                Path resolved = actualRoot;
+                for (String segment : segments) {
+                    resolved = resolved.resolve(segment);
+                }
+                return resolved;
+            }
+        };
+
+        Collection<ResourceLocation> recovered =
+                SafeModelResourceEnumeration.recover(
+                        new PackOnlyResourceManager(pack)
+                );
+
+        assertEquals(1, recovered.size());
+        assertTrue(recovered.contains(ResourceLocation.fromNamespaceAndPath(
+                "example",
+                "models/item/resolved_model.json"
+        )));
+    }
+
     private static void writeEntry(
             ZipOutputStream archive,
             String name
