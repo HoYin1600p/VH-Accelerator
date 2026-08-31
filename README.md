@@ -105,8 +105,8 @@ as does its `status` form.
 | `/vha timers off` | Disables routine chat timers and timing logs immediately. |
 | `/vha timers status` | Reports timer state. |
 | `/vha debug` | Reports detailed diagnostic state. |
-| `/vha debug on` | Enables detailed profiling; reconnect or restart for complete samples. |
-| `/vha debug off` | Stops new detailed diagnostic sampling. |
+| `/vha debug on` | Saves detailed profiling as enabled. Restart to load its diagnostic-only mixins. |
+| `/vha debug off` | Stops new sampling immediately. Restart to unload its diagnostic-only mixins. |
 | `/vha debug status` | Reports detailed diagnostic state. |
 | `/vha jei_audit` | Reports targeted JEI recipe-cache audit state. |
 | `/vha jei_audit on` | Logs each recipe plan repaired during the next login, including changed roles and cached-versus-live output UIDs. |
@@ -145,7 +145,9 @@ debug = false
 ```
 
 The compact launch-time line remains visible on the main menu. Routine timing
-messages and detailed diagnostics are intentionally off for normal play.
+messages and detailed diagnostics are intentionally off for normal play. When
+debug is off at startup, diagnostic-only mixins are not applied. Restart after
+changing `/vha debug` so the loaded mixin set matches the saved setting.
 
 Update checks are enabled by default and remain independent of Forge's global
 update-check preference. By default, only updates marked critical appear on

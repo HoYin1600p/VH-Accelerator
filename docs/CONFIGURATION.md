@@ -33,8 +33,8 @@ file-based so a benchmark records a stable launch configuration.
 | `/vha timers off` | Saves and immediately disables routine chat timers and timing logs. |
 | `/vha timers status` | Reports timer state. |
 | `/vha debug` | Reports debug state; identical to `status`. |
-| `/vha debug on` | Saves detailed diagnostics as enabled. Reconnect and restart for complete samples. |
-| `/vha debug off` | Saves detailed diagnostics as disabled and stops new sampling. |
+| `/vha debug on` | Saves detailed diagnostics as enabled. Restart to load its diagnostic-only mixins. |
+| `/vha debug off` | Stops new sampling immediately. Restart to unload its diagnostic-only mixins. |
 | `/vha debug status` | Reports detailed diagnostic state. |
 | `/vha jei_audit` | Reports targeted JEI recipe-cache audit state; identical to `status`. |
 | `/vha jei_audit on` | Saves the targeted audit as enabled. Reconnect to log every repaired JEI recipe ID, repair reason, changed roles, and cached-versus-live output UIDs. |
@@ -82,6 +82,10 @@ lifecycle signals needed to keep optimizations safe.
 Debug mode enables detailed launch phases, reload listener attribution, model
 pipeline measurements, connection packets, post-login work, and disconnect
 listener timings. It adds logging and sampling overhead and is off by default.
+When it is off during bootstrap, VHA does not apply the diagnostic-only mixins.
+Changing the setting to off stops new samples immediately, but a restart is
+required to unload mixins already applied to game classes. Changing it to on
+also requires a restart to load the complete diagnostic mixin set.
 
 ### JEI recovery reload
 
@@ -104,7 +108,7 @@ settings resume as soon as the recovery rebuild finishes.
 | --- | --- | --- |
 | `compareMode` | `false` | Disables all optimizations without disabling selected instrumentation. |
 | `timers` | `false` | Enables routine chat timer notices and timing summaries. The main-menu launch time remains visible. |
-| `debug` | `false` | Enables detailed profiling and diagnostic attribution. |
+| `debug` | `false` | Enables detailed profiling and diagnostic-only mixins. Restart after changing it. |
 | `jeiRecipeAudit` | `false` | Logs exact recipe IDs, role changes, and output UIDs when the persistent JEI index repairs a plan. Controlled independently by `/vha jei_audit`. |
 
 ### `[optimizations]`
@@ -250,7 +254,8 @@ present. Enabling a key does not create a hard dependency.
 | `profileClientLaunchPhases` | `true` | Allows Forge phase and slow resource-listener profiling when the common `debug` switch is also on. |
 
 This option alone does not enable profiling. Both it and
-`vhaccelerator-common.toml`'s `diagnostics.debug` must be `true`.
+`vhaccelerator-common.toml`'s `diagnostics.debug` must be `true` when the JVM
+starts. Restart after changing the common debug setting.
 
 ## Cache location and invalidation
 

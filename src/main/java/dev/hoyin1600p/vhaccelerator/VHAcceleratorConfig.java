@@ -59,7 +59,8 @@ public final class VHAcceleratorConfig {
                             "Enables detailed launch, reload, model, connection, packet,",
                             "and disconnect diagnostics. This adds measurement and logging",
                             "overhead and is disabled by default for normal play.",
-                            "The /vha debug command changes this setting.")
+                            "Diagnostic-only mixins are selected during bootstrap, so restart",
+                            "after changing this setting with the /vha debug command.")
                     .define("debug", false);
             jeiRecipeAudit = builder
                     .comment(

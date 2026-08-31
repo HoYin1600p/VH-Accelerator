@@ -38,6 +38,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Diagnostic-only mixins are now omitted during bootstrap when `debug=false`,
+  instead of remaining woven into game classes behind runtime checks. Shared
+  packet, disconnect, model-bake, launch, and login hooks keep only the
+  lifecycle behavior required by optimizations and timers without initializing
+  their detailed profiler helpers.
+- `/vha debug` now explains that a restart is required to load or unload the
+  complete diagnostic mixin set. Turning debug off still stops new sampling
+  immediately.
+
 - Relicensed post-1.0.13 development from MIT to LGPL-3.0-or-later to match
   ModernFix-derived work. Published releases through 1.0.13 retain their
   original MIT terms.

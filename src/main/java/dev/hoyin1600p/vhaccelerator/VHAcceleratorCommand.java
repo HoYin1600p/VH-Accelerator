@@ -227,9 +227,10 @@ public final class VHAcceleratorCommand {
                 "Debug diagnostics",
                 enabled,
                 enabled
-                        ? "Saved. Reconnect for connection diagnostics and "
-                                + "restart for launch diagnostics."
-                        : "Saved. New diagnostic sampling stops immediately."
+                        ? "Saved. Restart to load the complete diagnostic "
+                                + "mixin set."
+                        : "Saved. Sampling stops immediately; restart to "
+                                + "unload diagnostic mixins."
         );
         return 1;
     }
