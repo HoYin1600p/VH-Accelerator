@@ -161,6 +161,9 @@ exclusions, and Compare Mode still take precedence over an enabled switch.
 | `fasterTextureStitching` | client | `true` | Uses LWJGL STB packing for atlases with at least 100 sprites. Small or oversized candidates retain vanilla stitching for alignment and maximum-size safety. VHA yields when ModernFix owns the same exact option. |
 | `modelDataManagerConcurrencyFix` | client | `true` | Uses concurrent Forge model-data refresh sets and performs block-entity refreshes only on the client thread. Automatically unavailable with legacy Rubidium because that renderer requests model data only from workers. |
 | `ctmMetadataCacheConcurrencyFix` | client | `true` | Synchronizes ConnectedTexturesMod's nullable metadata cache during parallel model loading. Loads only when VHA recognizes the validated CTM 1.18.2 layout. |
+| `deduplicateWallShapes` | client + server | `true` | Reuses compatible vanilla-generated voxel shapes across wall blocks with identical dimensions and state properties. Subclasses may consume a cache but never seed one. |
+| `potentialSpawnCopyOnWrite` | client + server | `true` | Avoids copying Forge potential-spawn lists unless an event listener mutates them, then preserves Forge's mutable-list and read-only-view behavior. |
+| `reduceTickingChunkAllocations` | client + server | `true` | Caches bat calendar queries, avoids transient Optional objects in active chunk lookup, and reuses a live read-only structure-reference view with allocation-free empty collections. VHA owns this corrected group when enabled. |
 
 For each feature, ModernFix's effective option is checked independently. An
 active ModernFix implementation owns the path; an unknown ModernFix state

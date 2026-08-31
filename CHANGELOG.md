@@ -75,6 +75,18 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Performance
 
+- Added wall-shape deduplication for compatible vanilla-layout wall blocks.
+  Shape and collision maps with matching dimensions and properties reuse the
+  first vanilla-generated voxel shapes; subclasses can consume a compatible
+  cache but cannot seed one.
+- Added copy-on-write Forge potential-spawn events. Unmodified spawn events
+  reuse the biome's original weighted list, while the first listener mutation
+  creates the same private mutable copy and read-only view Forge exposes now.
+- Added ticking-chunk allocation reductions for bat calendar checks, active
+  chunk-future reads, and structure-reference map views. VHA's structure view
+  remains live even when first observed empty, tightening an upstream semantic
+  compromise, and reflective Either access falls back to vanilla if unavailable.
+
 - Added guarded STB rectangle packing for large texture atlases. Atlases with
   fewer than 100 sprites and candidates that exceed Minecraft's configured
   atlas limits keep vanilla stitching, preserving alignment-sensitive JEI and
