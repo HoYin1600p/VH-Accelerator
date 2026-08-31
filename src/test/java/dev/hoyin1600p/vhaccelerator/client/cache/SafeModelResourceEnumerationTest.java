@@ -4,14 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.resources.Resource;
@@ -51,6 +57,52 @@ class SafeModelResourceEnumerationTest {
         assertFalse(recovered.stream().anyMatch(location ->
                 location.getPath().contains("Invalid")
         ));
+    }
+
+    @Test
+    void enumeratesEmbeddedJarModelsWithoutUsingItsPathFileSystem()
+            throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream archive = new ZipOutputStream(bytes)) {
+            writeEntry(
+                    archive,
+                    "assets/example/models/block/valid_model.json"
+            );
+            writeEntry(
+                    archive,
+                    "assets/example/models/block/Invalid Model.json"
+            );
+            writeEntry(
+                    archive,
+                    "assets/example/textures/block/not_a_model.json"
+            );
+        }
+
+        Set<ResourceLocation> recovered = new LinkedHashSet<>();
+        AtomicInteger invalid = new AtomicInteger();
+        SafeModelResourceEnumeration.collectModelArchiveEntries(
+                new ByteArrayInputStream(bytes.toByteArray()),
+                "embedded test pack",
+                "example",
+                recovered,
+                invalid
+        );
+
+        assertEquals(1, recovered.size());
+        assertTrue(recovered.contains(ResourceLocation.fromNamespaceAndPath(
+                "example",
+                "models/block/valid_model.json"
+        )));
+        assertEquals(1, invalid.get());
+    }
+
+    private static void writeEntry(
+            ZipOutputStream archive,
+            String name
+    ) throws IOException {
+        archive.putNextEntry(new ZipEntry(name));
+        archive.write("{}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        archive.closeEntry();
     }
 
     private record PackOnlyResourceManager(PackResources pack)
