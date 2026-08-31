@@ -64,6 +64,18 @@ public abstract class ModelBakeryLoadProfilerMixin {
     @Unique
     private long vhaccelerator$itemPreviousFinished;
     @Unique
+    private long vhaccelerator$itemGapOverOneMsNanos;
+    @Unique
+    private long vhaccelerator$itemGapOverTenMsNanos;
+    @Unique
+    private long vhaccelerator$itemGapOverHundredMsNanos;
+    @Unique
+    private int vhaccelerator$itemGapsOverOneMs;
+    @Unique
+    private int vhaccelerator$itemGapsOverTenMs;
+    @Unique
+    private int vhaccelerator$itemGapsOverHundredMs;
+    @Unique
     private int vhaccelerator$itemTopLevelCalls;
     @Unique
     private int vhaccelerator$itemMissingCalls;
@@ -88,6 +100,12 @@ public abstract class ModelBakeryLoadProfilerMixin {
             vhaccelerator$itemBetweenCallNanos = 0L;
             vhaccelerator$itemMaxBetweenCallNanos = 0L;
             vhaccelerator$itemPreviousFinished = 0L;
+            vhaccelerator$itemGapOverOneMsNanos = 0L;
+            vhaccelerator$itemGapOverTenMsNanos = 0L;
+            vhaccelerator$itemGapOverHundredMsNanos = 0L;
+            vhaccelerator$itemGapsOverOneMs = 0;
+            vhaccelerator$itemGapsOverTenMs = 0;
+            vhaccelerator$itemGapsOverHundredMs = 0;
             vhaccelerator$itemTopLevelCalls = 0;
             vhaccelerator$itemMissingCalls = 0;
             vhaccelerator$itemCachedCalls = 0;
@@ -114,6 +132,18 @@ public abstract class ModelBakeryLoadProfilerMixin {
                     vhaccelerator$itemMaxBetweenCallNanos,
                     between
             );
+            if (between >= 1_000_000L) {
+                vhaccelerator$itemGapOverOneMsNanos += between;
+                vhaccelerator$itemGapsOverOneMs++;
+            }
+            if (between >= 10_000_000L) {
+                vhaccelerator$itemGapOverTenMsNanos += between;
+                vhaccelerator$itemGapsOverTenMs++;
+            }
+            if (between >= 100_000_000L) {
+                vhaccelerator$itemGapOverHundredMsNanos += between;
+                vhaccelerator$itemGapsOverHundredMs++;
+            }
         }
         vhaccelerator$itemTopLevelStarted = now;
     }
@@ -227,7 +257,9 @@ public abstract class ModelBakeryLoadProfilerMixin {
                 "Item top-level discovery: {} ms across {} item(s) "
                         + "[missing={} ms/{} item(s), "
                         + "already-cached={} ms/{} item(s), "
-                        + "between-calls={} ms, max-gap={} ms]",
+                        + "between-calls={} ms, max-gap={} ms, "
+                        + "gaps>=1ms={}/{}, >=10ms={}/{}, "
+                        + ">=100ms={}/{}]",
                 vhaccelerator$millis(vhaccelerator$itemTopLevelNanos),
                 vhaccelerator$itemTopLevelCalls,
                 vhaccelerator$millis(vhaccelerator$itemMissingNanos),
@@ -239,6 +271,18 @@ public abstract class ModelBakeryLoadProfilerMixin {
                 ),
                 vhaccelerator$millis(
                         vhaccelerator$itemMaxBetweenCallNanos
+                ),
+                vhaccelerator$itemGapsOverOneMs,
+                vhaccelerator$millis(
+                        vhaccelerator$itemGapOverOneMsNanos
+                ),
+                vhaccelerator$itemGapsOverTenMs,
+                vhaccelerator$millis(
+                        vhaccelerator$itemGapOverTenMsNanos
+                ),
+                vhaccelerator$itemGapsOverHundredMs,
+                vhaccelerator$millis(
+                        vhaccelerator$itemGapOverHundredMsNanos
                 )
         );
         for (int index = 0;
