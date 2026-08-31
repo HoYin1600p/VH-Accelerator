@@ -10,7 +10,9 @@ final class AssetConfigPathPolicy {
         String normalized = relative.toLowerCase(Locale.ROOT);
         return normalized.equals("distanthorizons.toml")
                 || normalized.equals("embeddium-options.json")
+                || normalized.equals("essential-mod-partner/data.cache.json")
                 || normalized.equals("forge-client.toml")
+                || normalized.equals("forgematica-server.properties")
                 || normalized.equals("oculus.properties")
                 || normalized.equals("powah.json5")
                 || normalized.equals("reforgium-renderer.properties")

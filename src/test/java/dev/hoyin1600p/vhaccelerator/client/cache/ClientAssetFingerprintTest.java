@@ -21,4 +21,20 @@ class ClientAssetFingerprintTest {
                 "byg/byg-world.toml"
         ));
     }
+
+    @Test
+    void excludesDownloadedMetadataAndServerScopeIdentityOnly() {
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "essential-mod-partner/data.cache.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "forgematica-server.properties"
+        ));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "essential-client.toml"
+        ));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "forgematica.json"
+        ));
+    }
 }
