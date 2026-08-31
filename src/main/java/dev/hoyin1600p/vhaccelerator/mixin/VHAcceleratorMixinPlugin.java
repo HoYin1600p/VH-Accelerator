@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
 import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
 import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
+import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.config.NightConfigWatcherCorrection;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.thread.BackgroundWorkerLimit;
 import java.lang.reflect.Field;
@@ -29,6 +30,21 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             "dev.hoyin1600p.vhaccelerator.mixin.ReloadableResourceManagerMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.BlockModelMixin",
             "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryMixin"
+    );
+    private static final Set<String> DEBUG_ONLY_MIXINS = Set.of(
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ClientModLoaderProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ConnectionProtocolMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.DeferredRegisterProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ForgeHooksClientModelBakeProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ForgeLogoutTimingMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ForgeRecipeEventTimingMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ForgeRegistryAddProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.GameDataRegistryProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.GameRendererTimingMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.LevelRendererTimingMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryLoadProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ModelBakeryPreparationProfilerMixin",
+            "dev.hoyin1600p.vhaccelerator.mixin.client.ReloadListenerProfilerMixin"
     );
 
     private boolean modernFixLoaded;
@@ -352,6 +368,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (DEBUG_ONLY_MIXINS.contains(mixinClassName)
+                && !BootstrapDebugDiagnostics.enabled()) {
+            return false;
+        }
         if (mixinClassName.contains(
                 ".backport.modernfix.correction.watchdog."
         )) {

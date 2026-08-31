@@ -10,7 +10,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * Captures the diagnostics master switch before Forge attaches the common
  * configuration so early launch profilers see the user's saved choice.
  */
-final class BootstrapDebugDiagnostics {
+public final class BootstrapDebugDiagnostics {
     private static final List<String> CONFIG_PATH =
             List.of("diagnostics", "debug");
     private static volatile Boolean launchValue;
@@ -18,7 +18,7 @@ final class BootstrapDebugDiagnostics {
     private BootstrapDebugDiagnostics() {
     }
 
-    static boolean enabled() {
+    public static boolean enabled() {
         Boolean captured = launchValue;
         if (captured != null) {
             return captured;
