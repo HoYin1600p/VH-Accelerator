@@ -20,8 +20,6 @@ import net.minecraft.resources.ResourceLocation;
 public final class RegistryLaunchProfiler {
     private static final Map<String, Timing> EVENT_TIMINGS =
             new ConcurrentHashMap<>();
-    private static final Map<String, Timing> MOD_EVENT_TIMINGS =
-            new ConcurrentHashMap<>();
     private static final Map<String, Timing> HOLDER_TIMINGS =
             new ConcurrentHashMap<>();
     private static final Map<String, Timing> REGISTRATION_TIMINGS =
@@ -80,18 +78,6 @@ public final class RegistryLaunchProfiler {
         );
     }
 
-    public static void recordModEvent(
-            String modId,
-            String eventName,
-            long startedNanos
-    ) {
-        record(
-                MOD_EVENT_TIMINGS,
-                modId + " -> " + eventName,
-                startedNanos
-        );
-    }
-
     public static void recordHolderLookup(
             ResourceLocation registryName,
             long startedNanos
@@ -128,13 +114,11 @@ public final class RegistryLaunchProfiler {
             return;
         }
         if (VHAcceleratorClientConfig.launchProfilingEnabled()) {
-            report("mod callback", MOD_EVENT_TIMINGS, 20);
             report("registry callback", EVENT_TIMINGS, 20);
             report("registry add", REGISTRATION_TIMINGS, 20);
             report("registry transition", TRANSITION_TIMINGS, 20);
             report("object-holder registry", HOLDER_TIMINGS, 20);
         }
-        MOD_EVENT_TIMINGS.clear();
         EVENT_TIMINGS.clear();
         REGISTRATION_TIMINGS.clear();
         REGISTRY_STARTS.clear();
