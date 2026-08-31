@@ -46,6 +46,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Added a Forge model-data concurrency correction for clients that do not use
+  legacy Rubidium. Refresh requests now use a true concurrent set and worker
+  model queries cannot refresh block entities off the client thread. Legacy
+  Rubidium retains its original path because it only requests model data from
+  workers; Embeddium and non-Rubidium clients remain eligible.
+- Added a guarded ConnectedTexturesMod metadata-cache correction. The optional
+  CTM mixin loads only for the validated 1.18.2 CTM layout and synchronizes its
+  nullable metadata cache during parallel model loading.
+
 - Corrected ModernFix ownership detection for the newer
   `AttachCapabilitiesEvent` dispatch precursor. ModernFix 5.18's older
   `forge_cap_retrieval` category no longer claims a mixin class that it does
