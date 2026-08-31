@@ -68,9 +68,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
     @Unique
     private long vhaccelerator$itemKeySetNanos;
     @Unique
-    private long vhaccelerator$itemLocationNanos;
-    @Unique
-    private int vhaccelerator$itemLocationCalls;
 
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void vhaccelerator$beginLoadProfile(
@@ -89,8 +86,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
             vhaccelerator$itemMissingCalls = 0;
             vhaccelerator$itemCachedCalls = 0;
             vhaccelerator$itemKeySetNanos = 0L;
-            vhaccelerator$itemLocationNanos = 0L;
-            vhaccelerator$itemLocationCalls = 0;
         }
     }
 
@@ -112,31 +107,6 @@ public abstract class ModelBakeryLoadProfilerMixin {
         Set<ResourceLocation> keys = registry.keySet();
         vhaccelerator$itemKeySetNanos += System.nanoTime() - started;
         return keys;
-    }
-
-    @Redirect(
-            method = "processLoading",
-            at = @At(
-                    value = "NEW",
-                    target = "Lnet/minecraft/client/resources/model/"
-                            + "ModelResourceLocation;",
-                    ordinal = 0
-            )
-    )
-    private ModelResourceLocation vhaccelerator$profileItemLocation(
-            ResourceLocation location,
-            String variant
-    ) {
-        if (!vhaccelerator$profileLoads) {
-            return new ModelResourceLocation(location, variant);
-        }
-        long started = System.nanoTime();
-        ModelResourceLocation modelLocation =
-                new ModelResourceLocation(location, variant);
-        vhaccelerator$itemLocationNanos +=
-                System.nanoTime() - started;
-        vhaccelerator$itemLocationCalls++;
-        return modelLocation;
     }
 
     @Inject(method = "loadTopLevel", at = @At("HEAD"))
@@ -260,17 +230,14 @@ public abstract class ModelBakeryLoadProfilerMixin {
                 "Item top-level discovery: {} ms across {} item(s) "
                         + "[missing={} ms/{} item(s), "
                         + "already-cached={} ms/{} item(s), "
-                        + "registry-key-set={} ms, "
-                        + "model-location-construction={} ms/{} item(s)]",
+                        + "registry-key-set={} ms]",
                 vhaccelerator$millis(vhaccelerator$itemTopLevelNanos),
                 vhaccelerator$itemTopLevelCalls,
                 vhaccelerator$millis(vhaccelerator$itemMissingNanos),
                 vhaccelerator$itemMissingCalls,
                 vhaccelerator$millis(vhaccelerator$itemCachedNanos),
                 vhaccelerator$itemCachedCalls,
-                vhaccelerator$millis(vhaccelerator$itemKeySetNanos),
-                vhaccelerator$millis(vhaccelerator$itemLocationNanos),
-                vhaccelerator$itemLocationCalls
+                vhaccelerator$millis(vhaccelerator$itemKeySetNanos)
         );
         for (int index = 0;
              index < Math.min(REPORT_LIMIT, entries.size());
