@@ -37,4 +37,29 @@ class ClientAssetFingerprintTest {
                 "forgematica.json"
         ));
     }
+
+    @Test
+    void excludesPublicModUpdateReminderStateOnly() {
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "vhaccelerator-update-notice-state.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "vault_render_optimization-update-notice-state.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "arcanebeam-update-notice-state.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "temporal_index-update-notice-state.json"
+        ));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "forgematica-update-notice-state.json"
+        ));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "vhaccelerator-client.toml"
+        ));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
+                "vault_render_optimization-client.toml"
+        ));
+    }
 }
