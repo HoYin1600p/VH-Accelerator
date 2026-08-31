@@ -462,26 +462,17 @@ tasks.register('verifyMixinInitializationSafety') {
         def classesRoot = layout.buildDirectory.dir(
                 'classes/java/main'
         ).get().asFile
-        byte[] classInitializerMarker = '<clinit>'.getBytes('UTF-8')
-        def containsMarker = { byte[] classBytes ->
-            for (int offset = 0;
-                 offset <= classBytes.length - classInitializerMarker.length;
-                 offset++) {
-                boolean matches = true
-                for (int index = 0;
-                     index < classInitializerMarker.length;
-                     index++) {
-                    if (classBytes[offset + index]
-                            != classInitializerMarker[index]) {
-                        matches = false
-                        break
-                    }
-                }
-                if (matches) {
-                    return true
-                }
+        def hasClassInitializer = { byte[] classBytes ->
+            def classNode = new org.objectweb.asm.tree.ClassNode()
+            new org.objectweb.asm.ClassReader(classBytes).accept(
+                    classNode,
+                    org.objectweb.asm.ClassReader.SKIP_CODE |
+                            org.objectweb.asm.ClassReader.SKIP_DEBUG |
+                            org.objectweb.asm.ClassReader.SKIP_FRAMES
+            )
+            return classNode.methods.any { method ->
+                method.name == '<clinit>'
             }
-            return false
         }
 
         def missingClasses = []
@@ -493,7 +484,7 @@ tasks.register('verifyMixinInitializationSafety') {
             )
             if (!classFile.isFile()) {
                 missingClasses << mixinName
-            } else if (containsMarker(classFile.bytes)) {
+            } else if (hasClassInitializer(classFile.bytes)) {
                 staticInitializers << mixinName
             }
         }
