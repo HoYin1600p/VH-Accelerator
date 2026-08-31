@@ -42,8 +42,10 @@ public final class LaunchTimer {
         }
 
         long elapsedMillis = elapsedMillis();
-        RegistryLaunchProfiler.finish();
-        LaunchEventProfiler.finish();
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            RegistryLaunchProfiler.finish();
+            LaunchEventProfiler.finish();
+        }
         if (VHAcceleratorConfig.instrumentationEnabled()) {
             VHAccelerator.LOGGER.info(
                     "Client launch completed in {} ms ({})",

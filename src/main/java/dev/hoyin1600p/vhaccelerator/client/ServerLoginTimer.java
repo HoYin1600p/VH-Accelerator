@@ -20,7 +20,9 @@ public final class ServerLoginTimer {
         attempt++;
         startNanos = System.nanoTime();
         playerReadyNanos = -1L;
-        ClientConnectionProfiler.beginConnection(attempt);
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            ClientConnectionProfiler.beginConnection(attempt);
+        }
 
         if (VHAcceleratorConfig.instrumentationEnabled()) {
             VHAccelerator.LOGGER.info(
@@ -50,7 +52,9 @@ public final class ServerLoginTimer {
         }
 
         playerReadyNanos = System.nanoTime();
-        ClientConnectionProfiler.markPlayerReady();
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            ClientConnectionProfiler.markPlayerReady();
+        }
         if (VHAcceleratorConfig.instrumentationEnabled()) {
             VHAccelerator.LOGGER.info(
                     "Server login attempt {} initialized the client "
@@ -97,7 +101,9 @@ public final class ServerLoginTimer {
 
     public static synchronized void cancelActiveAttempt() {
         if (startNanos < 0L) {
-            ClientConnectionProfiler.cancel();
+            if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                ClientConnectionProfiler.cancel();
+            }
             return;
         }
 
@@ -110,7 +116,9 @@ public final class ServerLoginTimer {
         }
         startNanos = -1L;
         playerReadyNanos = -1L;
-        ClientConnectionProfiler.cancel();
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            ClientConnectionProfiler.cancel();
+        }
     }
 
     public static synchronized Sample lastSample() {

@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
@@ -107,7 +108,11 @@ public abstract class ModelManagerApplyProfilerMixin {
             ForgeModelBakery bakery
     ) {
         ModelBakeRegistryIndex.begin(models);
-        ModelBakeEventProfiler.begin();
+        boolean debugModelBake =
+                VHAcceleratorConfig.debugDiagnosticsEnabled();
+        if (debugModelBake) {
+            ModelBakeEventProfiler.begin();
+        }
         if (!vhaccelerator$profileApply) {
             try {
                 ForgeHooksClient.onModelBake(
@@ -116,7 +121,9 @@ public abstract class ModelManagerApplyProfilerMixin {
                         bakery
                 );
             } finally {
-                ModelBakeEventProfiler.finish();
+                if (debugModelBake) {
+                    ModelBakeEventProfiler.finish();
+                }
                 ModelBakeRegistryIndex.finish();
             }
             return;
@@ -129,7 +136,9 @@ public abstract class ModelManagerApplyProfilerMixin {
                     bakery
             );
         } finally {
-            ModelBakeEventProfiler.finish();
+            if (debugModelBake) {
+                ModelBakeEventProfiler.finish();
+            }
             ModelBakeRegistryIndex.finish();
             vhaccelerator$forgeModelBakeNanos +=
                     System.nanoTime() - started;
