@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorCommand;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.ClientConfigReloadObserver;
 import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
@@ -72,6 +73,9 @@ public final class VHAcceleratorClient {
         FMLJavaModLoadingContext.get()
                 .getModEventBus()
                 .addListener(ClientTextureSafetyAudit::onTextureStitched);
+        FMLJavaModLoadingContext.get()
+                .getModEventBus()
+                .addListener(ClientConfigReloadObserver::onLoadComplete);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenOpened);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedOut);

@@ -71,7 +71,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   wrapping reuses the key index, and unknown map implementations use a safe
   reclassification path. The owned vanilla map retains capacity pre-sizing.
 - Recipe and fuel cache keys now include local config state. Forge config
-  reloads invalidate affected file hashes; recipe/tag sync refreshes file
+  reload events invalidate affected file hashes without transforming Forge's
+  early-loaded config classes; recipe/tag sync refreshes file
   metadata while unchanged content hashes are reused. Changing or unreadable
   config state falls back to live processing rather than a stale cache hit.
   Affected persistent caches rebuild once after this schema change. Non-JAR
