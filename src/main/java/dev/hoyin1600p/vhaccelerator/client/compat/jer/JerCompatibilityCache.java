@@ -204,6 +204,11 @@ public final class JerCompatibilityCache {
 
     private static void publishPreloadedLootTables() throws IllegalAccessException {
         JER_LOOT_TABLES.set(null, pendingLootTables);
+        // Successful reload completion means no worker is using these pack
+        // resources. Parsed loot tables do not own the resource manager.
+        if (pendingResourceManager != null) {
+            pendingResourceManager.close();
+        }
         preloadPhase = PreloadPhase.COMPLETED;
         preloadElapsedMillis =
                 (System.nanoTime() - preloadStartedNanos) / 1_000_000L;
