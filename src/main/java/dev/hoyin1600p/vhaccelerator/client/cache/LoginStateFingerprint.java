@@ -48,11 +48,12 @@ public final class LoginStateFingerprint {
     private static final int SCHEMA_VERSION = 2;
     private static final int FUEL_SCHEMA_VERSION = 3;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 6;
+    private static final int RECIPE_SCHEMA_VERSION = 7;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
-    private static volatile String recipePayloadHash;
+    private static final TagDependentFingerprint RECIPE_FINGERPRINT =
+            new TagDependentFingerprint();
     private static volatile CompletableFuture<String> tagPayloadHash;
     private static volatile CompletableFuture<String> localCodeHash;
     private static volatile CompletableFuture<String> localConfigHash;
@@ -61,7 +62,7 @@ public final class LoginStateFingerprint {
     }
 
     public static void beginConnection() {
-        recipePayloadHash = null;
+        RECIPE_FINGERPRINT.clear();
         tagPayloadHash = null;
         SERVER_CONFIGS.clear();
     }
@@ -97,7 +98,10 @@ public final class LoginStateFingerprint {
     public static void captureRecipePacket(
             ClientboundUpdateRecipesPacket packet
     ) {
-        recipePayloadHash = canonicalRecipePayload(packet);
+        // Recipe packets precede tag application. Expanding ingredients here
+        // would observe the previous world's tags and populate stale arrays.
+        RECIPE_FINGERPRINT.receiveRecipes(() -> canonicalRecipePayload(packet));
+        tagPayloadHash = null;
     }
 
     private static String canonicalRecipePayload(
@@ -143,8 +147,7 @@ public final class LoginStateFingerprint {
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
                     "Could not build the canonical synchronized recipe "
-                            + "fingerprint; retaining the raw packet "
-                            + "fingerprint",
+                            + "fingerprint; bypassing persistent recipe caches",
                     failure
             );
             return null;
@@ -190,6 +193,7 @@ public final class LoginStateFingerprint {
     public static void captureCanonicalItemTags(
             ClientboundUpdateTagsPacket packet
     ) {
+        RECIPE_FINGERPRINT.receiveTags();
         TagNetworkSerialization.NetworkPayload payload =
                 packet.getTags().get(Registry.ITEM_REGISTRY);
         if (payload == null) {
@@ -243,9 +247,12 @@ public final class LoginStateFingerprint {
     }
 
     private static Snapshot current(boolean requireRecipes) {
-        String recipes = recipePayloadHash;
         CompletableFuture<String> tagHash = tagPayloadHash;
-        if (tagHash == null || (requireRecipes && recipes == null)) {
+        if (tagHash == null) {
+            return null;
+        }
+        String recipes = requireRecipes ? RECIPE_FINGERPRINT.current() : null;
+        if (requireRecipes && recipes == null) {
             return null;
         }
         if (recipes == null) {

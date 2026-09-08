@@ -63,7 +63,9 @@ public abstract class ClientPacketListenerMixin {
     ) {
         if (Minecraft.getInstance().isSameThread()) {
             ThermalRefreshPhase.beginTags();
-            LoginStateFingerprint.captureCanonicalItemTags(packet);
+            if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+                LoginStateFingerprint.captureCanonicalItemTags(packet);
+            }
         }
     }
 
