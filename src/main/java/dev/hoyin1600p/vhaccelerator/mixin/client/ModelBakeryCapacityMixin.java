@@ -4,6 +4,7 @@ import com.mojang.math.Transformation;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelCacheSizing;
+import dev.hoyin1600p.vhaccelerator.client.model.MutationTrackingMap;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.resources.model.BakedModel;
@@ -102,6 +103,10 @@ public abstract class ModelBakeryCapacityMixin {
             replaced++;
         }
 
+        if (bakedTopLevelModels instanceof MutationTrackingMap<?, ?> tracked
+                && tracked.reserveIfEmpty(vhaccelerator$hashMapCapacity(topLevelEstimate))) {
+            replaced++;
+        }
         Map<ResourceLocation, BakedModel> sizedBakedTopLevel =
                 vhaccelerator$replacePlainEmptyMap(
                         bakedTopLevelModels,

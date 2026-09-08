@@ -2,181 +2,78 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * A launch-scoped namespace index for ordered model-bake listeners.
- *
- * <p>Several mods independently scan the complete baked registry and discard
- * every namespace except their own. This index performs that classification
- * once while preserving the original map and listener ordering.</p>
- */
+/** Launch-scoped classification shared by ordered model-bake callbacks. */
 public final class ModelBakeRegistryIndex {
     private static Map<ResourceLocation, BakedModel> activeRegistry;
-    private static Map<String, List<ResourceLocation>> namespaceKeys =
-            Map.of();
-    private static int indexedSize = -1;
-    private static int fullIndexBuilds;
-    private static long indexBuildNanos;
+    private static NamespaceIndex<ResourceLocation, BakedModel> index;
     private static int filteredViews;
     private static long avoidedVisits;
 
-    private ModelBakeRegistryIndex() {
-    }
+    private ModelBakeRegistryIndex() { }
 
-    public static synchronized void begin(
-            Map<ResourceLocation, BakedModel> registry
-    ) {
+    public static synchronized void begin(Map<ResourceLocation, BakedModel> registry) {
         activeRegistry = registry;
-        namespaceKeys = Map.of();
-        indexedSize = -1;
-        fullIndexBuilds = 0;
-        indexBuildNanos = 0L;
+        index = new NamespaceIndex<>(registry, ResourceLocation::getNamespace);
         filteredViews = 0;
-        avoidedVisits = 0L;
+        avoidedVisits = 0;
     }
 
-    public static synchronized Set<ResourceLocation> keys(
-            Map<ResourceLocation, BakedModel> registry,
-            String namespace
-    ) {
-        if (!enabled()) {
-            return registry.keySet();
-        }
-        ensureIndex(registry);
-        List<ResourceLocation> keys = namespaceKeys.get(namespace);
-        if (keys == null) {
-            keys = List.of();
-        }
-        filteredViews++;
-        avoidedVisits += Math.max(0, registry.size() - keys.size());
-        return new LinkedHashSet<>(keys);
+    private static NamespaceIndex<ResourceLocation, BakedModel> index(Map<ResourceLocation, BakedModel> registry) {
+        if (registry != activeRegistry || index == null) { begin(registry); }
+        return index;
     }
 
-    public static synchronized Set<Map.Entry<
-            ResourceLocation,
-            BakedModel>> entries(
-            Map<ResourceLocation, BakedModel> registry,
-            String namespace
-    ) {
-        if (!enabled()) {
-            return registry.entrySet();
-        }
-        ensureIndex(registry);
-        List<ResourceLocation> keys = namespaceKeys.get(namespace);
-        if (keys == null) {
-            keys = List.of();
-        }
-        Set<Map.Entry<ResourceLocation, BakedModel>> entries =
-                new LinkedHashSet<>(Math.max(16, keys.size() * 2));
-        for (ResourceLocation key : keys) {
-            entries.add(new AbstractMap.SimpleImmutableEntry<>(
-                    key,
-                    registry.get(key)
-            ));
-        }
-        filteredViews++;
-        avoidedVisits += Math.max(0, registry.size() - keys.size());
-        return entries;
+    public static synchronized Set<ResourceLocation> keys(Map<ResourceLocation, BakedModel> registry, String namespace) {
+        if (!enabled()) { return registry.keySet(); }
+        Set<ResourceLocation> view = index(registry).keys(namespace);
+        count(registry.size(), view.size());
+        return view;
     }
 
-    public static synchronized void replaceAll(
-            Map<ResourceLocation, BakedModel> registry,
+    public static synchronized Set<Map.Entry<ResourceLocation, BakedModel>> entries(
+            Map<ResourceLocation, BakedModel> registry, String namespace) {
+        if (!enabled()) { return registry.entrySet(); }
+        Set<Map.Entry<ResourceLocation, BakedModel>> view = index(registry).entries(namespace);
+        count(registry.size(), view.size());
+        return view;
+    }
+
+    public static synchronized void replaceAll(Map<ResourceLocation, BakedModel> registry,
             Collection<String> namespaces,
-            BiFunction<
-                    ? super ResourceLocation,
-                    ? super BakedModel,
-                    ? extends BakedModel
-                    > replacement
-    ) {
-        if (!enabled()) {
-            registry.replaceAll(replacement);
-            return;
-        }
-        ensureIndex(registry);
+            BiFunction<? super ResourceLocation, ? super BakedModel, ? extends BakedModel> replacement) {
+        if (!enabled()) { registry.replaceAll(replacement); return; }
+        int[] visited = {0};
+        index(registry).replaceAll(namespaces, (key, model) -> {
+            visited[0]++;
+            return replacement.apply(key, model);
+        });
+        count(registry.size(), visited[0]);
+    }
 
-        int visited = 0;
-        for (String namespace : namespaces) {
-            List<ResourceLocation> keys = namespaceKeys.get(namespace);
-            if (keys == null) {
-                continue;
-            }
-            for (ResourceLocation key : keys) {
-                BakedModel current = registry.get(key);
-                registry.put(key, replacement.apply(key, current));
-                visited++;
-            }
-        }
+    private static void count(int total, int visited) {
         filteredViews++;
-        avoidedVisits += Math.max(0, registry.size() - visited);
+        avoidedVisits += Math.max(0, total - visited);
     }
 
     public static synchronized void finish() {
-        if (activeRegistry == null) {
-            return;
-        }
-        if (fullIndexBuilds > 0) {
+        if (index != null && index.builds() > 0) {
             VHAccelerator.LOGGER.info(
-                    "Indexed {} baked-model namespace set(s) in {} ms; "
-                            + "served {} filtered Forge callback view(s) "
-                            + "and avoided {} unrelated model visit(s)",
-                    namespaceKeys.size(),
-                    indexBuildNanos / 1_000_000L,
-                    filteredViews,
-                    avoidedVisits
-            );
+                    "Indexed {} baked-model namespaces in {} ms ({} rebuilds); served {} backed callback views and avoided {} unrelated visits",
+                    index.namespaces(), index.buildNanos() / 1_000_000L, index.builds(), filteredViews, avoidedVisits);
         }
         activeRegistry = null;
-        namespaceKeys = Map.of();
-        indexedSize = -1;
-    }
-
-    private static void ensureIndex(
-            Map<ResourceLocation, BakedModel> registry
-    ) {
-        if (registry != activeRegistry) {
-            begin(registry);
-        }
-        if (indexedSize == registry.size()) {
-            return;
-        }
-
-        long started = System.nanoTime();
-        Map<String, List<ResourceLocation>> mutable =
-                new LinkedHashMap<>();
-        for (ResourceLocation key : registry.keySet()) {
-            mutable.computeIfAbsent(
-                    key.getNamespace(),
-                    ignored -> new ArrayList<>()
-            ).add(key);
-        }
-        /*
-         * This index is private, launch-scoped state. Callers receive fresh
-         * sets or entries rather than these lists, so copying every one of
-         * the registry's million-plus keys into immutable snapshots only
-         * duplicates allocation during the model-bake critical path.
-         */
-        namespaceKeys = mutable;
-        indexedSize = registry.size();
-        fullIndexBuilds++;
-        indexBuildNanos += System.nanoTime() - started;
+        index = null;
     }
 
     private static boolean enabled() {
         return VHAcceleratorClientConfig.optimizationsEnabled()
-                && VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES
-                                .indexModelBakeRegistries
-                );
+                && VHAcceleratorClientConfig.launchValue(VHAcceleratorClientConfig.VALUES.indexModelBakeRegistries);
     }
 }

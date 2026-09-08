@@ -95,6 +95,7 @@
     "client.ModelBakeryPreparationStartMixin",
     "client.ModelBakeryTopLevelCacheMixin",
     "client.ModelManagerApplyProfilerMixin",
+    "client.ModelRegistryOwnershipMixin",
     "client.ModelMaterialCacheSessionMixin",
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
