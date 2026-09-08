@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.Collection;
 import java.util.Map;
@@ -63,6 +64,11 @@ public final class ModelBakeRegistryIndex {
     }
 
     public static synchronized void finish() {
+        if (activeRegistry != null && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            VHAccelerator.LOGGER.info("Model index ownership: map={}, structuralVersion={}",
+                    activeRegistry.getClass().getName(),
+                    activeRegistry instanceof MutationTrackingMap<?, ?> tracked ? tracked.structuralVersion() : -1);
+        }
         if (index != null && index.builds() > 0) {
             VHAccelerator.LOGGER.info(
                     "Indexed {} baked-model namespaces in {} ms ({} rebuilds); served {} backed callback views and avoided {} unrelated visits",
