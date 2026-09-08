@@ -6,7 +6,6 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.mixin.client.TagNetworkPayloadAccessor;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,9 +47,9 @@ public final class LoginStateFingerprint {
     private static final String RECIPE_PAYLOAD_NOT_CAPTURED =
             "recipe-payload-not-captured";
     private static final int SCHEMA_VERSION = 2;
-    private static final int FUEL_SCHEMA_VERSION = 3;
+    private static final int FUEL_SCHEMA_VERSION = 4;
     private static final int INGREDIENT_SCHEMA_VERSION = 2;
-    private static final int RECIPE_SCHEMA_VERSION = 7;
+    private static final int RECIPE_SCHEMA_VERSION = 8;
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
@@ -59,6 +58,7 @@ public final class LoginStateFingerprint {
     private static volatile CompletableFuture<String> tagPayloadHash;
     private static volatile CompletableFuture<String> localCodeHash;
     private static volatile CompletableFuture<String> localConfigHash;
+    private static volatile long localConfigRevision = -1;
 
     private LoginStateFingerprint() {
     }
@@ -67,7 +67,11 @@ public final class LoginStateFingerprint {
         RECIPE_FINGERPRINT.clear();
         tagPayloadHash = null;
         SERVER_CONFIGS.clear();
+        refreshLocalConfigs();
     }
+
+    /** Restat registered inputs once at a genuine data sync, not per JEI category. */
+    public static synchronized void refreshLocalConfigs() { localConfigHash = null; }
 
     public static void prewarmLocalEnvironment() {
         if (localCodeHash != null) {
@@ -264,7 +268,10 @@ public final class LoginStateFingerprint {
 
         prewarmLocalEnvironment();
         String localCode = localCodeHash.join();
-        String localConfigs = localConfigHash().join();
+        CompletableFuture<String> configFuture = localConfigHash();
+        String localConfigs = configFuture.join();
+        if (localConfigs == null || configFuture != localConfigHash
+                || !LocalConfigState.isStable(localConfigRevision)) { return null; }
         List<String> serverConfigInputs = new ArrayList<>();
         SERVER_CONFIGS.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -283,6 +290,7 @@ public final class LoginStateFingerprint {
         List<String> fuelInputs = List.of(
                 "fuel-schema=" + FUEL_SCHEMA_VERSION,
                 "local-code=" + localCode,
+                "local-configs=" + localConfigs,
                 "tags=" + tags,
                 "server-configs=" + serverConfigs
         );
@@ -296,6 +304,7 @@ public final class LoginStateFingerprint {
         List<String> recipeInputs = List.of(
                 "recipe-schema=" + RECIPE_SCHEMA_VERSION,
                 "local-code=" + localCode,
+                "local-configs=" + localConfigs,
                 "recipes=" + recipes,
                 "tags=" + tags,
                 "server-configs=" + serverConfigs
@@ -375,13 +384,18 @@ public final class LoginStateFingerprint {
 
     private static CompletableFuture<String> localConfigHash() {
         CompletableFuture<String> current = localConfigHash;
-        if (current != null) {
+        if (current != null && localConfigRevision == LocalConfigState.revision()) {
             return current;
         }
         synchronized (LoginStateFingerprint.class) {
-            if (localConfigHash == null) {
+            if (localConfigHash == null || localConfigRevision != LocalConfigState.revision()) {
+                long revision = LocalConfigState.revision();
+                localConfigRevision = revision;
                 localConfigHash = backgroundDigest(
-                        LoginStateFingerprint::digestLocalConfigs,
+                        () -> {
+                            String digest = digestLocalConfigs();
+                            return LocalConfigState.isStable(revision) ? digest : null;
+                        },
                         "VH Accelerator config fingerprint"
                 );
             }
@@ -426,6 +440,12 @@ public final class LoginStateFingerprint {
                 );
                 continue;
             }
+            String contentHash;
+            try { contentHash = LocalConfigState.digest(path); }
+            catch (IOException failure) {
+                VHAccelerator.LOGGER.warn("Cannot validate a local config; bypassing persistent login caches", failure);
+                return null;
+            }
             inputs.add(
                     "registered-local-config="
                             + config.getType()
@@ -434,7 +454,7 @@ public final class LoginStateFingerprint {
                             + ":"
                             + config.getFileName()
                             + ":"
-                            + digestFile(path)
+                            + contentHash
             );
         }
         return digestStrings(inputs);
@@ -447,6 +467,7 @@ public final class LoginStateFingerprint {
         }
         try (Stream<Path> paths = Files.list(modsDirectory)) {
             paths.filter(Files::isRegularFile)
+                    .filter(ActiveModFilePolicy::isJar)
                     .sorted(Comparator.comparing(Path::toString))
                     .forEach(path -> {
                         try {
@@ -464,26 +485,6 @@ public final class LoginStateFingerprint {
                     });
         } catch (IOException exception) {
             inputs.add("mods-directory-read-failed");
-        }
-    }
-
-    private static String digestFile(Path path) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8192];
-            try (InputStream input = Files.newInputStream(path)) {
-                int count;
-                while ((count = input.read(buffer)) >= 0) {
-                    if (count > 0) {
-                        digest.update(buffer, 0, count);
-                    }
-                }
-            }
-            return toHex(digest.digest());
-        } catch (IOException exception) {
-            return "read-failed";
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 

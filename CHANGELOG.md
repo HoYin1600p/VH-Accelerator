@@ -61,6 +61,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Connection data now belongs to the network connection rather than loading
+  screens. Dimension/loading screen changes retain valid handshake state;
+  stale disconnect callbacks cannot clear a newer connection's data. JEI
+  runtime generations are tracked separately so an old asynchronous index
+  cannot publish into a restarted runtime on the same connection.
+- Model namespace indexes now detect key changes even when registry size is
+  unchanged. Filtered entries remain backed by the registry, value-only model
+  wrapping reuses the key index, and unknown map implementations use a safe
+  reclassification path. The owned vanilla map retains capacity pre-sizing.
+- Recipe and fuel cache keys now include local config state. Forge config
+  reloads invalidate affected file hashes; recipe/tag sync refreshes file
+  metadata while unchanged content hashes are reused. Changing or unreadable
+  config state falls back to live processing rather than a stale cache hit.
+  Affected persistent caches rebuild once after this schema change. Non-JAR
+  backups and logs in the mods directory no longer change login fingerprints.
+
 - Corrected ModernFix ownership detection for the newer
   `AttachCapabilitiesEvent` dispatch precursor. ModernFix 5.18's older
   `forge_cap_retrieval` category no longer claims a mixin class that it does

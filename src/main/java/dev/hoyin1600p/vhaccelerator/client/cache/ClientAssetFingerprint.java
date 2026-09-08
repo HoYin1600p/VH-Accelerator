@@ -267,10 +267,7 @@ public final class ClientAssetFingerprint {
         }
         try (Stream<Path> paths = Files.list(directory)) {
             paths.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName()
-                            .toString()
-                            .toLowerCase(java.util.Locale.ROOT)
-                            .endsWith(".jar"))
+                    .filter(ActiveModFilePolicy::isJar)
                     .sorted(Comparator.comparing(path ->
                             path.getFileName().toString()))
                     .forEach(path -> appendMetadata(

@@ -215,6 +215,7 @@ public final class VHAcceleratorClient {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()) {
             return;
         }
+        LoginStateFingerprint.refreshLocalConfigs();
         IronFurnacesRecipeCache.beginConnection();
         PersistentVanillaIngredientCache.beginConnection();
         PersistentRecipeValidationCache.beginConnection();

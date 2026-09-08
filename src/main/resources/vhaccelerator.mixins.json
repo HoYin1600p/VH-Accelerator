@@ -96,6 +96,7 @@
     "client.ModelBakeryTopLevelCacheMixin",
     "client.ModelManagerApplyProfilerMixin",
     "client.ModelRegistryOwnershipMixin",
+    "client.ForgeConfigReloadFingerprintMixin",
     "client.ModelMaterialCacheSessionMixin",
     "client.ModernFixCompatibleModelBakingMixin",
     "client.ModernFixCompatibleModelJsonCacheMixin",
