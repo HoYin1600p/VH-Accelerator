@@ -99,9 +99,10 @@ Implement these one transformation at a time rather than as feature bundles.
 4. Faster 1.18 `LootTables` loading. Implemented by reusing exact source-name
    metadata from the existing JSON read; Forge's event dispatch and
    built-in/custom classification remain unchanged.
-5. Reloadable client-language storage. Implemented as a default-off beta using
-   resource descriptors and fresh 1.18.2 resource-manager lookups; runtime
-   counts provide the retained-memory evidence needed before enabling it.
+5. Reloadable client-language storage. The current implementation compacts the
+   final vanilla-parsed map and shares equal values without rereading resources.
+   Enabled by default subject to ownership/Compare Mode gates; translations
+   remain strongly held until reload instead of being reparsed after eviction.
 6. A bounded profile-texture URL/hash cache. Transferred to VRO with its exact
    URL keys, 60-second access lifetime and 2,048-entry cap.
 7. Optional telemetry suppression. Implemented as a default-off privacy option

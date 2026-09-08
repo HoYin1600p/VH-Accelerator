@@ -99,12 +99,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   Override-sensitive, dummied, unresolved, mismatched, and mod-provided
   callbacks remain installed for later registry snapshot injection or restore.
 
-- Added default-off beta dynamic client-language storage. Resource-owned
-  translation strings become compact descriptors backed by soft per-file
-  caches, while mod-injected literal translations stay resident. The 1.18.2
-  adaptation reopens and closes fresh resources instead of retaining vanilla's
-  already-consumed single-use streams, and logs the actual releasable entry and
-  character counts for compatibility and memory validation.
+- Client-language storage now compacts the final vanilla-parsed translation
+  map and shares identical values, preserving resource-pack overrides and
+  mod-injected translations. It no longer reparses language files on first use
+  or after soft-cache eviction. This favors predictable lookup latency over
+  releasing resource-owned strings under memory pressure; resource reloads
+  still create a fresh immutable snapshot.
 
 - Added a default-off early structure-location rejection path. When chunk
   storage has no decisive result, it uses the generator's existing placement

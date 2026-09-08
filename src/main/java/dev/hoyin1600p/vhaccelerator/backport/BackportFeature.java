@@ -283,7 +283,7 @@ public enum BackportFeature {
     DYNAMIC_CLIENT_LANGUAGES(
             "dynamic_client_languages",
             "dynamicClientLanguages",
-            "Dynamic client-language storage",
+            "Parse-once compact client-language storage",
             BackportSide.CLIENT,
             true,
             true,
