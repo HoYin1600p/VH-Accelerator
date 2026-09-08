@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import java.io.BufferedInputStream;
@@ -26,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
@@ -67,12 +68,7 @@ public final class PersistentRecipeValidationCache {
             .resolve("vanilla-recipe-validation");
 
     private static volatile CompletableFuture<Map<String, CachedManifest>> preload;
-    private static final Executor WRITER = Executors.newSingleThreadExecutor(task -> {
-        Thread thread = new Thread(task, "VH Accelerator recipe validation writer");
-        thread.setDaemon(true);
-        thread.setPriority(Thread.MIN_PRIORITY);
-        return thread;
-    });
+    private static final Executor WRITER = SharedWorkers.io();
     private static PendingManifest pending;
     private static String reportedMissKey;
 
@@ -87,14 +83,7 @@ public final class PersistentRecipeValidationCache {
             if (preload == null) {
                 preload = CompletableFuture.supplyAsync(
                         PersistentRecipeValidationCache::loadAll,
-                        runnable -> {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "VH Accelerator recipe cache reader"
-                            );
-                            thread.setDaemon(true);
-                            thread.start();
-                        }
+                        SharedWorkers.io()
                 );
             }
         }

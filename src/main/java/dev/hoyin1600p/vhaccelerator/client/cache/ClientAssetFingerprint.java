@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import java.io.IOException;
@@ -22,7 +24,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.packs.PackResources;
@@ -55,14 +56,7 @@ public final class ClientAssetFingerprint {
                     "config-fingerprint-manifest-v1.txt"
             );
     private static final Executor MANIFEST_WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator config manifest writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+            SharedWorkers.io();
     private static volatile CompletableFuture<EarlyConfigSnapshot>
             earlyConfigSnapshot;
     private static volatile CompletableFuture<BaseFingerprint>
@@ -85,10 +79,7 @@ public final class ClientAssetFingerprint {
                 earlyConfigSnapshot = CompletableFuture.supplyAsync(
                         ClientAssetFingerprint
                                 ::captureEarlyConfigSnapshot,
-                        runnable -> startDaemon(
-                                runnable,
-                                "VH Accelerator early config fingerprint"
-                        )
+                        SharedWorkers.io()
                 );
             }
         }
@@ -103,24 +94,10 @@ public final class ClientAssetFingerprint {
             if (baseFingerprint == null) {
                 baseFingerprint = earlyConfigSnapshot.thenApplyAsync(
                         ClientAssetFingerprint::buildBaseFingerprint,
-                        runnable -> {
-                            startDaemon(
-                                    runnable,
-                                    "VH Accelerator asset fingerprint"
-                            );
-                        }
+                        SharedWorkers.io()
                 );
             }
         }
-    }
-
-    private static void startDaemon(
-            Runnable runnable,
-            String name
-    ) {
-        Thread thread = new Thread(runnable, name);
-        thread.setDaemon(true);
-        thread.start();
     }
 
     public static String current(ResourceManager resourceManager) {

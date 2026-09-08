@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.io.BufferedInputStream;
@@ -16,7 +18,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -40,14 +41,7 @@ public final class FerriteCoreQuadCacheCapacity {
     private static final Path CACHE_FILE =
             DIRECTORY.resolve("ferritecore-quad-capacity-v1.bin");
     private static final Executor WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator FerriteCore capacity writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+            SharedWorkers.io();
 
     private static CompletableFuture<CachedCapacity> preload;
     private static boolean preloadStarted;
@@ -64,14 +58,7 @@ public final class FerriteCoreQuadCacheCapacity {
         preloadStarted = true;
         preload = CompletableFuture.supplyAsync(
                 FerriteCoreQuadCacheCapacity::read,
-                runnable -> {
-                    Thread thread = new Thread(
-                            runnable,
-                            "VH Accelerator FerriteCore capacity reader"
-                    );
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                SharedWorkers.io()
         );
     }
 

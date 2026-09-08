@@ -11,9 +11,10 @@
  */
 package dev.hoyin1600p.vhaccelerator.backport.modernfix.thread;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.WorkerBudget;
+
 public final class BackgroundWorkerLimit {
     private static final String PROPERTY = "max.bg.threads";
-    private static final int RESERVED_CORES = 3;
 
     private BackgroundWorkerLimit() {
     }
@@ -30,7 +31,7 @@ public final class BackgroundWorkerLimit {
     }
 
     public static int recommendedWorkerCount(int availableProcessors) {
-        return Math.max(1, availableProcessors - RESERVED_CORES);
+        return Math.max(1, WorkerBudget.forProcessors(availableProcessors).total());
     }
 
     public enum Result {

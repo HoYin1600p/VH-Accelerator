@@ -1,13 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import net.minecraft.Util;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
@@ -24,7 +24,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BlockModelShaper.class)
 public abstract class ParallelBlockModelShaperMixin {
-    private static final int MIN_STATES_PER_WORKER = 4_096;
 
     @Shadow
     @Final
@@ -55,35 +54,8 @@ public abstract class ParallelBlockModelShaperMixin {
             BlockState[] states = vhaccelerator$collectStates();
             BakedModel[] models = new BakedModel[states.length];
             int workers = vhaccelerator$workerCount(states.length);
-            int batchSize = Math.max(
-                    1,
-                    (states.length + workers - 1) / workers
-            );
-            List<CompletableFuture<Void>> tasks =
-                    new ArrayList<>(workers);
-
-            for (int start = 0;
-                 start < states.length;
-                 start += batchSize) {
-                int from = start;
-                int to = Math.min(
-                        start + batchSize,
-                        states.length
-                );
-                tasks.add(CompletableFuture.runAsync(() -> {
-                    for (int index = from; index < to; index++) {
-                        models[index] = modelManager.getModel(
-                                BlockModelShaper
-                                        .stateToModelLocation(
-                                                states[index]
-                                        )
-                        );
-                    }
-                }, Util.backgroundExecutor()));
-            }
-            CompletableFuture.allOf(
-                    tasks.toArray(CompletableFuture[]::new)
-            ).join();
+            SharedWorkers.forRange(states.length, index -> models[index] = modelManager.getModel(
+                    BlockModelShaper.stateToModelLocation(states[index])));
 
             Map<BlockState, BakedModel> complete =
                     new IdentityHashMap<>(states.length);
@@ -97,7 +69,7 @@ public abstract class ParallelBlockModelShaperMixin {
                     "Built {} block model render lookups with {} "
                             + "workers in {} ms",
                     states.length,
-                    tasks.size(),
+                    workers,
                     (System.nanoTime() - started) / 1_000_000L
             );
         } catch (RuntimeException | LinkageError failure) {
@@ -123,17 +95,6 @@ public abstract class ParallelBlockModelShaperMixin {
     private static int vhaccelerator$workerCount(
             int stateCount
     ) {
-        int usefulWorkers = Math.max(
-                1,
-                (stateCount + MIN_STATES_PER_WORKER - 1)
-                        / MIN_STATES_PER_WORKER
-        );
-        return Math.max(
-                1,
-                Math.min(
-                        Runtime.getRuntime().availableProcessors(),
-                        usefulWorkers
-                )
-        );
+        return Math.max(1, Math.min(SharedWorkers.budget().compute(), stateCount));
     }
 }

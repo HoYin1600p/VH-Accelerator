@@ -1,11 +1,11 @@
 package dev.hoyin1600p.vhaccelerator;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import net.minecraft.Util;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class ParallelBlockStateInitializer {
@@ -43,24 +43,7 @@ public final class ParallelBlockStateInitializer {
         }
 
         long startedAt = System.nanoTime();
-        int parallelism = Math.max(1, Math.min(
-                Runtime.getRuntime().availableProcessors(),
-                states.size()
-        ));
-        int batchSize = Math.max(1, (states.size() + parallelism - 1) / parallelism);
-        List<CompletableFuture<Void>> tasks = new ArrayList<>();
-
-        for (int start = 0; start < states.size(); start += batchSize) {
-            int from = start;
-            int to = Math.min(start + batchSize, states.size());
-            tasks.add(CompletableFuture.runAsync(() -> {
-                for (int index = from; index < to; index++) {
-                    states.get(index).initCache();
-                }
-            }, Util.backgroundExecutor()));
-        }
-
-        CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
+        SharedWorkers.forEach(states, BlockState::initCache);
         VHAccelerator.LOGGER.info(
                 "Initialized {} BlockState caches in parallel in {} ms",
                 states.size(),
@@ -68,4 +51,3 @@ public final class ParallelBlockStateInitializer {
         );
     }
 }
-

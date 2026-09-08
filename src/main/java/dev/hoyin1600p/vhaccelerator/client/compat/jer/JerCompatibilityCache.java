@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jer;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.lang.reflect.Field;
@@ -14,7 +16,6 @@ import jeresources.registry.VillagerRegistry;
 import jeresources.registry.WorldGenRegistry;
 import jeresources.config.ConfigValues;
 import jeresources.util.LootTableHelper;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
@@ -100,7 +101,7 @@ public final class JerCompatibilityCache {
 
             pendingResourceManager.registerReloadListener(pendingLootTables);
             pendingReload = pendingResourceManager.createReload(
-                    Util.backgroundExecutor(),
+                    SharedWorkers.compute(),
                     minecraft,
                     CompletableFuture.completedFuture(Unit.INSTANCE),
                     packs

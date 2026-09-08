@@ -85,7 +85,7 @@ public abstract class VanillaRecipesMixin {
         try {
             inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
-                            recipes.parallelStream()
+                            dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(recipes)
                                     .filter(recipe ->
                                             VanillaRecipeValidation.isValid(
                                                     recipe,
@@ -230,7 +230,7 @@ public abstract class VanillaRecipesMixin {
         try {
             inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
-                            recipes.parallelStream()
+                            dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(recipes)
                                     .filter(recipe ->
                                             VanillaRecipeValidation.isValid(
                                                     recipe,

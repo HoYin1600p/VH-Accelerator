@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
@@ -9,10 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
-import net.minecraft.Util;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.BlockModelRotation;
 import net.minecraft.client.resources.model.ModelBakery;
@@ -179,33 +179,6 @@ public abstract class ModernFixCompatibleModelBakingMixin {
             List<T> values,
             java.util.function.Consumer<T> action
     ) {
-        if (values.isEmpty()) {
-            return;
-        }
-
-        int parallelism = Math.max(1, Math.min(
-                Runtime.getRuntime().availableProcessors(),
-                values.size()
-        ));
-        int batchSize = Math.max(
-                1,
-                (values.size() + parallelism - 1) / parallelism
-        );
-        List<CompletableFuture<Void>> tasks =
-                new ArrayList<>(parallelism);
-
-        for (int start = 0; start < values.size(); start += batchSize) {
-            int from = start;
-            int to = Math.min(start + batchSize, values.size());
-            tasks.add(CompletableFuture.runAsync(() -> {
-                for (int index = from; index < to; index++) {
-                    action.accept(values.get(index));
-                }
-            }, Util.backgroundExecutor()));
-        }
-
-        CompletableFuture.allOf(
-                tasks.toArray(CompletableFuture[]::new)
-        ).join();
+        SharedWorkers.forEach(values, action);
     }
 }

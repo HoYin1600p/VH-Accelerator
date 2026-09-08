@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import com.mojang.authlib.minecraft.UserApiService;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -9,7 +11,6 @@ import dev.hoyin1600p.vhaccelerator.backport.modernfix.telemetry.TelemetryBlocki
 import dev.hoyin1600p.vhaccelerator.client.DeferredUserApiService;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.main.GameConfig;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,7 +38,7 @@ public abstract class MinecraftUserApiMixin {
             return;
         }
 
-        VHAccelerator.LOGGER.info("Creating UserApiService on Minecraft's IO pool");
+        VHAccelerator.LOGGER.info("Creating UserApiService within VHA's shared worker budget");
         CompletableFuture<UserApiService> serviceFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 return authenticationService.createUserApiService(accessToken);
@@ -48,7 +49,7 @@ public abstract class MinecraftUserApiMixin {
                 );
                 return UserApiService.OFFLINE;
             }
-        }, Util.ioPool());
+        }, SharedWorkers.background());
 
         UserApiService service = new DeferredUserApiService(serviceFuture);
         if (BackportOwnershipRegistry.vhaOwns(

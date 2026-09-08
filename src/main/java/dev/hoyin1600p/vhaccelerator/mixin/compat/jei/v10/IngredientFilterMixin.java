@@ -413,7 +413,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             );
             List<IListElementInfo<?>> sorted =
                     AdaptiveJeiWorkScheduler.invokeParallel(
-                            () -> ingredients.parallelStream().sorted(comparator).toList()
+                            () -> dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(ingredients).sorted(comparator).toList()
                     );
             cir.setReturnValue(sorted);
         } catch (RuntimeException exception) {

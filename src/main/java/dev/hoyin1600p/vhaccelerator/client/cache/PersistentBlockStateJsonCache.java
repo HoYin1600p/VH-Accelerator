@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -20,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.CRC32;
@@ -49,14 +50,7 @@ public final class PersistentBlockStateJsonCache {
     private static final Path CACHE_FILE =
             DIRECTORY.resolve("blockstate-json-v1.bin.gz");
     private static final Executor WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator blockstate cache writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+            SharedWorkers.io();
 
     private static CompletableFuture<CachedFile> preload;
     private static boolean preloadStarted;
@@ -74,14 +68,7 @@ public final class PersistentBlockStateJsonCache {
         preloadStarted = true;
         preload = CompletableFuture.supplyAsync(
                 PersistentBlockStateJsonCache::read,
-                runnable -> {
-                    Thread thread = new Thread(
-                            runnable,
-                            "VH Accelerator blockstate cache reader"
-                    );
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                SharedWorkers.io()
         );
     }
 

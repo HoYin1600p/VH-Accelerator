@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 class BackgroundWorkerLimitTest {
     @Test
     void reservesForegroundAndGcCapacityOnLargerSystems() {
-        assertEquals(13, BackgroundWorkerLimit.recommendedWorkerCount(16));
-        assertEquals(5, BackgroundWorkerLimit.recommendedWorkerCount(8));
+        assertEquals(8, BackgroundWorkerLimit.recommendedWorkerCount(16));
+        assertEquals(4, BackgroundWorkerLimit.recommendedWorkerCount(8));
     }
 
     @Test

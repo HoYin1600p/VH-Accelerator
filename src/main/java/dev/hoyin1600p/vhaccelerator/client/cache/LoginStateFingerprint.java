@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.mixin.client.TagNetworkPayloadAccessor;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -499,11 +501,7 @@ public final class LoginStateFingerprint {
     ) {
         return CompletableFuture.supplyAsync(
                 supplier,
-                runnable -> {
-                    Thread thread = new Thread(runnable, threadName);
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                SharedWorkers.io()
         );
     }
 

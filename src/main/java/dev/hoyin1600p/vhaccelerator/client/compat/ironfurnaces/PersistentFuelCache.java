@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import java.io.BufferedInputStream;
@@ -46,14 +48,7 @@ final class PersistentFuelCache {
             if (preload == null) {
                 preload = CompletableFuture.supplyAsync(
                         PersistentFuelCache::loadAll,
-                        runnable -> {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "VH Accelerator fuel cache reader"
-                            );
-                            thread.setDaemon(true);
-                            thread.start();
-                        }
+                        SharedWorkers.io()
                 );
             }
         }

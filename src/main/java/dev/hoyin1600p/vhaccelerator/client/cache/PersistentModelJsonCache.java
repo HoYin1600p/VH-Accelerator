@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -23,13 +25,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import net.minecraft.Util;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -55,14 +55,7 @@ public final class PersistentModelJsonCache {
     private static final Path CACHE_FILE =
             DIRECTORY.resolve("model-json-v1.bin.gz");
     private static final Executor WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator model cache writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+            SharedWorkers.io();
 
     private static CompletableFuture<CachedFile> preload;
     private static boolean preloadStarted;
@@ -77,14 +70,7 @@ public final class PersistentModelJsonCache {
         preloadStarted = true;
         preload = CompletableFuture.supplyAsync(
                 PersistentModelJsonCache::read,
-                runnable -> {
-                    Thread thread = new Thread(
-                            runnable,
-                            "VH Accelerator model cache reader"
-                    );
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                SharedWorkers.io()
         );
     }
 
@@ -453,31 +439,7 @@ public final class PersistentModelJsonCache {
             List<T> values,
             java.util.function.Consumer<T> action
     ) {
-        if (values.isEmpty()) {
-            return;
-        }
-        int parallelism = Math.max(1, Math.min(
-                Runtime.getRuntime().availableProcessors(),
-                values.size()
-        ));
-        int batchSize = Math.max(
-                1,
-                (values.size() + parallelism - 1) / parallelism
-        );
-        List<CompletableFuture<Void>> tasks =
-                new ArrayList<>(parallelism);
-        for (int start = 0; start < values.size(); start += batchSize) {
-            int from = start;
-            int to = Math.min(start + batchSize, values.size());
-            tasks.add(CompletableFuture.runAsync(() -> {
-                for (int index = from; index < to; index++) {
-                    action.accept(values.get(index));
-                }
-            }, Util.backgroundExecutor()));
-        }
-        CompletableFuture.allOf(
-                tasks.toArray(CompletableFuture[]::new)
-        ).join();
+        SharedWorkers.forEach(values, action);
     }
 
     public static final class Session {

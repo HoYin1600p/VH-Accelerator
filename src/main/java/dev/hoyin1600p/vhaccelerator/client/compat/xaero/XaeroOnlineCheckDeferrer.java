@@ -1,14 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.xaero;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 
@@ -131,23 +130,11 @@ public final class XaeroOnlineCheckDeferrer {
     }
 
     private static final class ExecutorHolder {
-        private static final ExecutorService EXECUTOR =
-                Executors.newSingleThreadExecutor(new XaeroThreadFactory());
+        private static final java.util.concurrent.Executor EXECUTOR =
+                SharedWorkers.background();
 
         private ExecutorHolder() {
         }
     }
 
-    private static final class XaeroThreadFactory implements ThreadFactory {
-        @Override
-        public Thread newThread(Runnable task) {
-            Thread thread = new Thread(
-                    task,
-                    "VH Accelerator Xaero online checks"
-            );
-            thread.setDaemon(true);
-            thread.setPriority(Thread.MIN_PRIORITY);
-            return thread;
-        }
-    }
 }

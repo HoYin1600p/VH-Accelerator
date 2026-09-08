@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -21,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -54,14 +55,7 @@ public final class PersistentModelMaterialCache {
     private static final Path CACHE_FILE =
             DIRECTORY.resolve("model-materials-v1.bin.gz");
     private static final Executor WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator material cache writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+            SharedWorkers.io();
     private static final ThreadLocal<Session> ACTIVE_SESSION =
             new ThreadLocal<>();
 
@@ -78,14 +72,7 @@ public final class PersistentModelMaterialCache {
         preloadStarted = true;
         preload = CompletableFuture.supplyAsync(
                 PersistentModelMaterialCache::read,
-                runnable -> {
-                    Thread thread = new Thread(
-                            runnable,
-                            "VH Accelerator material cache reader"
-                    );
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                SharedWorkers.io()
         );
     }
 

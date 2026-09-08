@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
@@ -19,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
@@ -42,16 +43,7 @@ public final class PersistentVanillaIngredientCache {
             .resolve("cache")
             .resolve("vhaccelerator")
             .resolve("vanilla-item-ingredients");
-    private static final Executor WRITER = Executors.newSingleThreadExecutor(
-            runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator ingredient cache writer"
-                );
-                thread.setDaemon(true);
-                return thread;
-            }
-    );
+    private static final Executor WRITER = SharedWorkers.io();
 
     private static volatile CompletableFuture<Map<String, CachedIngredientList>>
             preload;
@@ -70,14 +62,7 @@ public final class PersistentVanillaIngredientCache {
             if (preload == null) {
                 preload = CompletableFuture.supplyAsync(
                         PersistentVanillaIngredientCache::loadAll,
-                        runnable -> {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "VH Accelerator ingredient cache reader"
-                            );
-                            thread.setDaemon(true);
-                            thread.start();
-                        }
+                        SharedWorkers.io()
                 );
             }
         }

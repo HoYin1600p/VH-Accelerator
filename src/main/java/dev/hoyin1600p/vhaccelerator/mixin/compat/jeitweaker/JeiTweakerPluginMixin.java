@@ -56,7 +56,7 @@ public abstract class JeiTweakerPluginMixin {
                         AdaptiveJeiWorkScheduler.currentParallelism()
                 );
                 removals = AdaptiveJeiWorkScheduler.invokeParallel(
-                        () -> available.parallelStream()
+                        () -> dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(available)
                                 .map(type::toJeiTweakerType)
                                 .filter(candidate -> vhaccelerator$matches(type, hidden, candidate))
                                 .map(type::toJeiType)

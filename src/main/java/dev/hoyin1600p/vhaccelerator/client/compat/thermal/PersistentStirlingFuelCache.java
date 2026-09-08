@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.thermal;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import java.io.BufferedInputStream;
@@ -52,14 +54,7 @@ public final class PersistentStirlingFuelCache {
             if (preload == null) {
                 preload = CompletableFuture.supplyAsync(
                         PersistentStirlingFuelCache::loadAll,
-                        runnable -> {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "VH Accelerator Thermal fuel cache reader"
-                            );
-                            thread.setDaemon(true);
-                            thread.start();
-                        }
+                        SharedWorkers.io()
                 );
             }
         }

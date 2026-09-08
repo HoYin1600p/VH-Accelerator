@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
@@ -27,9 +29,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -59,18 +59,7 @@ public final class PersistentJeiRecipeIndexCache {
             .resolve("vhaccelerator")
             .resolve("jei-recipe-index");
     private static final Executor WRITER =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "VH Accelerator JEI recipe index writer"
-                );
-                thread.setDaemon(true);
-                thread.setPriority(Math.max(
-                        Thread.MIN_PRIORITY,
-                        Thread.NORM_PRIORITY - 1
-                ));
-                return thread;
-            });
+            SharedWorkers.io();
 
     private static volatile CompletableFuture<Map<String, Manifest>>
             preload;
@@ -87,14 +76,7 @@ public final class PersistentJeiRecipeIndexCache {
             if (preload == null) {
                 preload = CompletableFuture.supplyAsync(
                         PersistentJeiRecipeIndexCache::loadAll,
-                        runnable -> {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "VH Accelerator JEI recipe index reader"
-                            );
-                            thread.setDaemon(true);
-                            thread.start();
-                        }
+                        SharedWorkers.io()
                 );
             }
         }
