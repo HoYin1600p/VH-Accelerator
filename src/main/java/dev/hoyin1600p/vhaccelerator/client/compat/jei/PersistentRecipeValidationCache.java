@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
@@ -65,6 +67,12 @@ public final class PersistentRecipeValidationCache {
             .resolve("vanilla-recipe-validation");
 
     private static volatile CompletableFuture<Map<String, CachedManifest>> preload;
+    private static final Executor WRITER = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "VH Accelerator recipe validation writer");
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        return thread;
+    });
     private static PendingManifest pending;
     private static String reportedMissKey;
 
@@ -284,6 +292,20 @@ public final class PersistentRecipeValidationCache {
 
     private static void save(String serverKey, CachedManifest manifest) {
         prewarm();
+        // Publish the immutable snapshot before returning to JEI. Disk writes
+        // are serialized so an older connection cannot overwrite a newer one.
+        preload.join().put(serverKey, manifest);
+        CompletableFuture.runAsync(() -> write(serverKey, manifest), WRITER)
+                .exceptionally(failure -> {
+                    VHAccelerator.LOGGER.warn(
+                            "Could not persist the vanilla JEI recipe validation cache",
+                            failure
+                    );
+                    return null;
+                });
+    }
+
+    private static void write(String serverKey, CachedManifest manifest) {
         Path temporary = null;
         try {
             Files.createDirectories(DIRECTORY);
@@ -335,7 +357,6 @@ public final class PersistentRecipeValidationCache {
                         StandardCopyOption.REPLACE_EXISTING
                 );
             }
-            preload.join().put(serverKey, manifest);
             int recipeCount = manifest.categories().values().stream()
                     .mapToInt(entry -> entry.acceptedIds().size())
                     .sum();
