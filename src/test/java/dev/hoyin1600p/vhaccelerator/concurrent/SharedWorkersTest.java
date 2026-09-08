@@ -13,16 +13,17 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class SharedWorkersTest {
-    @Test void hardwareBudgetIsSharedAndNeverRoundedUp() {
+    @Test void hardwareBudgetUsesAllAvailableProcessorsAcrossSharedLanes() {
         for (int processors = 0; processors <= 256; processors++) {
             WorkerBudget budget = WorkerBudget.forProcessors(processors);
-            assertEquals(processors / 2, budget.total());
+            assertEquals(processors, budget.total());
             assertEquals(budget.total(), budget.compute() + budget.io());
+            assertEquals(processors == 0 ? 0 : 1, budget.io());
         }
     }
 
     @Test void tinyCpuRunsWithoutAdditionalComputeThreads() {
-        for (int processors : new int[]{1, 2, 3}) {
+        for (int processors : new int[]{0, 1}) {
             try (var lanes = new SharedWorkers.Lanes(WorkerBudget.forProcessors(processors))) {
                 Thread caller = Thread.currentThread();
                 assertSame(caller, lanes.invoke(Thread::currentThread));
@@ -33,7 +34,7 @@ class SharedWorkersTest {
 
     @Test void nestedBatchesCompleteWithOnlyOneComputeWorker() {
         assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-            try (var lanes = new SharedWorkers.Lanes(WorkerBudget.forProcessors(4))) {
+            try (var lanes = new SharedWorkers.Lanes(WorkerBudget.forProcessors(2))) {
                 AtomicInteger sum = new AtomicInteger();
                 lanes.invoke(() -> {
                     lanes.forEach(List.of(1, 2, 3), outer ->
@@ -51,7 +52,7 @@ class SharedWorkersTest {
 
     @Test void parallelStreamsStayInBoundedPoolIncludingSingleWorker() {
         assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-            for (int processors : new int[]{4, 8, 16}) {
+            for (int processors : new int[]{2, 8, 16}) {
                 WorkerBudget budget = WorkerBudget.forProcessors(processors);
                 try (var lanes = new SharedWorkers.Lanes(budget)) {
                     var threads = ConcurrentHashMap.<Thread>newKeySet();

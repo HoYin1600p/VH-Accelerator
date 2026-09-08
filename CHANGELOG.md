@@ -18,6 +18,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Worker-budget adjustment
+
+- Removed the half-processor cap. VHA's shared worker budget now scales to
+  all logical processors visible to the JVM, with one worker reserved for
+  ordered I/O and the remainder available for compute work. The background
+  worker recommendation uses the full processor count too; explicit JVM
+  overrides remain respected. Scheduling, priorities, model protections,
+  and timer boundaries are unchanged by this adjustment.
+
 ### Added
 
 - Added a default-off client telemetry privacy option. It disables only the

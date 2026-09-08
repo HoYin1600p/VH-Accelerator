@@ -6,15 +6,16 @@ import org.junit.jupiter.api.Test;
 
 class BackgroundWorkerLimitTest {
     @Test
-    void reservesForegroundAndGcCapacityOnLargerSystems() {
-        assertEquals(8, BackgroundWorkerLimit.recommendedWorkerCount(16));
-        assertEquals(4, BackgroundWorkerLimit.recommendedWorkerCount(8));
+    void usesAllJvmVisibleProcessors() {
+        assertEquals(32, BackgroundWorkerLimit.recommendedWorkerCount(32));
+        assertEquals(16, BackgroundWorkerLimit.recommendedWorkerCount(16));
+        assertEquals(8, BackgroundWorkerLimit.recommendedWorkerCount(8));
     }
 
     @Test
     void alwaysLeavesAtLeastOneBackgroundWorker() {
         assertEquals(1, BackgroundWorkerLimit.recommendedWorkerCount(1));
-        assertEquals(1, BackgroundWorkerLimit.recommendedWorkerCount(3));
+        assertEquals(3, BackgroundWorkerLimit.recommendedWorkerCount(3));
         assertEquals(1, BackgroundWorkerLimit.recommendedWorkerCount(0));
     }
 }
