@@ -131,10 +131,11 @@ public final class ZipPackIndex {
 
         int position = 0;
         int limit = this.centralDirectory.limit();
-        while (position + CD_ENTRY_HEADER_SIZE <= limit) {
-            if (this.centralDirectory.getInt(position)
+        while (position < limit) {
+            if (limit - position < CD_ENTRY_HEADER_SIZE
+                    || this.centralDirectory.getInt(position)
                     != CD_ENTRY_SIGNATURE) {
-                break;
+                throw new IOException("Unsupported or incomplete ZIP central directory");
             }
             position += indexEntry(position, limit, treeRoot);
         }
@@ -242,7 +243,7 @@ public final class ZipPackIndex {
         try (SeekableByteChannel channel = openChannel(path)) {
             long fileSize = channel.size();
             if (fileSize < EOCD_SIZE) {
-                return null;
+                throw new IOException("ZIP is too short to contain a central directory");
             }
 
             int tailSize = (int) Math.min(
@@ -277,7 +278,17 @@ public final class ZipPackIndex {
             long directoryOffset = Integer.toUnsignedLong(tail.getInt(
                     end + EOCD_OFF_CD_OFFSET
             ));
+            int disk = Short.toUnsignedInt(tail.getShort(end + 4));
+            int directoryDisk = Short.toUnsignedInt(tail.getShort(end + 6));
+            int entriesOnDisk = Short.toUnsignedInt(tail.getShort(end + 8));
+            int entries = Short.toUnsignedInt(tail.getShort(end + 10));
+            if (disk != 0 || directoryDisk != 0 || entriesOnDisk != entries) {
+                throw new IOException("Multi-disk ZIP index is unsupported");
+            }
             if (directorySize == 0) {
+                if (entries != 0) {
+                    throw new IOException("ZIP entries are missing from the central directory");
+                }
                 return null;
             }
             if (directorySize == 0xffff_ffffL
@@ -285,7 +296,7 @@ public final class ZipPackIndex {
                     || directorySize > Integer.MAX_VALUE) {
                 throw new IOException("ZIP64 central directory is unsupported");
             }
-            if (directoryOffset > fileSize - directorySize) {
+            if (directoryOffset > tailStart + end - directorySize) {
                 throw new IOException("Invalid ZIP central-directory range");
             }
 
