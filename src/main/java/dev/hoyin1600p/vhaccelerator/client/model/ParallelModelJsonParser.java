@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import net.minecraft.Util;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.resources.ResourceLocation;
@@ -22,8 +21,6 @@ public final class ParallelModelJsonParser {
     private static final String BUILDSCAPE_NAMESPACE = "buildscape";
     private static final String MODEL_PREFIX = "models/";
     private static final String JSON_SUFFIX = ".json";
-    private static final Pattern CUSTOM_LOADER =
-            Pattern.compile("\"loader\"\\s*:");
 
     private ParallelModelJsonParser() {
     }
@@ -60,7 +57,7 @@ public final class ParallelModelJsonParser {
             }
 
             String json = entry.getValue();
-            if (CUSTOM_LOADER.matcher(json).find()) {
+            if (ModelJsonSafety.mayUseCustomLoader(json)) {
                 customLoaders.incrementAndGet();
                 return;
             }

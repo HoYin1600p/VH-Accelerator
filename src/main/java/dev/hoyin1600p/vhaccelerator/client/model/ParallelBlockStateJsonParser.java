@@ -249,7 +249,7 @@ public final class ParallelBlockStateJsonParser {
                 byte[] bytes;
                 try (InputStream input =
                              resource.getInputStream()) {
-                    bytes = input.readAllBytes();
+                    bytes = ModelJsonSafety.readBounded(input);
                 }
                 raw.add(
                         new PersistentBlockStateJsonCache.RawResource(

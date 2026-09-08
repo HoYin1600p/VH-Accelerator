@@ -123,7 +123,8 @@ public abstract class ModelBakeryMixin {
         vhaccelerator$runBatched(locations, location -> {
             try (Resource resource = resourceManager.getResource(location)) {
                 String json = new String(
-                        resource.getInputStream().readAllBytes(),
+                        dev.hoyin1600p.vhaccelerator.client.model.ModelJsonSafety
+                                .readBounded(resource.getInputStream()),
                         StandardCharsets.UTF_8
                 );
                 cache.put(location, json);

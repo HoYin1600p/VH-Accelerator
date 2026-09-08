@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
+import dev.hoyin1600p.vhaccelerator.client.model.ModelJsonSafety;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -201,7 +202,7 @@ public final class PersistentModelJsonCache {
             try (Resource resource =
                          resourceManager.getResource(location)) {
                 byte[] bytes =
-                        resource.getInputStream().readAllBytes();
+                        ModelJsonSafety.readBounded(resource.getInputStream());
                 if (bytes.length > MAX_ENTRY_BYTES) {
                     complete.set(false);
                     VHAccelerator.LOGGER.warn(
