@@ -1,7 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 
@@ -60,7 +59,7 @@ public final class JeiRecoveryReload {
              * Prevent a search-index callback from the replaced JEI runtime
              * from publishing after the new runtime has been installed.
              */
-            ClientWorkSession.begin();
+            JeiRuntimeEpoch.invalidate();
             VHAccelerator.LOGGER.info(
                     "Starting an uncached JEI recovery reload from the live "
                             + "client recipe and tag state"

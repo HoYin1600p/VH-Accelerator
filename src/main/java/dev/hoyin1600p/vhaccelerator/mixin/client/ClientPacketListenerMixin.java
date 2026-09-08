@@ -9,6 +9,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.thermal.ThermalRefreshPhase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +25,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
+    @Inject(method = "handleLogin", at = @At("HEAD"))
+    private void vhaccelerator$observeGameConnection(ClientboundLoginPacket packet, CallbackInfo callback) {
+        if (Minecraft.getInstance().isSameThread()) {
+            VHAcceleratorClient.observeConnection(((ClientPacketListener) (Object) this).getConnection());
+        }
+    }
+
     @Inject(method = "handleUpdateRecipes", at = @At("HEAD"))
     private void vhaccelerator$beginRecipeUpdate(
             ClientboundUpdateRecipesPacket packet,
@@ -33,7 +41,9 @@ public abstract class ClientPacketListenerMixin {
             return;
         }
 
+        if (!VHAcceleratorClient.observeConnection(((ClientPacketListener) (Object) this).getConnection())) { return; }
         ThermalRefreshPhase.beginRecipes();
+        VHAcceleratorClient.beginRecipeStateRefresh();
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || (!VHAcceleratorClientConfig.VALUES
                                 .persistentVanillaRecipeValidationCache
@@ -62,7 +72,9 @@ public abstract class ClientPacketListenerMixin {
             CallbackInfo callback
     ) {
         if (Minecraft.getInstance().isSameThread()) {
+            if (!VHAcceleratorClient.observeConnection(((ClientPacketListener) (Object) this).getConnection())) { return; }
             ThermalRefreshPhase.beginTags();
+            VHAcceleratorClient.beginRecipeStateRefresh();
             if (VHAcceleratorClientConfig.optimizationsEnabled()) {
                 LoginStateFingerprint.captureCanonicalItemTags(packet);
             }
@@ -85,9 +97,8 @@ public abstract class ClientPacketListenerMixin {
             CallbackInfo callback
     ) {
         if (Minecraft.getInstance().isSameThread()
-                && !ServerLoginTimer.isActive()
-                && ServerTransferTimer.markStart("respawn packet")) {
-            VHAcceleratorClient.beginServerStateRefresh();
+                && !ServerLoginTimer.isActive()) {
+            ServerTransferTimer.markStart("respawn packet");
         }
     }
 }

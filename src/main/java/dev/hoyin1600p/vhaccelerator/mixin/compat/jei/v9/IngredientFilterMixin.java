@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
 import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
@@ -217,6 +218,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
         vhaccelerator$deferredMutations = new ArrayList<>();
         vhaccelerator$indexing = true;
         long sessionGeneration = ClientWorkSession.current();
+        long runtimeGeneration = JeiRuntimeEpoch.current();
         long workToken = PostLoginWorkTimer.markWorkStarted(
                 sessionGeneration,
                 "JEI 9 search index"
@@ -250,7 +252,8 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             }
             return privateIndex;
         }).whenComplete((privateIndex, failure) -> {
-            if (!ClientWorkSession.isCurrent(sessionGeneration)) {
+            if (!ClientWorkSession.isCurrent(sessionGeneration)
+                    || !JeiRuntimeEpoch.isCurrent(runtimeGeneration)) {
                 vhaccelerator$cancelStaleBuild(workToken, sessionGeneration);
                 return;
             }
@@ -261,7 +264,8 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
                             privateIndex,
                             failure,
                             workToken,
-                            sessionGeneration
+                            sessionGeneration,
+                            runtimeGeneration
                     )
             );
         });
@@ -274,12 +278,14 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             IElementSearch privateIndex,
             Throwable failure,
             long workToken,
-            long sessionGeneration
+            long sessionGeneration,
+            long runtimeGeneration
     ) {
         List<Runnable> deferredMutations;
         synchronized (vhaccelerator$indexLock) {
             if (!vhaccelerator$indexing
-                    || !ClientWorkSession.isCurrent(sessionGeneration)) {
+                    || !ClientWorkSession.isCurrent(sessionGeneration)
+                    || !JeiRuntimeEpoch.isCurrent(runtimeGeneration)) {
                 vhaccelerator$indexing = false;
                 vhaccelerator$runtimeAdditions.clear();
                 vhaccelerator$deferredMutations.clear();

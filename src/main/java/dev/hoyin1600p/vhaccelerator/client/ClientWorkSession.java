@@ -9,15 +9,16 @@ import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
  * next world or into Minecraft after client teardown has begun.
  */
 public final class ClientWorkSession {
-    private static long nextGeneration;
-    private static long activeGeneration = -1L;
+    private static final ConnectionEpoch EPOCH = new ConnectionEpoch();
 
     private ClientWorkSession() {
     }
 
-    public static synchronized long begin() {
+    public static synchronized boolean observeConnection(Object connection) {
+        if (!EPOCH.observe(connection)) { return false; }
         DisconnectTimer.cancelActive();
-        activeGeneration = ++nextGeneration;
+        dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch.invalidate();
+        long activeGeneration = EPOCH.current();
         PostLoginWorkTimer.beginSession(activeGeneration);
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info(
@@ -25,24 +26,23 @@ public final class ClientWorkSession {
                     activeGeneration
             );
         }
-        return activeGeneration;
+        return true;
     }
 
     public static synchronized long current() {
-        return activeGeneration;
+        return EPOCH.current();
     }
+
+    public static synchronized boolean owns(Object connection) { return EPOCH.owns(connection); }
 
     public static synchronized boolean isCurrent(long generation) {
-        return generation >= 0L && generation == activeGeneration;
+        return EPOCH.isCurrent(generation);
     }
 
-    public static synchronized void invalidate(String reason) {
-        long invalidated = activeGeneration;
-        if (invalidated < 0L) {
-            return;
-        }
-
-        activeGeneration = -1L;
+    public static synchronized boolean invalidate(Object connection, String reason) {
+        long invalidated = EPOCH.current();
+        if (!EPOCH.close(connection)) { return false; }
+        dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch.invalidate();
         PostLoginWorkTimer.cancelSession(invalidated);
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info(
@@ -51,5 +51,6 @@ public final class ClientWorkSession {
                     reason
             );
         }
+        return true;
     }
 }

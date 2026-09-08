@@ -167,8 +167,6 @@ public final class VHAcceleratorClient {
 
     private static void onScreenOpened(ScreenOpenEvent event) {
         if (event.getScreen() instanceof ConnectScreen) {
-            ClientWorkSession.begin();
-            beginServerStateRefresh();
             if (VHAcceleratorClientConfig.optimizationsEnabled()) {
                 AdaptiveJeiWorkScheduler.markLoading();
             }
@@ -177,8 +175,6 @@ public final class VHAcceleratorClient {
         } else if (event.getScreen() instanceof ReceivingLevelScreen
                 && !ServerLoginTimer.isActive()
                 && !ServerTransferTimer.isActive()) {
-            ClientWorkSession.begin();
-            beginServerStateRefresh();
             if (VHAcceleratorClientConfig.optimizationsEnabled()) {
                 AdaptiveJeiWorkScheduler.markLoading();
             }
@@ -194,11 +190,31 @@ public final class VHAcceleratorClient {
         }
     }
 
-    public static void beginServerStateRefresh() {
+    public static synchronized boolean observeConnection(net.minecraft.network.Connection connection) {
+        if (connection == null || !connection.isConnected()) { return false; }
+        if (ClientWorkSession.observeConnection(connection)) {
+            LoginStateFingerprint.beginConnection();
+            beginRecipeStateRefresh();
+        }
+        return ClientWorkSession.owns(connection);
+    }
+
+    public static synchronized void captureServerConfig(net.minecraft.network.Connection connection,
+            String fileName, byte[] contents) {
+        if (observeConnection(connection)) { LoginStateFingerprint.captureServerConfig(fileName, contents); }
+    }
+
+    public static synchronized boolean closeConnection(Object connection, String reason) {
+        if (!ClientWorkSession.invalidate(connection, reason)) { return false; }
+        LoginStateFingerprint.beginConnection();
+        beginRecipeStateRefresh();
+        return true;
+    }
+
+    public static void beginRecipeStateRefresh() {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()) {
             return;
         }
-        LoginStateFingerprint.beginConnection();
         IronFurnacesRecipeCache.beginConnection();
         PersistentVanillaIngredientCache.beginConnection();
         PersistentRecipeValidationCache.beginConnection();
@@ -315,9 +331,10 @@ public final class VHAcceleratorClient {
     }
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
-        ClientWorkSession.invalidate("Forge player logout");
-        ServerLoginTimer.cancelActiveAttempt();
-        ServerTransferTimer.cancelActiveAttempt();
+        if (closeConnection(event.getConnection(), "Forge player logout")) {
+            ServerLoginTimer.cancelActiveAttempt();
+            ServerTransferTimer.cancelActiveAttempt();
+        }
     }
 
     private static void onLevelRendered(RenderLevelStageEvent event) {

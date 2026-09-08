@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import dev.hoyin1600p.vhaccelerator.client.DisconnectTimer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.Connection;
@@ -30,7 +30,7 @@ public abstract class ConnectionMixin {
         }
         vhaccelerator$timingClientDisconnect = true;
         DisconnectTimer.beginNetworkClose();
-        ClientWorkSession.invalidate("network disconnect");
+        VHAcceleratorClient.closeConnection(this, "network disconnect");
     }
 
     @Inject(method = "disconnect", at = @At("RETURN"))

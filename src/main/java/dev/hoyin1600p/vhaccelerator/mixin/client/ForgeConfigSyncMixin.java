@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import java.util.function.Supplier;
 import net.minecraftforge.network.ConfigSync;
 import net.minecraftforge.network.HandshakeMessages;
@@ -18,7 +18,10 @@ public abstract class ForgeConfigSyncMixin {
             Supplier<NetworkEvent.Context> context,
             CallbackInfo callback
     ) {
-        LoginStateFingerprint.captureServerConfig(
+        var connection = context.get().getNetworkManager();
+        if (!connection.isConnected()) { return; }
+        VHAcceleratorClient.captureServerConfig(
+                connection,
                 config.getFileName(),
                 config.getBytes()
         );
