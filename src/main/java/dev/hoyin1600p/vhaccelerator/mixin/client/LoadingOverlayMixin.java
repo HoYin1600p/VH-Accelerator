@@ -26,12 +26,14 @@ public abstract class LoadingOverlayMixin {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void vhaccelerator$recordReloadCompletion(CallbackInfo callback) {
-        if (!vhaccelerator$completionRecorded && reload.isDone()) {
+        if (!reload.isDone() || reload.done().isCompletedExceptionally()) {
+            return;
+        }
+        DeferredVaultAtlasUploads.processLoadingOverlayFrame();
+        if (!vhaccelerator$completionRecorded
+                && !DeferredVaultAtlasUploads.hasPendingUploads()) {
             vhaccelerator$completionRecorded = true;
             LaunchTimer.markEnd();
-        }
-        if (reload.isDone()) {
-            DeferredVaultAtlasUploads.processLoadingOverlayFrame();
         }
     }
 
