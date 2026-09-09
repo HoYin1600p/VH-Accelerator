@@ -32,6 +32,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   user-service creation use up to two lazy, idle-expiring network workers rather
   than occupying model compute or disk-cache workers. Existing timeouts, result
   application and failure handling are unchanged.
+- Capture the network scheduling choice before Forge attaches client config,
+  keeping explicit disabled settings consistent for the entire launch.
 
 ### Resource-pack indexing correction
 
