@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.xaero;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.client.ClientBackgroundExecutor;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -131,7 +131,7 @@ public final class XaeroOnlineCheckDeferrer {
 
     private static final class ExecutorHolder {
         private static final java.util.concurrent.Executor EXECUTOR =
-                SharedWorkers.background();
+                ClientBackgroundExecutor.select();
 
         private ExecutorHolder() {
         }

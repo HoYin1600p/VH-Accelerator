@@ -28,6 +28,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   with session-local additions and avoid repeated model-name parsing. Dynamic
   graph validation and parent binding still run on every restore. Debug logging
   reports identifier parsing and restored-entry counts.
+- Added `isolateBackgroundNetworkWork`: optional Xaero checks and asynchronous
+  user-service creation use up to two lazy, idle-expiring network workers rather
+  than occupying model compute or disk-cache workers. Existing timeouts, result
+  application and failure handling are unchanged.
 
 ### Resource-pack indexing correction
 
