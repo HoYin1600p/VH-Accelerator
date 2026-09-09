@@ -207,7 +207,8 @@ or an implementation that has not landed also prevents VHA ownership.
 | `persistentModelJsonCache` | `true` | Stores fingerprinted raw model JSON; never stores parsed custom geometry or baked models. |
 | `prewarmPersistentPlainModels` | `true` | Parses eligible cached plain models before the initial reload barrier. |
 | `persistentBlockStateJsonCache` | `true` | Stores ordered raw blockstate resource layers and source names. |
-| `preSizeModelCaches` | `true` | Sizes large ModelBakery maps from registry counts to avoid repeated rehashing. |
+| `preSizeModelCaches` | `true` | Pre-sizes plain empty model maps; preserves specialized maps and normal growth. |
+| `stageModelCacheSizing` | `true` | With pre-sizing enabled, sizes baked maps from discovered models at the bake phase and leaves the parallel internal cache to its owner. Disable for original eager sizing. Restart required. |
 | `preSizeFerriteCoreQuadCache` | `true` | When FerriteCore is present, learns only its temporary baked-quad table size and pre-sizes that launch-local table on later launches. |
 | `promoteCachedTopLevelModels` | `true` | Publishes already-loaded unbaked models directly into the top-level map. |
 | `asyncUserApiService` | `true` | Creates the online profile service asynchronously behind a retained proxy. |

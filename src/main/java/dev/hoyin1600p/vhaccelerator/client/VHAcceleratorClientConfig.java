@@ -124,6 +124,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue isolateBackgroundNetworkWork;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue preSizeModelCaches;
+        public final ForgeConfigSpec.BooleanValue stageModelCacheSizing;
         public final ForgeConfigSpec.BooleanValue
                 preSizeFerriteCoreQuadCache;
         public final ForgeConfigSpec.BooleanValue promoteCachedTopLevelModels;
@@ -260,6 +261,13 @@ public final class VHAcceleratorClientConfig {
                             "in packs with hundreds of thousands of generated model states.",
                             "A map replaced by another mod is detected and left untouched.")
                     .define("preSizeModelCaches", true);
+            stageModelCacheSizing = builder
+                    .comment(
+                            "Refines preSizeModelCaches: size baked maps only when baking begins,",
+                            "using the discovered top-level count instead of the registry estimate.",
+                            "Leaves the internal bake cache to the parallel baker when enabled.",
+                            "Disable to compare with original eager sizing. Restart required.")
+                    .define("stageModelCacheSizing", true);
             preSizeFerriteCoreQuadCache = builder
                     .comment(
                             "Learns FerriteCore's temporary baked-quad table size per pack",

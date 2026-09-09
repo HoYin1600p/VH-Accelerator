@@ -18,6 +18,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Model cache sizing refinement
+
+- Size baked model maps at the bake phase using the discovered model count;
+  leave the parallel baker's internal cache sizing to its concurrent-map path.
+  Discovery maps retain registry-based sizing. No model content is cached or skipped.
+- Add restart-only `stageModelCacheSizing` (default on, requires
+  `preSizeModelCaches`) to compare with the previous eager sizing strategy.
+- Preserve populated maps, other mods' specialized maps, and model-key mutation
+  tracking. Launch-time benefit still requires runtime measurement.
+
 ### Target Dummy startup correction
 
 - Queue Target Dummy `1.18-1.5.2` dispenser registration after parallel common

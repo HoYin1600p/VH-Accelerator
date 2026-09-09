@@ -5,9 +5,10 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelCacheSizing;
 import dev.hoyin1600p.vhaccelerator.client.model.MutationTrackingMap;
-import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.texture.AtlasSet;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
@@ -21,6 +22,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Avoids repeated growth and full-table rehashes in model-heavy packs while
@@ -81,25 +83,52 @@ public abstract class ModelBakeryCapacityMixin {
             replaced++;
         }
 
+        Map<ResourceLocation, UnbakedModel> sizedTopLevel =
+                vhaccelerator$replacePlainEmptyMap(topLevelModels, topLevelEstimate);
+        if (sizedTopLevel != topLevelModels) {
+            topLevelModels = sizedTopLevel;
+            replaced++;
+        }
+        if (!VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.stageModelCacheSizing)) {
+            replaced += vhaccelerator$sizeBakedCaches(topLevelEstimate, false);
+        }
+        VHAccelerator.LOGGER.info(
+                "Sized {} ModelBakery map(s) at discovery; estimated top-level entries: {}",
+                replaced, topLevelEstimate);
+    }
+
+    @Inject(method = "uploadTextures", at = @At("HEAD"))
+    private void vhaccelerator$sizeDiscoveredBakedCaches(
+            TextureManager textures, ProfilerFiller profiler,
+            CallbackInfoReturnable<AtlasSet> callback) {
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.preSizeModelCaches)
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.stageModelCacheSizing)) return;
+        // Forge has completed discovery, including special models. Parallel
+        // baking installs its own concurrent internal cache after this point.
+        int replaced = vhaccelerator$sizeBakedCaches(topLevelModels.size(),
+                VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.parallelModelBaking));
+        VHAccelerator.LOGGER.debug(
+                "Sized {} baked model map(s) from {} discovered top-level entries",
+                replaced, topLevelModels.size());
+    }
+
+    @Unique
+    private int vhaccelerator$sizeBakedCaches(int topLevelEstimate, boolean parallelBake) {
+        int replaced = 0;
         Map<
                 Triple<ResourceLocation, Transformation, Boolean>,
                 BakedModel> sizedBaked =
-                vhaccelerator$replacePlainEmptyMap(
+                parallelBake ? bakedCache : vhaccelerator$replacePlainEmptyMap(
                         bakedCache,
                         topLevelEstimate
                 );
         if (sizedBaked != bakedCache) {
             bakedCache = sizedBaked;
-            replaced++;
-        }
-
-        Map<ResourceLocation, UnbakedModel> sizedTopLevel =
-                vhaccelerator$replacePlainEmptyMap(
-                        topLevelModels,
-                        topLevelEstimate
-                );
-        if (sizedTopLevel != topLevelModels) {
-            topLevelModels = sizedTopLevel;
             replaced++;
         }
 
@@ -117,12 +146,7 @@ public abstract class ModelBakeryCapacityMixin {
             replaced++;
         }
 
-        VHAccelerator.LOGGER.info(
-                "Sized {} plain ModelBakery map(s) for approximately {} "
-                        + "top-level model entries",
-                replaced,
-                topLevelEstimate
-        );
+        return replaced;
     }
 
     @Unique
@@ -142,25 +166,13 @@ public abstract class ModelBakeryCapacityMixin {
                     Map<K, V> existing,
                     int expectedEntries
             ) {
-        if (!existing.isEmpty()
-                || existing.getClass() != HashMap.class) {
-            return existing;
-        }
-        return new HashMap<>(
-                vhaccelerator$hashMapCapacity(expectedEntries)
-        );
+        return ModelCacheSizing.reservePlainEmptyMap(existing, expectedEntries);
     }
 
     @Unique
     private static int vhaccelerator$hashMapCapacity(
             int expectedEntries
     ) {
-        if (expectedEntries < 3) {
-            return expectedEntries + 1;
-        }
-        if (expectedEntries >= 1 << 29) {
-            return 1 << 30;
-        }
-        return (int) (expectedEntries / 0.75F + 1.0F);
+        return ModelCacheSizing.hashMapCapacity(expectedEntries);
     }
 }
