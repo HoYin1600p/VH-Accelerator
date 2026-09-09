@@ -119,6 +119,9 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue optimizeVoxelShapeMerging;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
+        public final ForgeConfigSpec.BooleanValue separateModelPrewarmIo;
+        public final ForgeConfigSpec.BooleanValue optimizeMaterialCacheSession;
+        public final ForgeConfigSpec.BooleanValue isolateBackgroundNetworkWork;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue preSizeModelCaches;
         public final ForgeConfigSpec.BooleanValue
@@ -227,6 +230,21 @@ public final class VHAcceleratorClientConfig {
                             "the live asset fingerprint matches the cache. Forge custom loaders,",
                             "BuildScape models, and failures keep their established loading path.")
                     .define("prewarmPersistentPlainModels", true);
+            separateModelPrewarmIo = builder
+                    .comment("Releases the serial disk-cache lane before plain-model CPU preparation.",
+                            "Preparation still completes before its existing resource readiness barrier.",
+                            "Restart required; disable to compare the original combined read/parse path.")
+                    .define("separateModelPrewarmIo", true);
+            optimizeMaterialCacheSession = builder
+                    .comment("Avoids bulk copying restored material maps and repeated model-name parsing.",
+                            "Every restore still runs the existing dynamic-model and parent-binding guards.",
+                            "All lookup state is discarded with the material collection session.")
+                    .define("optimizeMaterialCacheSession", true);
+            isolateBackgroundNetworkWork = builder
+                    .comment("Runs optional blocking online checks outside model compute and disk-cache workers.",
+                            "Uses at most two lazy, idle-expiring network workers (one on a single-CPU JVM).",
+                            "Does not change connection timeouts or defer asset readiness. Restart required.")
+                    .define("isolateBackgroundNetworkWork", true);
             persistentBlockStateJsonCache = builder
                     .comment(
                             "Persists ordered raw blockstate resource stacks.",

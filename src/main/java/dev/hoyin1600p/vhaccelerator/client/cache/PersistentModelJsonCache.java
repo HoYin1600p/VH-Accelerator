@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.concurrent.StagedPreload;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
@@ -68,9 +69,12 @@ public final class PersistentModelJsonCache {
             return;
         }
         preloadStarted = true;
-        preload = CompletableFuture.supplyAsync(
+        boolean separate = VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.separateModelPrewarmIo);
+        preload = StagedPreload.start(
                 PersistentModelJsonCache::read,
-                SharedWorkers.io()
+                PersistentModelJsonCache::preparePlainModels,
+                SharedWorkers.io(), SharedWorkers.compute(), separate
         );
     }
 
@@ -305,21 +309,10 @@ public final class PersistentModelJsonCache {
             );
             Map<ResourceLocation, String> stableModels =
                     Map.copyOf(models);
-            Map<ResourceLocation, BlockModel> plainModels =
-                    prewarmPlainModelsEnabled()
-                            ? ParallelModelJsonParser.parse(stableModels)
-                            : Map.of();
-            if (!plainModels.isEmpty()) {
-                VHAccelerator.LOGGER.info(
-                        "Prewarmed {} persistent plain models before the "
-                                + "resource-reload barrier",
-                        plainModels.size()
-                );
-            }
             return new CachedFile(
                     fingerprint,
                     stableModels,
-                    plainModels
+                    Map.of()
             );
         } catch (IOException | RuntimeException failure) {
             VHAccelerator.LOGGER.warn(
@@ -328,6 +321,22 @@ public final class PersistentModelJsonCache {
                     failure
             );
             return null;
+        }
+    }
+
+    private static CachedFile preparePlainModels(CachedFile cached) {
+        if (cached == null || !prewarmPlainModelsEnabled()) {
+            return cached;
+        }
+        try {
+            Map<ResourceLocation, BlockModel> parsed = ParallelModelJsonParser.parse(cached.models);
+            VHAccelerator.LOGGER.info("Prewarmed {} persistent plain models before the resource-reload barrier",
+                    parsed.size());
+            return new CachedFile(cached.fingerprint, cached.models, parsed);
+        } catch (RuntimeException failure) {
+            // Keep valid raw JSON; ordinary parsing remains available.
+            VHAccelerator.LOGGER.warn("Plain-model prewarming failed; retaining raw JSON for normal parsing", failure);
+            return cached;
         }
     }
 

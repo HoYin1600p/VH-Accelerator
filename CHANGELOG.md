@@ -18,6 +18,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Configurable launch-work scheduling
+
+- Added `separateModelPrewarmIo`: raw model-cache reads can release the serial
+  disk lane before CPU parsing, while preserving the existing readiness barrier
+  and normal-loader fallback. Added isolated comparison toggles for material
+  session allocation and optional network scheduling.
+
 ### Resource-pack indexing correction
 
 - Fixed Forge mod JARs being rejected by VHA's immutable resource index because
