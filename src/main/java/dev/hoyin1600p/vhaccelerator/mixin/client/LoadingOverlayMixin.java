@@ -29,12 +29,13 @@ public abstract class LoadingOverlayMixin {
         if (!reload.isDone() || reload.done().isCompletedExceptionally()) {
             return;
         }
-        DeferredVaultAtlasUploads.processLoadingOverlayFrame();
-        if (!vhaccelerator$completionRecorded
-                && !DeferredVaultAtlasUploads.hasPendingUploads()) {
+        // Preserve the historical reload-complete launch milestone. Vault's
+        // fade-time uploads retain their separate timing and overlay gate.
+        if (!vhaccelerator$completionRecorded) {
             vhaccelerator$completionRecorded = true;
             LaunchTimer.markEnd();
         }
+        DeferredVaultAtlasUploads.processLoadingOverlayFrame();
     }
 
     @Redirect(

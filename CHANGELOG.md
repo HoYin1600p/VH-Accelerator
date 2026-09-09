@@ -18,6 +18,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Launch-timer compatibility
+
+- Restored the historical launch-timer endpoint at successful resource-reload
+  completion, before deferred Vault atlas uploads during the loading fade.
+  Atlas upload timing remains separate, and the loading overlay still waits
+  for those uploads before disappearing. JVM-start timing is unchanged.
+
 ### Worker-budget adjustment
 
 - Removed the half-processor cap. VHA's shared worker budget now scales to
