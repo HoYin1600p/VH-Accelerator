@@ -6,16 +6,36 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class MaterialSessionTest {
+    @Test void disabledOverlayRetainsOriginalMutableMapBehavior() {
+        var original = new java.util.HashMap<>(Map.of("a", "one"));
+        var session = new SessionOverlay<>(original, false);
+        session.put("a", "two");
+        session.put("b", "three");
+        assertEquals(2, session.size());
+        assertEquals("two", session.get("a"));
+        var snapshot = session.snapshot();
+        session.put("b", "four");
+        assertEquals("three", snapshot.get("b"));
+        assertEquals("four", original.get("b"));
+    }
+
     @Test void overlayDoesNotCopyOrMutateRestoredDataAndCapturesNewKeys() {
         var original = Map.of("model", "material");
         var session = new SessionOverlay<>(original);
         assertSame(original, session.snapshot());
         assertEquals("material", session.get("model"));
-        session.putNew("other", "new");
+        session.put("other", "new");
         assertEquals(2, session.size());
         assertEquals(Map.of("model", "material", "other", "new"), session.snapshot());
         assertEquals(1, original.size());
-        assertThrows(IllegalArgumentException.class, () -> session.putNew("model", "changed"));
+        session.put("model", "changed");
+        assertEquals(2, session.size());
+        assertEquals("changed", session.get("model"));
+        assertEquals("changed", session.snapshot().get("model"));
+        assertEquals("material", original.get("model"));
+        session.put("other", "replacement");
+        assertEquals(2, session.size());
+        assertEquals("replacement", session.get("other"));
     }
 
     @Test void namesTrackIdentityRenamesNullsAndSessionBoundaries() {

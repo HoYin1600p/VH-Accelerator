@@ -167,7 +167,7 @@ public final class PersistentModelMaterialCache {
             return;
         }
         List<Material> stable = List.copyOf(materials);
-        session.materials.putNew(location, stable);
+        session.materials.put(location, stable);
         session.captured++;
     }
 
