@@ -49,16 +49,16 @@ public final class ImmutablePathPackIndex {
             PackType.SERVER_DATA
     );
 
-    private final PathResolver resolver;
+    private final Map<PackType, Path> resolvedRoots;
     private final String debugName;
     private volatile Snapshot snapshot;
     private volatile boolean rejected;
 
     private ImmutablePathPackIndex(
-            PathResolver resolver,
+            Map<PackType, Path> resolvedRoots,
             String debugName
     ) {
-        this.resolver = resolver;
+        this.resolvedRoots = Map.copyOf(resolvedRoots);
         this.debugName = debugName;
     }
 
@@ -68,13 +68,19 @@ public final class ImmutablePathPackIndex {
             PathResolver resolver
     ) {
         try {
-            String scheme = source.getFileSystem().provider().getScheme();
-            if (!"jar".equalsIgnoreCase(scheme)
-                    && !"union".equalsIgnoreCase(scheme)) {
-                return null;
+            // Forge's mod packs expose the outer archive as getSource(), but
+            // override resolve() to use IModFile.findResource (also for JarJar).
+            // Validate the actual resource roots, never the archive's disk path.
+            EnumMap<PackType, Path> roots = new EnumMap<>(PackType.class);
+            for (PackType type : INDEXED_TYPES) {
+                Path root = resolver.resolve(type.getDirectory());
+                if (root == null || !immutableFileSystem(root)) {
+                    return null;
+                }
+                roots.put(type, root.toAbsolutePath());
             }
             return new ImmutablePathPackIndex(
-                    resolver,
+                    roots,
                     source.toAbsolutePath().toString()
             );
         } catch (RuntimeException | LinkageError failure) {
@@ -96,21 +102,7 @@ public final class ImmutablePathPackIndex {
             }
             Path debugRoot = roots.get(PackType.CLIENT_RESOURCES);
             return new ImmutablePathPackIndex(
-                    paths -> {
-                        if (paths.length != 1) {
-                            throw new IllegalArgumentException(
-                                    "expected one vanilla pack root"
-                            );
-                        }
-                        for (PackType type : INDEXED_TYPES) {
-                            if (type.getDirectory().equals(paths[0])) {
-                                return roots.get(type);
-                            }
-                        }
-                        throw new IllegalArgumentException(
-                                "unsupported pack root " + paths[0]
-                        );
-                    },
+                    roots,
                     debugRoot.toAbsolutePath().toString()
             );
         } catch (RuntimeException | LinkageError failure) {
@@ -249,8 +241,7 @@ public final class ImmutablePathPackIndex {
         int files = 0;
 
         for (PackType type : INDEXED_TYPES) {
-            Path typePath = this.resolver.resolve(type.getDirectory())
-                    .toAbsolutePath();
+            Path typePath = this.resolvedRoots.get(type).toAbsolutePath();
             boolean present = Files.isDirectory(typePath);
             rootPresence.put(type, present);
             Node root = new Node();

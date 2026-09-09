@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.backport.modernfix.resource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -29,6 +30,67 @@ final class ImmutablePathPackIndexTest {
                 this.temporaryDirectory,
                 paths -> resolve(this.temporaryDirectory, paths)
         ));
+    }
+
+    @Test
+    void forgeArchiveSourceUsesResolvedRootsAndPreservesSlotTextures() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("forge-mod.jar");
+        try (FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + archive.toUri()), Map.of("create", "true"))) {
+            Path root = fs.getPath("/");
+            write(root, "assets/demo/textures/gui/empty_upgrade.png");
+            write(root, "assets/demo/textures/gui/empty_upgrade.png.mcmeta");
+            write(root, "assets/demo/models/item/memory.json");
+            write(root, "data/demo/recipes/upgrade.json");
+            java.util.concurrent.atomic.AtomicInteger resolutions =
+                    new java.util.concurrent.atomic.AtomicInteger();
+            ImmutablePathPackIndex index = ImmutablePathPackIndex.create(archive, paths -> {
+                resolutions.incrementAndGet();
+                return resolve(root, paths);
+            });
+            assertNotNull(index, "Forge supplies an outer disk path, not a ZIP root");
+            assertEquals(2, resolutions.get());
+            assertEquals(Set.of(new ResourceLocation("demo", "textures/gui/empty_upgrade.png")),
+                    Set.copyOf(index.resources(PackType.CLIENT_RESOURCES, "demo",
+                            "textures", Integer.MAX_VALUE, name -> true)));
+            assertTrue(index.hasResource("assets/demo/textures/gui/empty_upgrade.png.mcmeta"));
+            assertTrue(index.hasResource("assets/demo/models/item/memory.json"));
+            assertTrue(index.hasResource("data/demo/recipes/upgrade.json"));
+            assertEquals(2, resolutions.get(), "Keep the roots we actually validated");
+        }
+    }
+
+    @Test
+    void immutableSourceCannotAuthorizeMixedMutableResourceRoots() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("mixed.jar");
+        try (FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + archive.toUri()), Map.of("create", "true"))) {
+            Path root = fs.getPath("/");
+            assertNull(ImmutablePathPackIndex.create(root, paths ->
+                    paths[0].equals("assets") ? resolve(root, paths)
+                            : resolve(this.temporaryDirectory, paths)));
+            assertNull(ImmutablePathPackIndex.create(archive, paths -> null));
+            assertNull(ImmutablePathPackIndex.create(archive, paths -> {
+                throw new IllegalStateException("Unavailable mod resource root");
+            }));
+        }
+    }
+
+    @Test
+    void validatedVanillaRootsAreNotChangedByCallerMapMutation() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("snapshot.jar");
+        try (FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + archive.toUri()), Map.of("create", "true"))) {
+            Path root = fs.getPath("/");
+            write(root, "assets/demo/models/kept.json");
+            EnumMap<PackType, Path> roots = new EnumMap<>(PackType.class);
+            roots.put(PackType.CLIENT_RESOURCES, root.resolve("assets"));
+            roots.put(PackType.SERVER_DATA, root.resolve("data"));
+            ImmutablePathPackIndex index = ImmutablePathPackIndex.createVanilla(roots);
+            roots.put(PackType.CLIENT_RESOURCES, this.temporaryDirectory);
+            assertNotNull(index);
+            assertTrue(index.hasResource("assets/demo/models/kept.json"));
+        }
     }
 
     @Test

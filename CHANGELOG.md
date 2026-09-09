@@ -18,6 +18,18 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Resource-pack indexing correction
+
+- Fixed Forge mod JARs being rejected by VHA's immutable resource index because
+  their outer archive paths use the ordinary disk filesystem. The index now
+  validates and retains Forge's resolved resource roots, including separately
+  resolved embedded-mod resources, while rejecting mutable or mixed roots.
+- Published each pack's initialized index safely between resource-loader
+  threads. VHA keeps ownership of the optimization; this is not a switch back
+  to ModernFix or a relaxation of model, slot-texture, or metadata safeguards.
+- Added regression tests for Forge-style archive paths, slot texture metadata,
+  mixed-root rejection, failed resolvers, and immutable root snapshots.
+
 ### Launch-timer compatibility
 
 - Restored the historical launch-timer endpoint at successful resource-reload

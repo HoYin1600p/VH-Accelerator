@@ -34,7 +34,7 @@ public abstract class PathResourcePackIndexMixin {
     @Unique
     private ImmutablePathPackIndex vhaccelerator$resourceIndex;
     @Unique
-    private boolean vhaccelerator$indexChecked;
+    private volatile boolean vhaccelerator$indexChecked;
 
     @Shadow(remap = false)
     public abstract Path getSource();
@@ -110,12 +110,18 @@ public abstract class PathResourcePackIndexMixin {
             return null;
         }
         if (!this.vhaccelerator$indexChecked) {
-            this.vhaccelerator$indexChecked = true;
-            this.vhaccelerator$resourceIndex =
-                    ImmutablePathPackIndex.create(
-                            getSource(),
-                            this::resolve
-                    );
+            synchronized (this) {
+                if (!this.vhaccelerator$indexChecked) {
+                    this.vhaccelerator$resourceIndex =
+                            ImmutablePathPackIndex.create(
+                                    getSource(),
+                                    this::resolve
+                            );
+                    // Publish the fully initialized result (including rejection)
+                    // before other resource-loader threads skip initialization.
+                    this.vhaccelerator$indexChecked = true;
+                }
+            }
         }
         return this.vhaccelerator$resourceIndex;
     }
