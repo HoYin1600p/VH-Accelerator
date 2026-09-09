@@ -68,6 +68,11 @@ public final class ImmutablePathPackIndex {
             PathResolver resolver
     ) {
         try {
+            // Preserve the exclusion for exploded/development mod folders.
+            // A virtual resolver alone must not authorize caching a disk folder.
+            if (!immutableFileSystem(source) && !Files.isRegularFile(source)) {
+                return null;
+            }
             // Forge's mod packs expose the outer archive as getSource(), but
             // override resolve() to use IModFile.findResource (also for JarJar).
             // Validate the actual resource roots, never the archive's disk path.

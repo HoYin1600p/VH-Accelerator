@@ -69,6 +69,9 @@ final class ImmutablePathPackIndexTest {
             assertNull(ImmutablePathPackIndex.create(root, paths ->
                     paths[0].equals("assets") ? resolve(root, paths)
                             : resolve(this.temporaryDirectory, paths)));
+            assertNull(ImmutablePathPackIndex.create(this.temporaryDirectory,
+                    paths -> resolve(root, paths)),
+                    "A virtual resolver must not opt an exploded mod folder into caching");
             assertNull(ImmutablePathPackIndex.create(archive, paths -> null));
             assertNull(ImmutablePathPackIndex.create(archive, paths -> {
                 throw new IllegalStateException("Unavailable mod resource root");
