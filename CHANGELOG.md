@@ -24,6 +24,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   disk lane before CPU parsing, while preserving the existing readiness barrier
   and normal-loader fallback. Added isolated comparison toggles for material
   session allocation and optional network scheduling.
+- Added `optimizeMaterialCacheSession`: reuse immutable restored material maps
+  with session-local additions and avoid repeated model-name parsing. Dynamic
+  graph validation and parent binding still run on every restore. Debug logging
+  reports identifier parsing and restored-entry counts.
 
 ### Resource-pack indexing correction
 

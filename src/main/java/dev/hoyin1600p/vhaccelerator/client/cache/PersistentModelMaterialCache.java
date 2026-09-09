@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
@@ -102,11 +103,14 @@ public final class PersistentModelMaterialCache {
                     fingerprint
             );
         }
-        Map<ResourceLocation, List<Material>> materials =
-                restored ? new HashMap<>(cached.materials) : new HashMap<>();
+        boolean optimized = VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.optimizeMaterialCacheSession);
+        Map<ResourceLocation, List<Material>> materials = restored
+                ? (optimized ? cached.materials : new HashMap<>(cached.materials))
+                : (optimized ? Map.of() : new HashMap<>());
         Session session = new Session(
                 fingerprint,
-                materials
+                materials, optimized
         );
         ACTIVE_SESSION.set(session);
         if (restored) {
@@ -127,7 +131,7 @@ public final class PersistentModelMaterialCache {
         if (session == null) {
             return null;
         }
-        ResourceLocation location = modelLocation(model);
+        ResourceLocation location = session.modelLocation(model);
         if (location == null) {
             return null;
         }
@@ -153,7 +157,7 @@ public final class PersistentModelMaterialCache {
         if (session == null || materials == null || materials.isEmpty()) {
             return;
         }
-        ResourceLocation location = modelLocation(model);
+        ResourceLocation location = session.modelLocation(model);
         if (location == null
                 || session.materials.containsKey(location)
                 || materials.size() > MAX_MATERIALS_PER_MODEL
@@ -163,7 +167,7 @@ public final class PersistentModelMaterialCache {
             return;
         }
         List<Material> stable = List.copyOf(materials);
-        session.materials.put(location, stable);
+        session.materials.putNew(location, stable);
         session.captured++;
     }
 
@@ -181,12 +185,17 @@ public final class PersistentModelMaterialCache {
                 session.captured,
                 session.rejected
         );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            VHAccelerator.LOGGER.info("Material session allocation path: optimized={}, model-name parses={}, restored entries={}",
+                    session.optimized, session.names == null ? session.nameRequests : session.names.parses(),
+                    session.restoredEntries);
+        }
         if (session.captured == 0) {
             return;
         }
 
         Map<ResourceLocation, List<Material>> stable =
-                Map.copyOf(session.materials);
+                session.materials.snapshot();
         if (stable.size() > MAX_MODELS
                 || countMaterials(stable) > MAX_TOTAL_MATERIALS) {
             VHAccelerator.LOGGER.warn(
@@ -386,11 +395,11 @@ public final class PersistentModelMaterialCache {
         return location;
     }
 
-    private static ResourceLocation modelLocation(BlockModel model) {
-        if (model.name == null || model.name.isBlank()) {
+    private static ResourceLocation parseModelName(String name) {
+        if (name == null || name.isBlank()) {
             return null;
         }
-        return ResourceLocation.tryParse(model.name);
+        return ResourceLocation.tryParse(name);
     }
 
     private static long countMaterials(
@@ -437,7 +446,11 @@ public final class PersistentModelMaterialCache {
 
     private static final class Session {
         private final String fingerprint;
-        private final Map<ResourceLocation, List<Material>> materials;
+        private final SessionOverlay<ResourceLocation, List<Material>> materials;
+        private final boolean optimized;
+        private final SessionNameLookup<BlockModel, ResourceLocation> names;
+        private final int restoredEntries;
+        private long nameRequests;
         private final DynamicModelGuard.PreparedGraph modelGraph =
                 DynamicModelGuard.preparedGraph();
         private int hits;
@@ -446,10 +459,19 @@ public final class PersistentModelMaterialCache {
 
         private Session(
                 String fingerprint,
-                Map<ResourceLocation, List<Material>> materials
+                Map<ResourceLocation, List<Material>> materials, boolean optimized
         ) {
             this.fingerprint = fingerprint;
-            this.materials = materials;
+            this.materials = new SessionOverlay<>(materials, optimized);
+            this.optimized = optimized;
+            this.names = optimized ? new SessionNameLookup<>(MAX_MODELS) : null;
+            this.restoredEntries = materials.size();
+        }
+
+        private ResourceLocation modelLocation(BlockModel model) {
+            nameRequests++;
+            return names == null ? parseModelName(model.name)
+                    : names.resolve(model, model.name, PersistentModelMaterialCache::parseModelName);
         }
     }
 }
