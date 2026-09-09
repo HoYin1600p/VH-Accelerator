@@ -8,6 +8,20 @@ VH Accelerator uses one common Forge config and one physical-client config:
 Commands save their common diagnostic setting immediately. Other file edits
 should be made while the game is stopped, followed by a restart.
 
+## Target Dummy startup correction
+
+In the common config, `[compatibility]`
+`deferTargetDummyDispenserRegistration = true` queues Target Dummy's dispenser
+registration after parallel mod setup. The hook targets only the audited
+`dummmmmmy` metadata version `1.18-1.5.2` and leaves other versions untouched.
+Restart after changing it. Existing debug mode logs the submission and execution
+threads; there is no per-tick diagnostic work.
+
+This correctness fix remains enabled in optimization Compare Mode. To test a
+baseline without the correction, explicitly set its own key to `false` and
+restart; doing so restores the original startup race opportunity. This hook's
+common-side design is not a claim that the entire mod is dedicated-server tested.
+
 ## Command reference
 
 ### Availability and permissions

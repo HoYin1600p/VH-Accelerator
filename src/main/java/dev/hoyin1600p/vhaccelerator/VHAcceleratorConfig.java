@@ -33,9 +33,18 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue lazyBlockStateCache;
         public final ForgeConfigSpec.BooleanValue cacheResourceListing;
         public final ForgeConfigSpec.BooleanValue indexImmutableModResources;
+        public final ForgeConfigSpec.BooleanValue deferTargetDummyDispenserRegistration;
         public final Map<BackportFeature, ForgeConfigSpec.BooleanValue> backports;
 
         private Common(ForgeConfigSpec.Builder builder) {
+            builder.push("compatibility");
+            deferTargetDummyDispenserRegistration = builder.comment(
+                    "Fixes Target Dummy 1.18-1.5.2 writing the shared dispenser map during parallel setup.",
+                    "Queues only its dispenser registration onto Forge's synchronous setup work.",
+                    "Restart required. Independent of Compare Mode: this is a startup correctness fix.",
+                    "Other Target Dummy versions are not modified.")
+                    .define("deferTargetDummyDispenserRegistration", true);
+            builder.pop();
             builder.push("diagnostics");
             compareMode = builder
                     .comment(

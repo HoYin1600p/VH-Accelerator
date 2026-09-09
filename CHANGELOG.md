@@ -18,6 +18,20 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Target Dummy startup correction
+
+- Queue Target Dummy `1.18-1.5.2` dispenser registration after parallel common
+  setup, preventing its write from racing other setup-time dispenser map writes.
+  Networking and the original dispenser behavior are preserved. Other versions
+  and packs without Target Dummy are left untouched.
+- Added restart-only `compatibility.deferTargetDummyDispenserRegistration`
+  (default on). This correctness fix remains active in optimization Compare Mode;
+  its own toggle controls isolation tests. Existing debug mode logs the queue and
+  execution threads without adding ongoing gameplay diagnostics.
+- Added scheduling regression tests, including a forced-overlap negative control
+  and Forge's real synchronous work queue. Dedicated-server runtime validation
+  remains separate from this common-side-safe correction.
+
 ### Configurable launch-work scheduling
 
 - Added `separateModelPrewarmIo`: raw model-cache reads can release the serial

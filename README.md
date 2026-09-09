@@ -38,6 +38,9 @@ target mod and supported class layout are present.
   with `updates.updateTypes = "ALL"` or `/vha updates all`.
 - Compare Mode for disabling every optimization without losing measurement
   tools.
+- A version-guarded Target Dummy startup correction that defers unsafe dispenser
+  registration. This correctness fix uses its own restart-only toggle and remains
+  active in optimization Compare Mode.
 - An in-world `/vha reload_jei` recovery command that rebuilds JEI from the
   live synchronized recipe and tag state without disconnecting.
 - Automatic ownership handoff for overlapping ModernFix features.

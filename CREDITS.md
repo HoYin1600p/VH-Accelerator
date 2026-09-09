@@ -237,6 +237,11 @@ safety. They are not bundled:
 - [Every Compat](https://www.curseforge.com/minecraft/mc-mods/every-compat)
 - [Xaero's Minimap](https://www.curseforge.com/minecraft/mc-mods/xaeros-minimap)
 - [Xaero's World Map](https://www.curseforge.com/minecraft/mc-mods/xaeros-world-map)
+- [MmmMmmMmmMmm / Target Dummy](https://www.curseforge.com/minecraft/mc-mods/mmmmmmmmmmmm)
+  by MehVahdJukaar and bonusboni: installed `1.18-1.5.2` setup bytecode was
+  inspected to identify an unsafe parallel dispenser registration. VHA's
+  independently written compatibility hook defers that call using Forge's
+  documented lifecycle queue; no Target Dummy implementation is copied or bundled.
 
 Thanks to every maintainer and contributor whose work made a bottleneck,
 compatibility constraint, or safer implementation strategy discoverable.

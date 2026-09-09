@@ -80,6 +80,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
     private boolean physicalClient;
+    private boolean targetDummySetupFix;
     private Boolean modernFixDynamicResourcesEnabled;
     private boolean reportedModernFixBakeDecision;
 
@@ -104,6 +105,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         physicalClient = FMLEnvironment.dist == Dist.CLIENT;
         try {
             LoadingModList modList = LoadingModList.get();
+            targetDummySetupFix = hasVersion(modList, "dummmmmmy", "1.18-1.5.2")
+                    && dev.hoyin1600p.vhaccelerator.compat.targetdummy.TargetDummySetupFix.enabled();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
             ferriteCoreLoaded = modList != null
                     && modList.getModFileById("ferritecore") != null;
@@ -200,6 +203,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             }
         } catch (RuntimeException exception) {
             modDiscoveryFailed = true;
+            targetDummySetupFix = false;
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
@@ -346,6 +350,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.endsWith(".compat.targetdummy.TargetDummySetupMixin")) {
+            // A correctness fix, intentionally independent of optimization Compare Mode.
+            return targetDummySetupFix;
+        }
         if (DEBUG_ONLY_MIXINS.contains(mixinClassName)
                 && !BootstrapDebugDiagnostics.enabled()) {
             return false;
