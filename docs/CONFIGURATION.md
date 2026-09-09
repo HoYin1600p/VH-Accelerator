@@ -130,6 +130,7 @@ settings resume as soon as the recovery rebuild finishes.
 | Key | Default | Description |
 | --- | --- | --- |
 | `enableCommonOptimizations` | `true` | Master switch for paths safe on both physical sides. |
+| `streamlineObjectHolderCleanup` | `true` | Refines the object-holder cleanup backport with early safety exits and pass-local override-owner snapshots. Disable for previous per-holder checks. Restart required. |
 | `parallelReloadPreparation` | `false` | Uses the instrumented reload coordinator. Primarily diagnostic on 1.18.2. |
 | `skipRedundantRegistryValidation` | `false` | Experimental LaunchFaster parity behavior; unsafe probabilistic validation skipping. |
 | `skipRegistryDump` | `false` | Suppresses Forge registry dumps when explicitly enabled. Normally no measurable gain. |

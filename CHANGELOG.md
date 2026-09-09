@@ -18,6 +18,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Object-holder cleanup refinement
+
+- Reuse Forge override-owner snapshots per registry within the synchronous
+  startup cleanup pass, instead of reconstructing a snapshot for every holder.
+  Snapshots are not retained across world joins or registry remaps.
+- Stop checking ineligible holders before unnecessary reflection and registry
+  lookups. Removal eligibility is unchanged; lookup failures still retain holders.
+- Add restart-only `optimizations.streamlineObjectHolderCleanup` (default on)
+  for A/B comparison with the previous per-holder checks. Requires the existing
+  object-holder cleanup backport to be active.
+- Added safety and snapshot-isolation tests. Offline tests and compatibility
+  builds pass; runtime safety and timing validation remain pending.
+
 ### Model cache sizing refinement
 
 - Size baked model maps at the bake phase using the discovered model count;

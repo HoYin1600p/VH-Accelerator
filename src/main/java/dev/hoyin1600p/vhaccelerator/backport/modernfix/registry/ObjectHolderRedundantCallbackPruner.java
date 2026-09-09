@@ -11,12 +11,15 @@
  * callbacks whose key has no registered override candidates, verified the
  * current field/value identity, retained dummied and unresolved entries, and
  * added fail-closed reflection plus per-handler statistics for Forge 40.
+ * Modified: 2026-09-09; short-circuit retained holders and share override-owner
+ * snapshots only within the synchronous load-complete cleanup pass.
  */
 package dev.hoyin1600p.vhaccelerator.backport.modernfix.registry;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
@@ -40,7 +43,7 @@ public final class ObjectHolderRedundantCallbackPruner {
     private ObjectHolderRedundantCallbackPruner() {
     }
 
-    public static Statistics pruneForgeHolders() {
+    public static Statistics pruneForgeHolders(boolean streamlined) {
         try {
             ClassLoader loader =
                     ObjectHolderRedundantCallbackPruner.class.getClassLoader();
@@ -99,7 +102,8 @@ public final class ObjectHolderRedundantCallbackPruner {
                         holderTargetField,
                         holderValidField,
                         overrideOwners,
-                        isDummied
+                        isDummied,
+                        streamlined
                 );
             }
         } catch (LinkageError | ReflectiveOperationException exception) {
@@ -107,7 +111,7 @@ public final class ObjectHolderRedundantCallbackPruner {
         }
     }
 
-    private static Statistics pruneHandlers(
+    static Statistics pruneHandlers(
             Set<?> holders,
             Class<?> holderClass,
             Field holderRegistryField,
@@ -115,7 +119,8 @@ public final class ObjectHolderRedundantCallbackPruner {
             Field holderTargetField,
             Field holderValidField,
             Method overrideOwners,
-            Method isDummied
+            Method isDummied,
+            boolean streamlined
     ) {
         int holdersVisited = 0;
         int forgeHoldersVisited = 0;
@@ -123,6 +128,9 @@ public final class ObjectHolderRedundantCallbackPruner {
         int overrideCallbacksRetained = 0;
         int safetyCallbacksRetained = 0;
         int failures = 0;
+        // This synchronous pass removes callbacks, never mutates registries.
+        // Do not retain these snapshots across registry remaps or world joins.
+        OverrideOwnerLookup ownerLookup = new OverrideOwnerLookup(overrideOwners, streamlined);
 
         Iterator<?> iterator = holders.iterator();
         while (iterator.hasNext()) {
@@ -133,20 +141,36 @@ public final class ObjectHolderRedundantCallbackPruner {
             }
             forgeHoldersVisited++;
             try {
+                boolean valid = holderValidField.getBoolean(handler);
+                if (streamlined && !valid) {
+                    safetyCallbacksRetained++;
+                    continue;
+                }
                 ForgeRegistry<?> registry = (ForgeRegistry<?>)
                         holderRegistryField.get(handler);
                 ResourceLocation key = (ResourceLocation)
                         holderKeyField.get(handler);
-                Field target = (Field) holderTargetField.get(handler);
-                boolean valid = holderValidField.getBoolean(handler);
-                Map<?, ?> owners = overrideOwners(registry, overrideOwners);
+                if (streamlined && (registry == null || key == null)) {
+                    safetyCallbacksRetained++;
+                    continue;
+                }
+                Map<?, ?> owners = ownerLookup.get(registry);
                 boolean hasOverrideCandidates = owners != null
                         && owners.containsKey(key);
+                if (streamlined && hasOverrideCandidates) {
+                    overrideCallbacksRetained++;
+                    continue;
+                }
                 boolean containsKey = registry != null
                         && key != null
                         && registry.containsKey(key);
                 boolean dummied = containsKey
                         && Boolean.TRUE.equals(isDummied.invoke(registry, key));
+                if (streamlined && (!containsKey || dummied)) {
+                    safetyCallbacksRetained++;
+                    continue;
+                }
+                Field target = (Field) holderTargetField.get(handler);
                 boolean targetMatches = registry != null
                         && key != null
                         && target != null
@@ -187,20 +211,29 @@ public final class ObjectHolderRedundantCallbackPruner {
         );
     }
 
-    private static Map<?, ?> overrideOwners(
-            ForgeRegistry<?> registry,
-            Method overrideOwners
-    ) throws ReflectiveOperationException {
-        if (registry == null) {
-            return null;
+    /** Pass-local, identity keyed, and failed lookups never become empty snapshots. */
+    static final class OverrideOwnerLookup {
+        private final Method method;
+        private final boolean reuse;
+        private final Map<Object, Map<?, ?>> snapshots = new IdentityHashMap<>();
+
+        OverrideOwnerLookup(Method method, boolean reuse) {
+            this.method = method;
+            this.reuse = reuse;
         }
-        Object ownersValue = overrideOwners.invoke(registry);
-        if (!(ownersValue instanceof Map<?, ?> owners)) {
-            throw new ReflectiveOperationException(
-                    "ForgeRegistry#getOverrideOwners did not return a map"
-            );
+
+        Map<?, ?> get(Object registry) throws ReflectiveOperationException {
+            if (registry == null) return null;
+            Map<?, ?> cached = reuse ? snapshots.get(registry) : null;
+            if (cached != null) return cached;
+            Object value = method.invoke(registry);
+            if (!(value instanceof Map<?, ?> owners)) {
+                throw new ReflectiveOperationException(
+                        "ForgeRegistry#getOverrideOwners did not return a map");
+            }
+            if (reuse) snapshots.put(registry, owners);
+            return owners;
         }
-        return owners;
     }
 
     static boolean safeToRemove(Eligibility eligibility) {

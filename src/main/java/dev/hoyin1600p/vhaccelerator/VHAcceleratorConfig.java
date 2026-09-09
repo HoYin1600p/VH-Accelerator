@@ -26,6 +26,7 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue debug;
         public final ForgeConfigSpec.BooleanValue jeiRecipeAudit;
         public final ForgeConfigSpec.BooleanValue enableCommonOptimizations;
+        public final ForgeConfigSpec.BooleanValue streamlineObjectHolderCleanup;
         public final ForgeConfigSpec.BooleanValue parallelReloadPreparation;
         public final ForgeConfigSpec.BooleanValue skipRedundantRegistryValidation;
         public final ForgeConfigSpec.BooleanValue skipRegistryDump;
@@ -84,6 +85,13 @@ public final class VHAcceleratorConfig {
             enableCommonOptimizations = builder
                     .comment("Master switch for optimizations that are safe on both client and dedicated server.")
                     .define("enableCommonOptimizations", true);
+            streamlineObjectHolderCleanup = builder
+                    .comment(
+                            "Refines redundant object-holder cleanup with early safety exits and",
+                            "one override-owner snapshot per registry during the cleanup pass.",
+                            "Requires the object-holder cleanup backport. Disable for its original",
+                            "per-holder checks. Restart required; does not change removal eligibility.")
+                    .define("streamlineObjectHolderCleanup", true);
             parallelReloadPreparation = builder
                     .comment(
                             "Uses an instrumented preparation barrier for resource reload listeners.",

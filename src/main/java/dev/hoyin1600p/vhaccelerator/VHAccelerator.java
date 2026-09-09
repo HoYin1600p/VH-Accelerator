@@ -122,7 +122,8 @@ public final class VHAccelerator {
 
     private void removeRedundantObjectHolderCallbacks() {
         ObjectHolderRedundantCallbackPruner.Statistics statistics =
-                ObjectHolderRedundantCallbackPruner.pruneForgeHolders();
+                ObjectHolderRedundantCallbackPruner.pruneForgeHolders(
+                        VHAcceleratorConfig.COMMON.streamlineObjectHolderCleanup.get());
         if (!statistics.available()) {
             LOGGER.warn(
                     "Forge redundant object-holder cleanup could not be initialized"
