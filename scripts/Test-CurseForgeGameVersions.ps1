@@ -1,12 +1,12 @@
 [CmdletBinding()]
 param(
-    [string[]]$GameVersionIds = @('9016', '8326', '7498', '9638')
+    [string[]]$GameVersionIds = @('9008', '8326', '7498', '9638')
 )
 
 $ErrorActionPreference = 'Stop'
 
 $requiredTypes = [ordered]@{
-    '1' = 'Minecraft'
+    '73250' = 'Minecraft 1.18'
     '2' = 'Java'
     '68441' = 'Modloader'
     '75208' = 'Environment'

@@ -25,9 +25,9 @@
         "gameVersions": ["Minecraft 1.18.2", "Java 17"],
         "loaders": ["Forge"],
         "environment": ["Client"],
-        "curseForgeGameVersionIds": ["9016", "8326", "7498", "9638"],
+        "curseForgeGameVersionIds": ["9008", "8326", "7498", "9638"],
         "curseForgeGameVersionTypes": [
-          {"name": "Minecraft", "id": "1"},
+          {"name": "Minecraft 1.18", "id": "73250"},
           {"name": "Java", "id": "2"},
           {"name": "Modloader", "id": "68441"},
           {"name": "Environment", "id": "75208"}

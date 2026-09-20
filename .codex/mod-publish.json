@@ -35,9 +35,9 @@
     "uploadCommand": ".\\scripts\\Publish-CurseForge.ps1",
     "uploadDryRunCommand": ".\\scripts\\Publish-CurseForge.ps1 -DryRun",
     "catalogValidationCommand": ".\\scripts\\Test-CurseForgeGameVersions.ps1",
-    "gameVersionIds": ["9016", "8326", "7498", "9638"],
+    "gameVersionIds": ["9008", "8326", "7498", "9638"],
     "requiredGameVersionTypes": [
-      {"name": "Minecraft", "id": "1"},
+      {"name": "Minecraft 1.18", "id": "73250"},
       {"name": "Java", "id": "2"},
       {"name": "Modloader", "id": "68441"},
       {"name": "Environment", "id": "75208"}

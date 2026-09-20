@@ -5,7 +5,7 @@ param(
     [string]$ChangelogPath,
     [string]$DisplayName = 'VH Accelerator 1.0.14',
     [string]$ProjectId = '1629601',
-    [string[]]$GameVersionIds = @('9016', '8326', '7498', '9638')
+    [string[]]$GameVersionIds = @('9008', '8326', '7498', '9638')
 )
 
 $ErrorActionPreference = 'Stop'
