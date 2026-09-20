@@ -1,6 +1,15 @@
 # Changelog
 
-## 1.0.14 development - recipe lab stage one
+All notable changes to VH Accelerator are recorded here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [1.0.14] - 2026-09-20
+
+### Recipe lookup groundwork
 
 - Added the default-off `fasterIngredientTagLookups` backport experiment.
   Single vanilla tag ingredients can test membership and derive sorted stacking
@@ -10,13 +19,6 @@
 - This first stage deliberately leaves `Ingredient#getItems()`, JEI ingredient
   arrays, VHA recipe fingerprints, and custom ingredient implementations
   unchanged.
-
-All notable changes to VH Accelerator are recorded here.
-
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
 
 ### Object-holder cleanup refinement
 

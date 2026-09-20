@@ -7,9 +7,11 @@ VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
 work on the client-launch and multiplayer-login critical paths, with a focus on
 large Vault Hunters Third Edition and Remastered packs.
 
-The current 1.0.13 release supports Wolds Vaults 0.32.2 and 0.33.0 and includes
-the compatibility, startup-reliability, texture-safety, JEI recovery, and JEI
-recipe-cache correctness work added since the original 1.0.0 release.
+The current 1.0.14 release supports Wolds Vaults 0.32.2 and 0.33.0 and adds a
+broad launch, memory, allocation, and correctness pass adapted from newer
+ModernFix work. It also includes the compatibility, startup-reliability,
+texture-safety, JEI recovery, and JEI recipe-cache correctness work added since
+the original 1.0.0 release.
 
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
@@ -68,6 +70,13 @@ activate only when the matching mod and supported class layout are present.
 - Reduced speculative client data-migration warm-up, accelerated Vault's
   tiered-loot setup, and added safe learned table sizing when FerriteCore is
   installed.
+- Reduced repeated Forge registry, resource-pack, language, ingredient,
+  world-generation, and allocation work through guarded ModernFix-derived
+  backports.
+- Lowered normal-play diagnostic overhead by omitting diagnostic-only mixins
+  when debug mode is disabled at startup.
+- Corrected unsafe Target Dummy dispenser registration for the supported
+  `1.18-1.5.2` build without affecting packs where that mod is absent.
 
 ## Compatibility
 
@@ -94,7 +103,7 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.13.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.0.14.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
