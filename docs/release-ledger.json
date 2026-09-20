@@ -4,7 +4,7 @@
     {
       "version": "1.0.14",
       "tag": "v1.0.14",
-      "state": "awaiting_approval",
+      "state": "public_verified",
       "releaseCommit": "f72bcb049af57f93a827388ed11224640e09537e",
       "jar": {
         "filename": "VH-Accelerator-1.0.14.jar",
@@ -17,7 +17,7 @@
       "curseforge": {
         "projectId": "1629601",
         "fileId": "8934257",
-        "fileUrl": null,
+        "fileUrl": "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator/files/8934257",
         "manualRelease": false
       },
       "compatibility": {
@@ -42,16 +42,16 @@
       "monitor": {
         "mode": "manual-public-file-verification",
         "workflowRunUrl": null,
-        "lastCheckedAt": null,
+        "lastCheckedAt": "2026-09-20T23:19:33.4214065Z",
         "attentionAfter": "2026-09-23T20:08:00.7268073Z"
       },
       "timestamps": {
         "preparedAt": "2026-09-20T19:58:47Z",
         "submittedAt": "2026-09-20T20:08:00.7268073Z",
-        "publicVerifiedAt": null,
+        "publicVerifiedAt": "2026-09-20T23:19:33.4214065Z",
         "activatedAt": null
       },
-      "statusNote": "CurseForge file 8934257 submitted for moderation. Manual public-file verification remains required before update.json activation; production update.json remains on 1.0.13."
+      "statusNote": "CurseForge file 8934257 is public and verified. Public metadata, compatibility, changelog link, filename, size, and SHA-256 match the recorded 1.0.14 release; update.json activation is pending."
     }
   ]
 }
