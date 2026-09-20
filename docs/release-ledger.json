@@ -4,19 +4,19 @@
     {
       "version": "1.0.14",
       "tag": "v1.0.14",
-      "state": "prepared",
-      "releaseCommit": null,
+      "state": "awaiting_approval",
+      "releaseCommit": "f72bcb049af57f93a827388ed11224640e09537e",
       "jar": {
         "filename": "VH-Accelerator-1.0.14.jar",
-        "size": null,
-        "sha256": null
+        "size": 909540,
+        "sha256": "80b861f69e7ff0a46867543263861ddc999402e66970e79392465b9774bad56c"
       },
       "github": {
         "releaseUrl": "https://github.com/HoYin1600p/VH-Accelerator/releases/tag/v1.0.14"
       },
       "curseforge": {
         "projectId": "1629601",
-        "fileId": null,
+        "fileId": "8934257",
         "fileUrl": null,
         "manualRelease": false
       },
@@ -43,15 +43,15 @@
         "mode": "manual-public-file-verification",
         "workflowRunUrl": null,
         "lastCheckedAt": null,
-        "attentionAfter": null
+        "attentionAfter": "2026-09-23T20:08:00.7268073Z"
       },
       "timestamps": {
         "preparedAt": "2026-09-20T19:58:47Z",
-        "submittedAt": null,
+        "submittedAt": "2026-09-20T20:08:00.7268073Z",
         "publicVerifiedAt": null,
         "activatedAt": null
       },
-      "statusNote": "Prepared during migration from the legacy manual release workflow. Production update.json remains on 1.0.13 until the CurseForge file is public and verified."
+      "statusNote": "CurseForge file 8934257 submitted for moderation. Manual public-file verification remains required before update.json activation; production update.json remains on 1.0.13."
     }
   ]
 }
