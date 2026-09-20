@@ -4,7 +4,7 @@
     {
       "version": "1.0.14",
       "tag": "v1.0.14",
-      "state": "public_verified",
+      "state": "activated",
       "releaseCommit": "f72bcb049af57f93a827388ed11224640e09537e",
       "jar": {
         "filename": "VH-Accelerator-1.0.14.jar",
@@ -49,9 +49,9 @@
         "preparedAt": "2026-09-20T19:58:47Z",
         "submittedAt": "2026-09-20T20:08:00.7268073Z",
         "publicVerifiedAt": "2026-09-20T23:19:33.4214065Z",
-        "activatedAt": null
+        "activatedAt": "2026-09-20T23:20:43.6577727Z"
       },
-      "statusNote": "CurseForge file 8934257 is public and verified. Public metadata, compatibility, changelog link, filename, size, and SHA-256 match the recorded 1.0.14 release; update.json activation is pending."
+      "statusNote": "CurseForge file 8934257 is public and verified. Production update.json now advertises 1.0.14 with the non-critical Launch and Runtime Improvements message."
     }
   ]
 }
