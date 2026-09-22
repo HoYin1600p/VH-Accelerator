@@ -12,6 +12,9 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -38,6 +41,13 @@ import java.util.function.Supplier;
  * thread. A lookup of an unbaked key from any other thread returns the
  * fallback without baking or caching it, so a later bake-thread lookup still
  * bakes the real model.
+ *
+ * <p>Reads share a read lock, so parallel eager lookups never serialize.
+ * Mutations, bakes and compound view operations take the write lock. A
+ * lookup that must bake releases its read lock before taking the write lock
+ * and then re-evaluates the key, since the state may have changed between.
+ * The bake thread holds the write lock while baking, so its reentrant
+ * lookups and writes still reach the map.
  */
 public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         implements StructurallyVersioned {
@@ -45,6 +55,12 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         void failed(K key, Throwable failure);
     }
 
+    /** Marks a lookup that the read lock alone cannot answer. */
+    private static final Object UNRESOLVED = new Object();
+
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
     private final Map<K, V> eager;
     private final Set<K> deferred;
     private final Map<K, V> resolved = new HashMap<>();
@@ -57,8 +73,9 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     private long ownVersion;
     private int bakedOnDemand;
     private int failedBakes;
-    private int retiredLookups;
-    private int offThreadLookups;
+    // Also counted by concurrent readers holding only the read lock.
+    private final AtomicInteger retiredLookups = new AtomicInteger();
+    private final AtomicInteger offThreadLookups = new AtomicInteger();
 
     public DeferredModelRegistry(
             Map<K, V> eager,
@@ -93,80 +110,144 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     }
 
     @Override
-    public synchronized int size() {
-        return eager.size() + deferred.size();
+    public int size() {
+        readLock.lock();
+        try {
+            return eager.size() + deferred.size();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
-    public synchronized boolean isEmpty() {
-        return eager.isEmpty() && deferred.isEmpty();
+    public boolean isEmpty() {
+        readLock.lock();
+        try {
+            return eager.isEmpty() && deferred.isEmpty();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
-    public synchronized boolean containsKey(Object key) {
-        return eager.containsKey(key) || deferred.contains(key);
+    public boolean containsKey(Object key) {
+        readLock.lock();
+        try {
+            return eager.containsKey(key) || deferred.contains(key);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
-    @SuppressWarnings("unchecked") // Only keys accepted into the deferred set reach resolve.
-    public synchronized V get(Object key) {
+    public V get(Object key) {
+        return lookup(key, null, false);
+    }
+
+    @Override
+    public V getOrDefault(Object key, V defaultValue) {
+        return lookup(key, defaultValue, true);
+    }
+
+    @SuppressWarnings("unchecked") // Only peek's own answers and UNRESOLVED.
+    private V lookup(Object key, V absent, boolean absentWhileBaking) {
+        Object value;
+        readLock.lock();
+        try {
+            value = peek(key, absent, absentWhileBaking);
+        } finally {
+            readLock.unlock();
+        }
+        if (value != UNRESOLVED) {
+            return (V) value;
+        }
+        // Never upgrade a held read lock; re-evaluate under the write lock.
+        writeLock.lock();
+        try {
+            value = peek(key, absent, absentWhileBaking);
+            return value != UNRESOLVED ? (V) value : resolve((K) key);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    /**
+     * Answers a lookup that needs no bake, or returns {@link #UNRESOLVED}.
+     * Requires either lock; only atomic counters change.
+     */
+    private Object peek(Object key, V absent, boolean absentWhileBaking) {
         V value = eager.get(key);
         if (value != null || eager.containsKey(key)) {
             return value;
         }
-        if (!deferred.contains(key)) {
-            return null;
+        if (!deferred.contains(key)
+                || absentWhileBaking && baking.contains(key)) {
+            return absent;
         }
-        return resolve((K) key);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public synchronized V getOrDefault(Object key, V defaultValue) {
-        V value = eager.get(key);
-        if (value != null || eager.containsKey(key)) {
+        value = resolved.get(key);
+        if (value != null || resolved.containsKey(key)) {
             return value;
         }
-        if (!deferred.contains(key) || baking.contains(key)) {
-            return defaultValue;
+        if (baker == null) {
+            retiredLookups.incrementAndGet();
+            return fallback;
         }
-        return resolve((K) key);
+        if (!bakeThread.getAsBoolean()) {
+            // The bakery is not thread-safe; leave the key for the bake thread.
+            offThreadLookups.incrementAndGet();
+            return fallback;
+        }
+        return UNRESOLVED;
+    }
+
+    @Override
+    public V put(K key, V value) {
+        writeLock.lock();
+        try {
+            if (deferred.contains(key)) {
+                // Map#put returns the previous logical value, which may need a bake.
+                V previous = resolve(key);
+                resolved.put(key, value);
+                return previous;
+            }
+            return eager.put(key, value);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public synchronized V put(K key, V value) {
-        if (deferred.contains(key)) {
-            // Map#put returns the previous logical value, which may need a bake.
-            V previous = resolve(key);
-            resolved.put(key, value);
+    public V remove(Object key) {
+        writeLock.lock();
+        try {
+            if (eager.containsKey(key)) {
+                return eager.remove(key);
+            }
+            if (!deferred.contains(key)) {
+                return null;
+            }
+            V previous = resolve((K) key);
+            removeDeferred(key);
             return previous;
+        } finally {
+            writeLock.unlock();
         }
-        return eager.put(key, value);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public synchronized V remove(Object key) {
-        if (eager.containsKey(key)) {
-            return eager.remove(key);
+    public void clear() {
+        writeLock.lock();
+        try {
+            eager.clear();
+            if (!deferred.isEmpty()) {
+                deferred.clear();
+                ownVersion++;
+            }
+            resolved.clear();
+        } finally {
+            writeLock.unlock();
         }
-        if (!deferred.contains(key)) {
-            return null;
-        }
-        V previous = resolve((K) key);
-        removeDeferred(key);
-        return previous;
-    }
-
-    @Override
-    public synchronized void clear() {
-        eager.clear();
-        if (!deferred.isEmpty()) {
-            deferred.clear();
-            ownVersion++;
-        }
-        resolved.clear();
     }
 
     /**
@@ -174,81 +255,130 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
      * version. An unversioned eager map makes the whole registry unversioned.
      */
     @Override
-    public synchronized long structuralVersion() {
-        if (!(eager instanceof StructurallyVersioned versioned)) {
-            return -1;
+    public long structuralVersion() {
+        readLock.lock();
+        try {
+            if (!(eager instanceof StructurallyVersioned versioned)) {
+                return -1;
+            }
+            long eagerVersion = versioned.structuralVersion();
+            return eagerVersion < 0 ? -1 : eagerVersion + ownVersion;
+        } finally {
+            readLock.unlock();
         }
-        long eagerVersion = versioned.structuralVersion();
-        return eagerVersion < 0 ? -1 : eagerVersion + ownVersion;
     }
 
-    /** Stops all future bakes; called before the owning atlases close. */
-    public synchronized void retire() {
-        baker = null;
+    /**
+     * Stops all future bakes; called before the owning atlases close. Waits
+     * for any bake in progress on another thread to finish first.
+     */
+    public void retire() {
+        writeLock.lock();
+        try {
+            baker = null;
+        } finally {
+            writeLock.unlock();
+        }
     }
 
-    public synchronized boolean isRetired() {
-        return baker == null;
+    public boolean isRetired() {
+        readLock.lock();
+        try {
+            return baker == null;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /** True when reading {@code key} would bake a model now. */
-    public synchronized boolean isUnresolvedDeferred(Object key) {
-        return baker != null
-                && deferred.contains(key)
-                && !resolved.containsKey(key);
+    public boolean isUnresolvedDeferred(Object key) {
+        readLock.lock();
+        try {
+            return baker != null
+                    && deferred.contains(key)
+                    && !resolved.containsKey(key);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /** True for a present deferred key, whether or not it has baked. */
-    public synchronized boolean isDeferred(Object key) {
-        return deferred.contains(key);
+    public boolean isDeferred(Object key) {
+        readLock.lock();
+        try {
+            return deferred.contains(key);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /**
      * Present deferred keys whose value has never been read or replaced.
      * Constant time; resolved values are always a subset of deferred keys.
      */
-    public synchronized int unresolvedDeferred() {
-        return deferred.size() - resolved.size();
+    public int unresolvedDeferred() {
+        readLock.lock();
+        try {
+            return deferred.size() - resolved.size();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /** Deferred keys removed by callers since construction. */
-    public synchronized int removedDeferred() {
-        return initialDeferred - deferred.size();
+    public int removedDeferred() {
+        readLock.lock();
+        try {
+            return initialDeferred - deferred.size();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public int initialDeferred() {
         return initialDeferred;
     }
 
-    public synchronized int bakedOnDemand() {
-        return bakedOnDemand;
+    public int bakedOnDemand() {
+        readLock.lock();
+        try {
+            return bakedOnDemand;
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public synchronized int failedBakes() {
-        return failedBakes;
+    public int failedBakes() {
+        readLock.lock();
+        try {
+            return failedBakes;
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public synchronized int retiredLookups() {
-        return retiredLookups;
+    public int retiredLookups() {
+        return retiredLookups.get();
     }
 
     /** Unbaked-key lookups answered with the fallback off the bake thread. */
-    public synchronized int offThreadLookups() {
-        return offThreadLookups;
+    public int offThreadLookups() {
+        return offThreadLookups.get();
     }
 
+    /** Requires the write lock: it may bake and mutate. */
     private V resolve(K key) {
         if (resolved.containsKey(key)) {
             return resolved.get(key);
         }
         Function<? super K, ? extends V> activeBaker = baker;
         if (activeBaker == null) {
-            retiredLookups++;
+            retiredLookups.incrementAndGet();
             return fallback;
         }
         if (!bakeThread.getAsBoolean()) {
             // The bakery is not thread-safe; leave the key for the bake thread.
-            offThreadLookups++;
+            offThreadLookups.incrementAndGet();
             return fallback;
         }
         if (!baking.add(key)) {
@@ -306,11 +436,14 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
 
         @Override
         public V setValue(V value) {
-            synchronized (DeferredModelRegistry.this) {
+            writeLock.lock();
+            try {
                 if (!containsKey(key)) {
                     throw new IllegalStateException("Model entry was removed");
                 }
                 return put(key, value);
+            } finally {
+                writeLock.unlock();
             }
         }
 
@@ -365,7 +498,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
             if (!removable) {
                 throw new IllegalStateException();
             }
-            synchronized (DeferredModelRegistry.this) {
+            writeLock.lock();
+            try {
                 if (lastDeferred) {
                     deferredKeys.remove();
                     resolved.remove(last);
@@ -373,6 +507,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 } else {
                     eagerKeys.remove();
                 }
+            } finally {
+                writeLock.unlock();
             }
             removable = false;
         }
@@ -393,7 +529,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
 
             @Override
             public boolean remove(Object key) {
-                synchronized (DeferredModelRegistry.this) {
+                writeLock.lock();
+                try {
                     if (!containsKey(key)) {
                         return false;
                     }
@@ -403,6 +540,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                         removeDeferred(key);
                     }
                     return true;
+                } finally {
+                    writeLock.unlock();
                 }
             }
 
@@ -431,18 +570,23 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 if (!(candidate instanceof Map.Entry<?, ?> entry)) {
                     return false;
                 }
-                synchronized (DeferredModelRegistry.this) {
+                // Write lock, not read: get may bake, and a read lock cannot upgrade.
+                writeLock.lock();
+                try {
                     return containsKey(entry.getKey())
                             && Objects.equals(
                                     get(entry.getKey()),
                                     entry.getValue()
                             );
+                } finally {
+                    writeLock.unlock();
                 }
             }
 
             @Override
             public boolean remove(Object candidate) {
-                synchronized (DeferredModelRegistry.this) {
+                writeLock.lock();
+                try {
                     if (!contains(candidate)) {
                         return false;
                     }
@@ -450,6 +594,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                             ((Map.Entry<?, ?>) candidate).getKey()
                     );
                     return true;
+                } finally {
+                    writeLock.unlock();
                 }
             }
 
