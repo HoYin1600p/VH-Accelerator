@@ -269,6 +269,10 @@ This option alone does not enable profiling. Both it and
 `vhaccelerator-common.toml`'s `diagnostics.debug` must be `true` when the JVM
 starts. Restart after changing the common debug setting.
 
+During model baking, debug mode also prints a dynamic-loading candidate
+census. Its ordinary/reserved counts are an upper-bound research aid, not a
+dynamic-loading feature; VHA still loads and bakes models normally.
+
 ## Cache location and invalidation
 
 Persistent files are written beneath `cache/vhaccelerator/`. Different cache

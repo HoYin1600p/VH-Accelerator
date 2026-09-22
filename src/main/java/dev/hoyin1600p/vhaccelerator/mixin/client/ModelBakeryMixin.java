@@ -9,6 +9,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -400,6 +401,10 @@ public abstract class ModelBakeryMixin {
         });
         vhaccelerator$sequentialModels = Collections.unmodifiableSet(sequential);
         vhaccelerator$modelSafetyEvaluated = true;
+        DynamicModelLoadingAudit.report(
+                topLevelModels,
+                vhaccelerator$sequentialModels
+        );
     }
 
     @Unique

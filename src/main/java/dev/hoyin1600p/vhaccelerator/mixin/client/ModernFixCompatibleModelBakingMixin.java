@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -172,6 +173,10 @@ public abstract class ModernFixCompatibleModelBakingMixin {
         });
         vhaccelerator$sequentialModels =
                 Collections.unmodifiableSet(sequential);
+        DynamicModelLoadingAudit.report(
+                topLevelModels,
+                vhaccelerator$sequentialModels
+        );
     }
 
     @Unique
