@@ -491,17 +491,30 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
      * table while the owner (render) thread adds entries. Only the owner
      * thread caches a resolved item; another thread receives the registry's
      * value, which is the fallback when the model has not baked yet, and
-     * leaves the item pending. Pending items are present for
-     * {@code containsKey} but are not iterated and report no previous value on
-     * {@code put}, so neither ever bakes. Values may be {@code null}, as in
-     * Forge's {@code HashMap}; keys may not.
+     * leaves the item pending.
+     *
+     * <p>A pending item is stored in the same map as cached items, under a
+     * {@link Pending} marker that the owner thread atomically replaces with
+     * the baked model. {@code containsKey}, {@code size}, {@code keySet} and
+     * {@code entrySet} therefore always describe one key set, even while an
+     * item resolves, and enumerating them never bakes. An entry's value is
+     * read live and resolves only that item. Writes and removals that replace
+     * a pending item report no previous value, so they never bake either.
+     * Values may be {@code null}, as in Forge's {@code HashMap}; keys may not.
      */
     public static final class ItemCache<I, L, V> extends AbstractMap<I, V> {
         private static final Object NULL = new Object();
 
+        /** Identity-compared, so a replaced marker is never resolved twice. */
+        private static final class Pending<T> {
+            private final T location;
+
+            private Pending(T location) {
+                this.location = location;
+            }
+        }
+
         private final ConcurrentHashMap<I, Object> storage =
-                new ConcurrentHashMap<>();
-        private final ConcurrentHashMap<I, L> pending =
                 new ConcurrentHashMap<>();
         private final Supplier<? extends V> missing;
         private final BooleanSupplier ownerThread;
@@ -532,10 +545,9 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
 
         /** Drops any cached model for {@code item} until it is next read. */
         public void defer(I item, L location) {
-            // Pend before dropping the old model so readers always see one.
-            pending.put(Objects.requireNonNull(item),
-                    Objects.requireNonNull(location));
-            storage.remove(item);
+            // One atomic swap, so readers always see a model or the marker.
+            storage.put(Objects.requireNonNull(item),
+                    new Pending<>(Objects.requireNonNull(location)));
         }
 
         /**
@@ -551,35 +563,37 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         }
 
         public boolean isPending(Object item) {
-            return item != null && pending.containsKey(item);
+            return item != null && storage.get(item) instanceof Pending<?>;
         }
 
+        /** Diagnostic scan; linear in the number of items. */
         public int pendingCount() {
-            return pending.size();
+            int count = 0;
+            for (Object stored : storage.values()) {
+                if (stored instanceof Pending<?>) {
+                    count++;
+                }
+            }
+            return count;
         }
 
         @Override
+        @SuppressWarnings("unchecked") // Only defer creates markers.
         public V get(Object item) {
             if (item == null) {
                 return null;
             }
             Object stored = storage.get(item);
-            if (stored != null) {
-                return unmask(stored);
+            if (stored instanceof Pending<?> marker) {
+                return resolve(item, (Pending<L>) marker);
             }
-            L location = pending.get(item);
-            if (location == null) {
-                // The owner thread may have cached it since the first read.
-                stored = storage.get(item);
-                return stored == null ? null : unmask(stored);
-            }
-            return resolve(item, location);
+            return previousValue(stored);
         }
 
         @SuppressWarnings("unchecked") // Only accepted keys become pending.
-        private V resolve(Object item, L location) {
+        private V resolve(Object item, Pending<L> marker) {
             DeferredModelRegistry<L, V> source = registry;
-            V model = source == null ? null : source.get(location);
+            V model = source == null ? null : source.get(marker.location);
             if (model == null) {
                 // Released for reload, a reentrant bake, or a removed key.
                 return missing.get();
@@ -587,50 +601,80 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
             if (!ownerThread.getAsBoolean() || source.isRetired()) {
                 return model;
             }
-            // A reentrant put during the bake already replaced this item.
-            // Store before unpending so concurrent readers always see one.
-            if (location.equals(pending.get(item))) {
-                storage.put((I) item, mask(model));
-                pending.remove(item, location);
-            }
+            // Fails if a reentrant put or defer already replaced this marker.
+            storage.replace((I) item, marker, mask(model));
             return model;
         }
 
         @Override
         public boolean containsKey(Object item) {
-            return item != null
-                    && (storage.containsKey(item) || pending.containsKey(item));
+            return item != null && storage.containsKey(item);
         }
 
+        @Override
+        public boolean isEmpty() {
+            return storage.isEmpty();
+        }
+
+        /** A replaced pending item reports no previous value. */
         @Override
         public V put(I item, V value) {
-            Object previous = storage.put(
+            return previousValue(storage.put(
                     Objects.requireNonNull(item),
                     mask(value)
-            );
-            pending.remove(item);
-            return previous == null ? null : unmask(previous);
+            ));
         }
 
+        /** A removed pending item reports no previous value. */
         @Override
         public V remove(Object item) {
-            if (item == null) {
-                return null;
-            }
-            pending.remove(item);
-            Object previous = storage.remove(item);
-            return previous == null ? null : unmask(previous);
+            return item == null ? null : previousValue(storage.remove(item));
         }
 
         @Override
         public void clear() {
-            pending.clear();
             storage.clear();
         }
 
         @Override
         public int size() {
             return storage.size();
+        }
+
+        @Override
+        public Set<I> keySet() {
+            return new AbstractSet<>() {
+                @Override
+                public int size() {
+                    return storage.size();
+                }
+
+                @Override
+                public boolean isEmpty() {
+                    return storage.isEmpty();
+                }
+
+                @Override
+                public boolean contains(Object item) {
+                    return containsKey(item);
+                }
+
+                @Override
+                public boolean remove(Object item) {
+                    return item != null && storage.remove(item) != null;
+                }
+
+                @Override
+                public void clear() {
+                    storage.clear();
+                }
+
+                @Override
+                public Iterator<I> iterator() {
+                    // Weakly consistent, as for any concurrent map; no bakes.
+                    return storage.keySet().iterator();
+                }
+            };
         }
 
         @Override
@@ -642,23 +686,56 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 }
 
                 @Override
+                public boolean isEmpty() {
+                    return storage.isEmpty();
+                }
+
+                @Override
+                public boolean contains(Object candidate) {
+                    return candidate instanceof Map.Entry<?, ?> entry
+                            && containsKey(entry.getKey())
+                            && Objects.equals(
+                                    get(entry.getKey()),
+                                    entry.getValue()
+                            );
+                }
+
+                @Override
+                public boolean remove(Object candidate) {
+                    if (!(candidate instanceof Map.Entry<?, ?> entry)
+                            || entry.getKey() == null) {
+                        return false;
+                    }
+                    // Reads, and so may resolve, only this entry's item.
+                    V current = get(entry.getKey());
+                    Object stored = storage.get(entry.getKey());
+                    return stored != null
+                            && Objects.equals(current, entry.getValue())
+                            && storage.remove(entry.getKey(), stored);
+                }
+
+                @Override
+                public void clear() {
+                    storage.clear();
+                }
+
+                @Override
                 public Iterator<Map.Entry<I, V>> iterator() {
-                    Iterator<Map.Entry<I, Object>> entries =
-                            storage.entrySet().iterator();
+                    Iterator<I> keys = storage.keySet().iterator();
                     return new Iterator<>() {
                         @Override
                         public boolean hasNext() {
-                            return entries.hasNext();
+                            return keys.hasNext();
                         }
 
                         @Override
                         public Map.Entry<I, V> next() {
-                            return new CachedEntry(entries.next());
+                            return new LiveEntry(keys.next());
                         }
 
                         @Override
                         public void remove() {
-                            entries.remove();
+                            keys.remove();
                         }
                     };
                 }
@@ -674,26 +751,48 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
             return value == NULL ? null : (V) value;
         }
 
-        private final class CachedEntry implements Map.Entry<I, V> {
-            private final Map.Entry<I, Object> entry;
+        /** Absent or pending previous values read as null, never baking. */
+        private V previousValue(Object stored) {
+            return stored == null || stored instanceof Pending<?>
+                    ? null
+                    : unmask(stored);
+        }
 
-            private CachedEntry(Map.Entry<I, Object> entry) {
-                this.entry = entry;
+        /**
+         * Reads its item's current value on demand, so iterating entries
+         * never bakes and reading one resolves only that item.
+         */
+        private final class LiveEntry implements Map.Entry<I, V> {
+            private final I item;
+
+            private LiveEntry(I item) {
+                this.item = item;
             }
 
             @Override
             public I getKey() {
-                return entry.getKey();
+                return item;
             }
 
             @Override
             public V getValue() {
-                return unmask(entry.getValue());
+                return get(item);
             }
 
+            /** Replaces a pending item without baking its old model. */
             @Override
             public V setValue(V value) {
-                return unmask(entry.setValue(mask(value)));
+                Object masked = mask(value);
+                while (true) {
+                    Object stored = storage.get(item);
+                    if (stored == null) {
+                        throw new IllegalStateException(
+                                "Item model entry was removed");
+                    }
+                    if (storage.replace(item, stored, masked)) {
+                        return previousValue(stored);
+                    }
+                }
             }
 
             @Override
