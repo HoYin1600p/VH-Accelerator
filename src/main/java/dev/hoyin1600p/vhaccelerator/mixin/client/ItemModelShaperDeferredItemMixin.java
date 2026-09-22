@@ -9,7 +9,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Resolves an item left uncached for a deferred bake through the registry. */
+/**
+ * Stack-lookup safety net for deferred item models. Forge's item cache
+ * normally resolves them itself, for this and the direct {@code Item}
+ * overload; this only matters if another mod displaced that cache.
+ */
 @Mixin(ItemModelShaper.class)
 public abstract class ItemModelShaperDeferredItemMixin {
     @Inject(

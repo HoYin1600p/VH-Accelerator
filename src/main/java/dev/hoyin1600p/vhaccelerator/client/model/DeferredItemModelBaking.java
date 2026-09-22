@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -31,9 +32,10 @@ import net.minecraftforge.fml.ModList;
  * eagerly before atlas stitching, and a deferred graph must be fully present
  * in the bakery's unbaked cache. A deferred model bakes only when a consumer
  * reads it, which may be during in-world rendering; there is no title-screen
- * warmup and no drain on level join or dimension change. The registry is
- * retired at the start of the next {@code ModelManager#apply}, before the
- * atlases it bakes against close.
+ * warmup and no drain on level join or dimension change. Bakes run only on
+ * the render thread; other threads read the missing model for an unbaked
+ * item. The registry is retired at the start of the next
+ * {@code ModelManager#apply}, before the atlases it bakes against close.
  */
 public final class DeferredItemModelBaking {
     private static final Set<String> EAGER_NAMESPACES = Set.of(
@@ -46,8 +48,11 @@ public final class DeferredItemModelBaking {
     private static volatile DeferredModelRegistry<ResourceLocation, BakedModel> current;
     /** Debug diagnostics for {@link #current}; null whenever debug is off. */
     private static volatile DeferredItemModelDiagnostics diagnostics;
-    /** False while Forge's item cache omits unresolved deferred items. */
+    /** False while Forge's item cache holds unresolved deferred items. */
     private static volatile boolean itemCacheComplete = true;
+    /** Installed in place of Forge's item model map; outlives registries. */
+    private static volatile DeferredModelRegistry.ItemCache<
+            Object, ResourceLocation, BakedModel> itemCache;
     private static Field locationsField;
     private static Field modelsField;
     private static boolean itemCacheReflectionFailed;
@@ -76,7 +81,19 @@ public final class DeferredItemModelBaking {
         return itemRenderer != null
                 && itemRenderer.getItemModelShaper()
                         instanceof ItemModelMesherForge
-                && itemCacheFieldsAvailable();
+                && itemCacheFieldsAvailable()
+                && itemCacheReplaceable(itemRenderer.getItemModelShaper());
+    }
+
+    /** Only Forge's own map, or our cache already in its place, is replaced. */
+    private static boolean itemCacheReplaceable(ItemModelShaper shaper) {
+        try {
+            Object models = modelsField.get(shaper);
+            return models instanceof DeferredModelRegistry.ItemCache<?, ?, ?>
+                    || (models != null && models.getClass() == HashMap.class);
+        } catch (IllegalAccessException | IllegalArgumentException failure) {
+            return false;
+        }
     }
 
     public static Set<ResourceLocation> select(
@@ -157,7 +174,8 @@ public final class DeferredItemModelBaking {
                                         + "the missing model",
                                 location,
                                 failure
-                        )
+                        ),
+                        RenderSystem::isOnRenderThread
                 );
         current = registry;
         diagnostics = debug;
@@ -209,15 +227,23 @@ public final class DeferredItemModelBaking {
         current = null;
         diagnostics = null;
         registry.retire();
+        DeferredModelRegistry.ItemCache<Object, ResourceLocation, BakedModel>
+                cache = itemCache;
+        if (cache != null) {
+            // Pending items read as missing until the reload's rebuild.
+            cache.release();
+        }
         // The reload's own item-cache rebuild runs after this apply.
         itemCacheComplete = true;
         VHAccelerator.LOGGER.info(
                 "Retired deferred item models before reload: {} selected, "
-                        + "{} baked on demand, {} failed, {} never baked",
+                        + "{} baked on demand, {} failed, {} never baked, "
+                        + "{} off-thread lookups",
                 registry.initialDeferred(),
                 registry.bakedOnDemand(),
                 registry.failedBakes(),
-                registry.unresolvedDeferred()
+                registry.unresolvedDeferred(),
+                registry.offThreadLookups()
         );
         if (debug != null) {
             logSnapshot(debug.snapshot("reload retirement", registry));
@@ -252,9 +278,12 @@ public final class DeferredItemModelBaking {
     }
 
     /**
-     * Forge's rebuild would bake every item model immediately. Unresolved
-     * deferred locations are removed instead, so no stale model survives, and
-     * resolve through {@link #resolveItemModel}. Returns false to request
+     * Forge's rebuild would bake every item model immediately. Its item map
+     * is replaced instead by an {@link DeferredModelRegistry.ItemCache} in
+     * which unresolved deferred items stay pending, so no stale model
+     * survives, and bake on their first {@code get}. Forge's
+     * {@code getItemModel(Item)} reads that map directly, so the stack and
+     * direct item lookups both resolve through it. Returns false to request
      * Forge's original rebuild.
      */
     @SuppressWarnings("unchecked")
@@ -264,35 +293,85 @@ public final class DeferredItemModelBaking {
                 || registry.isRetired()
                 || itemCacheComplete
                 || !(shaper instanceof ItemModelMesherForge)
-                || !itemCacheFieldsAvailable()) {
+                || !itemCacheFieldsAvailable()
+                || !RenderSystem.isOnRenderThread()) {
             return false;
         }
         Map<Object, ModelResourceLocation> locations;
-        Map<Object, BakedModel> models;
+        DeferredModelRegistry.ItemCache<Object, ResourceLocation, BakedModel>
+                cache;
         try {
             locations = (Map<Object, ModelResourceLocation>)
                     locationsField.get(shaper);
-            models = (Map<Object, BakedModel>) modelsField.get(shaper);
-        } catch (IllegalAccessException | ClassCastException failure) {
+            cache = installItemCache(shaper);
+        } catch (IllegalAccessException | IllegalArgumentException
+                 | ClassCastException failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not install the deferred item model cache; "
+                            + "baking item models eagerly",
+                    failure
+            );
+            return false;
+        }
+        if (cache == null) {
             return false;
         }
         ModelManager manager = shaper.getModelManager();
+        cache.bind(registry);
         for (Map.Entry<Object, ModelResourceLocation> entry
                 : locations.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
             if (registry.isUnresolvedDeferred(entry.getValue())) {
-                models.remove(entry.getKey());
+                cache.defer(entry.getKey(), entry.getValue());
             } else {
-                models.put(entry.getKey(), manager.getModel(entry.getValue()));
+                cache.put(entry.getKey(), manager.getModel(entry.getValue()));
             }
         }
+        itemCache = cache;
         return true;
     }
 
     /**
-     * Resolves an item whose cache entry was left for a deferred bake, and
-     * caches the result in Forge's item cache on the render thread so later
-     * lookups take Forge's direct path. A present entry, including a
-     * legitimately missing model, is never looked up again.
+     * Returns the installed item cache, replacing Forge's own map on first
+     * use. Anything other than Forge's plain {@code HashMap} belongs to
+     * another mod and is left alone (null).
+     */
+    @SuppressWarnings("unchecked")
+    private static DeferredModelRegistry.ItemCache<
+            Object, ResourceLocation, BakedModel> installItemCache(
+            ItemModelShaper shaper
+    ) throws IllegalAccessException {
+        Object models = modelsField.get(shaper);
+        if (models instanceof DeferredModelRegistry.ItemCache<?, ?, ?> existing) {
+            return (DeferredModelRegistry.ItemCache<
+                    Object, ResourceLocation, BakedModel>) existing;
+        }
+        if (models == null || models.getClass() != HashMap.class) {
+            VHAccelerator.LOGGER.warn(
+                    "Forge's item model map was replaced by {}; item model "
+                            + "baking stays eager",
+                    models == null ? null : models.getClass().getName()
+            );
+            return null;
+        }
+        ModelManager manager = shaper.getModelManager();
+        DeferredModelRegistry.ItemCache<Object, ResourceLocation, BakedModel>
+                cache = new DeferredModelRegistry.ItemCache<>(
+                        (Map<Object, BakedModel>) models,
+                        manager::getMissingModel,
+                        RenderSystem::isOnRenderThread
+                );
+        // The field is final; setAccessible permits this instance write.
+        modelsField.set(shaper, cache);
+        return cache;
+    }
+
+    /**
+     * Safety net for the stack lookup if another mod displaced the item
+     * cache after installation: resolves a deferred item without writing to
+     * the foreign map. With the cache in place the lookup already resolved.
      */
     @SuppressWarnings("unchecked")
     public static BakedModel resolveItemModel(
@@ -313,9 +392,10 @@ public final class DeferredItemModelBaking {
         }
         try {
             Object key = stack.getItem().delegate;
-            Map<Object, BakedModel> models =
-                    (Map<Object, BakedModel>) modelsField.get(shaper);
-            if (key == null || models.containsKey(key)) {
+            Object models = modelsField.get(shaper);
+            if (key == null
+                    || models instanceof DeferredModelRegistry.ItemCache<?, ?, ?>
+                    || ((Map<Object, BakedModel>) models).get(key) != null) {
                 return result;
             }
             ModelResourceLocation location =
@@ -325,14 +405,7 @@ public final class DeferredItemModelBaking {
                 return result;
             }
             BakedModel model = shaper.getModelManager().getModel(location);
-            if (model == null) {
-                return result;
-            }
-            if (RenderSystem.isOnRenderThread()) {
-                // Forge's cache is a plain HashMap owned by the render thread.
-                models.put(key, model);
-            }
-            return model;
+            return model == null ? result : model;
         } catch (IllegalAccessException | IllegalArgumentException
                  | ClassCastException failure) {
             return result;

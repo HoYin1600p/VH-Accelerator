@@ -11,7 +11,10 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Baked-model registry whose deferred keys are logically present from the
@@ -30,6 +33,11 @@ import java.util.function.Function;
  * {@code getOrDefault(key, missing)}, as {@code ModelManager} does, observe
  * the same model. After {@link #retire()}, unbaked deferred keys also resolve
  * to the fallback and nothing is baked against a closed atlas.
+ *
+ * <p>Bakes run only on the bake thread, as vanilla bakes only on the render
+ * thread. A lookup of an unbaked key from any other thread returns the
+ * fallback without baking or caching it, so a later bake-thread lookup still
+ * bakes the real model.
  */
 public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         implements StructurallyVersioned {
@@ -43,12 +51,14 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     private final Set<K> baking = new HashSet<>();
     private final V fallback;
     private final FailureListener<? super K> failures;
+    private final BooleanSupplier bakeThread;
     private final int initialDeferred;
     private Function<? super K, ? extends V> baker;
     private long ownVersion;
     private int bakedOnDemand;
     private int failedBakes;
     private int retiredLookups;
+    private int offThreadLookups;
 
     public DeferredModelRegistry(
             Map<K, V> eager,
@@ -57,9 +67,21 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
             V fallback,
             FailureListener<? super K> failures
     ) {
+        this(eager, deferredKeys, baker, fallback, failures, () -> true);
+    }
+
+    public DeferredModelRegistry(
+            Map<K, V> eager,
+            Collection<? extends K> deferredKeys,
+            Function<? super K, ? extends V> baker,
+            V fallback,
+            FailureListener<? super K> failures,
+            BooleanSupplier bakeThread
+    ) {
         this.eager = Objects.requireNonNull(eager);
         this.baker = Objects.requireNonNull(baker);
         this.failures = Objects.requireNonNull(failures);
+        this.bakeThread = Objects.requireNonNull(bakeThread);
         this.fallback = fallback;
         LinkedHashSet<K> keys = new LinkedHashSet<>(deferredKeys);
         // A null key is never deferred; lookups for it reach the eager map.
@@ -210,6 +232,11 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         return retiredLookups;
     }
 
+    /** Unbaked-key lookups answered with the fallback off the bake thread. */
+    public synchronized int offThreadLookups() {
+        return offThreadLookups;
+    }
+
     private V resolve(K key) {
         if (resolved.containsKey(key)) {
             return resolved.get(key);
@@ -217,6 +244,11 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         Function<? super K, ? extends V> activeBaker = baker;
         if (activeBaker == null) {
             retiredLookups++;
+            return fallback;
+        }
+        if (!bakeThread.getAsBoolean()) {
+            // The bakery is not thread-safe; leave the key for the bake thread.
+            offThreadLookups++;
             return fallback;
         }
         if (!baking.add(key)) {
@@ -447,5 +479,240 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 };
             }
         };
+    }
+
+    /**
+     * Replacement for Forge's per-item baked-model cache that resolves items
+     * whose model was left for a deferred bake on first {@code get}, so every
+     * lookup path, including a direct {@code getItemModel(Item)}, sees a real
+     * model.
+     *
+     * <p>Storage is concurrent so off-thread readers never observe a torn
+     * table while the owner (render) thread adds entries. Only the owner
+     * thread caches a resolved item; another thread receives the registry's
+     * value, which is the fallback when the model has not baked yet, and
+     * leaves the item pending. Pending items are present for
+     * {@code containsKey} but are not iterated and report no previous value on
+     * {@code put}, so neither ever bakes. Values may be {@code null}, as in
+     * Forge's {@code HashMap}; keys may not.
+     */
+    public static final class ItemCache<I, L, V> extends AbstractMap<I, V> {
+        private static final Object NULL = new Object();
+
+        private final ConcurrentHashMap<I, Object> storage =
+                new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<I, L> pending =
+                new ConcurrentHashMap<>();
+        private final Supplier<? extends V> missing;
+        private final BooleanSupplier ownerThread;
+        private volatile DeferredModelRegistry<L, V> registry;
+
+        public ItemCache(
+                Map<? extends I, ? extends V> initial,
+                Supplier<? extends V> missing,
+                BooleanSupplier ownerThread
+        ) {
+            this.missing = Objects.requireNonNull(missing);
+            this.ownerThread = Objects.requireNonNull(ownerThread);
+            for (Map.Entry<? extends I, ? extends V> entry : initial.entrySet()) {
+                if (entry.getKey() != null) {
+                    storage.put(entry.getKey(), mask(entry.getValue()));
+                }
+            }
+        }
+
+        /**
+         * Starts a reload's binding; owner thread only. The caller then puts
+         * or defers every item, so earlier pending items are not cleared
+         * first and readers never see an item vanish mid-rebuild.
+         */
+        public void bind(DeferredModelRegistry<L, V> registry) {
+            this.registry = registry;
+        }
+
+        /** Drops any cached model for {@code item} until it is next read. */
+        public void defer(I item, L location) {
+            // Pend before dropping the old model so readers always see one.
+            pending.put(Objects.requireNonNull(item),
+                    Objects.requireNonNull(location));
+            storage.remove(item);
+        }
+
+        /**
+         * Detaches a retired registry. Pending items read as the missing
+         * model, uncached, until the reload's own rebuild replaces them.
+         */
+        public void release() {
+            registry = null;
+        }
+
+        public boolean isBound() {
+            return registry != null;
+        }
+
+        public boolean isPending(Object item) {
+            return item != null && pending.containsKey(item);
+        }
+
+        public int pendingCount() {
+            return pending.size();
+        }
+
+        @Override
+        public V get(Object item) {
+            if (item == null) {
+                return null;
+            }
+            Object stored = storage.get(item);
+            if (stored != null) {
+                return unmask(stored);
+            }
+            L location = pending.get(item);
+            if (location == null) {
+                // The owner thread may have cached it since the first read.
+                stored = storage.get(item);
+                return stored == null ? null : unmask(stored);
+            }
+            return resolve(item, location);
+        }
+
+        @SuppressWarnings("unchecked") // Only accepted keys become pending.
+        private V resolve(Object item, L location) {
+            DeferredModelRegistry<L, V> source = registry;
+            V model = source == null ? null : source.get(location);
+            if (model == null) {
+                // Released for reload, a reentrant bake, or a removed key.
+                return missing.get();
+            }
+            if (!ownerThread.getAsBoolean() || source.isRetired()) {
+                return model;
+            }
+            // A reentrant put during the bake already replaced this item.
+            // Store before unpending so concurrent readers always see one.
+            if (location.equals(pending.get(item))) {
+                storage.put((I) item, mask(model));
+                pending.remove(item, location);
+            }
+            return model;
+        }
+
+        @Override
+        public boolean containsKey(Object item) {
+            return item != null
+                    && (storage.containsKey(item) || pending.containsKey(item));
+        }
+
+        @Override
+        public V put(I item, V value) {
+            Object previous = storage.put(
+                    Objects.requireNonNull(item),
+                    mask(value)
+            );
+            pending.remove(item);
+            return previous == null ? null : unmask(previous);
+        }
+
+        @Override
+        public V remove(Object item) {
+            if (item == null) {
+                return null;
+            }
+            pending.remove(item);
+            Object previous = storage.remove(item);
+            return previous == null ? null : unmask(previous);
+        }
+
+        @Override
+        public void clear() {
+            pending.clear();
+            storage.clear();
+        }
+
+        @Override
+        public int size() {
+            return storage.size();
+        }
+
+        @Override
+        public Set<Map.Entry<I, V>> entrySet() {
+            return new AbstractSet<>() {
+                @Override
+                public int size() {
+                    return storage.size();
+                }
+
+                @Override
+                public Iterator<Map.Entry<I, V>> iterator() {
+                    Iterator<Map.Entry<I, Object>> entries =
+                            storage.entrySet().iterator();
+                    return new Iterator<>() {
+                        @Override
+                        public boolean hasNext() {
+                            return entries.hasNext();
+                        }
+
+                        @Override
+                        public Map.Entry<I, V> next() {
+                            return new CachedEntry(entries.next());
+                        }
+
+                        @Override
+                        public void remove() {
+                            entries.remove();
+                        }
+                    };
+                }
+            };
+        }
+
+        private static Object mask(Object value) {
+            return value == null ? NULL : value;
+        }
+
+        @SuppressWarnings("unchecked")
+        private V unmask(Object value) {
+            return value == NULL ? null : (V) value;
+        }
+
+        private final class CachedEntry implements Map.Entry<I, V> {
+            private final Map.Entry<I, Object> entry;
+
+            private CachedEntry(Map.Entry<I, Object> entry) {
+                this.entry = entry;
+            }
+
+            @Override
+            public I getKey() {
+                return entry.getKey();
+            }
+
+            @Override
+            public V getValue() {
+                return unmask(entry.getValue());
+            }
+
+            @Override
+            public V setValue(V value) {
+                return unmask(entry.setValue(mask(value)));
+            }
+
+            @Override
+            public boolean equals(Object other) {
+                return other instanceof Map.Entry<?, ?> that
+                        && Objects.equals(getKey(), that.getKey())
+                        && Objects.equals(getValue(), that.getValue());
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(getKey())
+                        ^ Objects.hashCode(getValue());
+            }
+
+            @Override
+            public String toString() {
+                return getKey() + "=" + getValue();
+            }
+        }
     }
 }
