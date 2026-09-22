@@ -168,22 +168,64 @@ class DeferredModelRegistryTest {
         assertTrue(map.containsKey("b:item"));
         assertEquals(List.of("a:item"), baked);
         assertEquals(1, map.retiredLookups());
-        assertEquals(0, map.warm(Long.MAX_VALUE, System::nanoTime));
+        assertEquals(1, map.unresolvedDeferred(), "retirement bakes nothing");
     }
 
-    @Test void warmupRespectsBudgetAndSkipsResolvedKeys() {
+    @Test void onlyActualLookupsResolveKeys() {
         var map = registry();
-        long[] now = {0};
-        map.get("a:item");
+        assertEquals(2, map.initialDeferred());
+        assertEquals(2, map.unresolvedDeferred());
+        // Registry-wide key consumers, as at menu or level join, bake nothing.
+        map.size();
+        map.containsKey("b:item");
+        new HashSet<>(map.keySet());
+        map.entrySet().forEach(Map.Entry::getKey);
+        assertTrue(baked.isEmpty());
+        assertEquals(2, map.unresolvedDeferred());
         assertTrue(map.isUnresolvedDeferred("b:item"));
-        assertFalse(map.isUnresolvedDeferred("a:item"));
         assertFalse(map.isUnresolvedDeferred("a:block"));
-        int remaining = map.warm(0, () -> now[0]);
-        assertEquals(1, remaining, "at least one key per step");
-        assertEquals(List.of("a:item"), baked, "already-resolved key is skipped");
-        assertEquals(0, map.warm(0, () -> now[0]));
-        assertEquals(List.of("a:item", "b:item"), baked);
-        assertFalse(map.isUnresolvedDeferred("b:item"));
+        assertTrue(map.isDeferred("b:item"));
+        assertFalse(map.isDeferred("a:block"));
+        map.getOrDefault("a:item", "missing");
+        assertEquals(List.of("a:item"), baked);
+        assertEquals(1, map.unresolvedDeferred());
+        assertFalse(map.isUnresolvedDeferred("a:item"));
+        assertTrue(map.isDeferred("a:item"), "baked keys stay deferred keys");
+    }
+
+    @Test void unresolvedCountTracksRemovalAndReplacement() {
+        var map = registry();
+        map.keySet().remove("b:item");
+        assertEquals(1, map.unresolvedDeferred());
+        assertEquals(1, map.removedDeferred());
+        map.put("a:item", "wrapped");
+        assertEquals(0, map.unresolvedDeferred());
+        assertEquals(List.of("a:item"), baked, "put reports the baked previous value");
+    }
+
+    @Test void nullAndUnknownKeysNeverBake() {
+        Map<String, String> eager = new HashMap<>(Map.of("a:block", "block"));
+        var map = new DeferredModelRegistry<>(eager, java.util.Arrays.asList("a:item", null),
+                key -> { baked.add(key); return "lazy"; }, "missing", (k, f) -> failed.add(k));
+        assertEquals(1, map.initialDeferred(), "null keys are never deferred");
+        assertNull(map.get(null));
+        assertEquals("fallback", map.getOrDefault(null, "fallback"));
+        assertFalse(map.containsKey(null));
+        assertNull(map.get("unknown:item"));
+        assertNull(map.get(42));
+        assertFalse(map.isDeferred(null));
+        assertTrue(baked.isEmpty());
+        assertTrue(failed.isEmpty());
+    }
+
+    @Test void failedBakeIsCachedAndCountedOnce() {
+        var map = registry(key -> { throw new LinkageError("broken"); });
+        assertEquals("missing", map.getOrDefault("a:item", "default"));
+        assertEquals("missing", map.getOrDefault("a:item", "default"));
+        assertEquals(1, map.failedBakes());
+        assertEquals(0, map.bakedOnDemand());
+        assertEquals(1, map.unresolvedDeferred());
+        assertEquals(List.of("a:item"), baked);
     }
 
     @Test void eagerKeysWinOverDuplicateDeferredKeys() {

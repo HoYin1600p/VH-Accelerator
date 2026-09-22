@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.lang.reflect.Field;
 import java.util.Collection;
@@ -27,13 +29,13 @@ import net.minecraftforge.fml.ModList;
  *
  * <p>Only baking is deferred. Unbaked graphs and their materials are loaded
  * eagerly before atlas stitching, and a deferred graph must be fully present
- * in the bakery's unbaked cache. The registry is retired at the start of the
- * next {@code ModelManager#apply}, before the atlases it bakes against close.
- * Remaining models bake in small steps while no world is loaded and all of
- * them bake before a level is set, so none bakes during in-world rendering.
+ * in the bakery's unbaked cache. A deferred model bakes only when a consumer
+ * reads it, which may be during in-world rendering; there is no title-screen
+ * warmup and no drain on level join or dimension change. The registry is
+ * retired at the start of the next {@code ModelManager#apply}, before the
+ * atlases it bakes against close.
  */
 public final class DeferredItemModelBaking {
-    private static final long WARMUP_BUDGET_NANOS = 3_000_000L;
     private static final Set<String> EAGER_NAMESPACES = Set.of(
             "the_vault",
             "everycomp",
@@ -42,11 +44,13 @@ public final class DeferredItemModelBaking {
     );
 
     private static volatile DeferredModelRegistry<ResourceLocation, BakedModel> current;
+    /** Debug diagnostics for {@link #current}; null whenever debug is off. */
+    private static volatile DeferredItemModelDiagnostics diagnostics;
+    /** False while Forge's item cache omits unresolved deferred items. */
     private static volatile boolean itemCacheComplete = true;
     private static Field locationsField;
     private static Field modelsField;
     private static boolean itemCacheReflectionFailed;
-    private static long warmupNanos;
 
     private DeferredItemModelBaking() {
     }
@@ -138,11 +142,15 @@ public final class DeferredItemModelBaking {
             Set<ResourceLocation> deferred,
             Function<ResourceLocation, BakedModel> baker
     ) {
+        DeferredItemModelDiagnostics debug =
+                VHAcceleratorConfig.debugDiagnosticsEnabled()
+                        ? new DeferredItemModelDiagnostics()
+                        : null;
         DeferredModelRegistry<ResourceLocation, BakedModel> registry =
                 new DeferredModelRegistry<>(
                         eager,
                         deferred,
-                        baker,
+                        debug == null ? baker : timed(baker, debug),
                         eager.get(ModelBakery.MISSING_MODEL_LOCATION),
                         (location, failure) -> VHAccelerator.LOGGER.warn(
                                 "Unable to bake deferred model {}; using "
@@ -152,13 +160,43 @@ public final class DeferredItemModelBaking {
                         )
                 );
         current = registry;
+        diagnostics = debug;
         itemCacheComplete = registry.initialDeferred() == 0;
-        warmupNanos = 0L;
         VHAccelerator.LOGGER.info(
-                "Deferred baking of {} ordinary inventory item models",
+                "Deferred baking of {} ordinary inventory item models "
+                        + "until first use",
                 registry.initialDeferred()
         );
+        if (debug != null) {
+            logSnapshot(debug.snapshot("install", registry));
+        }
         return registry;
+    }
+
+    private static Function<ResourceLocation, BakedModel> timed(
+            Function<ResourceLocation, BakedModel> baker,
+            DeferredItemModelDiagnostics debug
+    ) {
+        return location -> {
+            long started = System.nanoTime();
+            BakedModel model = null;
+            try {
+                model = baker.apply(location);
+                return model;
+            } finally {
+                long elapsed = System.nanoTime() - started;
+                if (debug.recordBake(location, elapsed)) {
+                    VHAccelerator.LOGGER.info(
+                            "Deferred item model {} baked on first use "
+                                    + "in {} us ({}; {})",
+                            location,
+                            elapsed / 1_000L,
+                            debug.phase(),
+                            model == null ? "failed" : "ok"
+                    );
+                }
+            }
+        };
     }
 
     /** Called at the start of every ModelManager apply, before atlases close. */
@@ -167,22 +205,50 @@ public final class DeferredItemModelBaking {
         if (registry == null) {
             return;
         }
+        DeferredItemModelDiagnostics debug = diagnostics;
         current = null;
+        diagnostics = null;
         registry.retire();
-        boolean incomplete = !itemCacheComplete;
         // The reload's own item-cache rebuild runs after this apply.
         itemCacheComplete = true;
-        if (incomplete) {
-            VHAccelerator.LOGGER.info(
-                    "Retired deferred item models before reload: {} baked, "
-                            + "{} failed, {} left unbaked",
-                    registry.bakedOnDemand(),
-                    registry.failedBakes(),
-                    registry.initialDeferred()
-                            - registry.bakedOnDemand()
-                            - registry.failedBakes()
-            );
+        VHAccelerator.LOGGER.info(
+                "Retired deferred item models before reload: {} selected, "
+                        + "{} baked on demand, {} failed, {} never baked",
+                registry.initialDeferred(),
+                registry.bakedOnDemand(),
+                registry.failedBakes(),
+                registry.unresolvedDeferred()
+        );
+        if (debug != null) {
+            logSnapshot(debug.snapshot("reload retirement", registry));
         }
+    }
+
+    /**
+     * Debug-only snapshots at the first menu, each world entry, and each
+     * world exit. Returns immediately when debug diagnostics are off.
+     */
+    public static void observeFrame(Minecraft minecraft) {
+        DeferredItemModelDiagnostics debug = diagnostics;
+        if (debug == null) {
+            return;
+        }
+        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        if (registry == null) {
+            return;
+        }
+        boolean inWorld = minecraft.level != null;
+        boolean menu = !inWorld
+                && minecraft.getOverlay() == null
+                && minecraft.screen != null;
+        String phase = debug.observe(menu, inWorld);
+        if (phase != null) {
+            logSnapshot(debug.snapshot(phase, registry));
+        }
+    }
+
+    private static void logSnapshot(DeferredItemModelDiagnostics.Snapshot snapshot) {
+        VHAccelerator.LOGGER.info("[debug] {}", snapshot.describe());
     }
 
     /**
@@ -222,81 +288,55 @@ public final class DeferredItemModelBaking {
         return true;
     }
 
-    /** Resolves an item whose cache entry was left for a deferred bake. */
+    /**
+     * Resolves an item whose cache entry was left for a deferred bake, and
+     * caches the result in Forge's item cache on the render thread so later
+     * lookups take Forge's direct path. A present entry, including a
+     * legitimately missing model, is never looked up again.
+     */
     @SuppressWarnings("unchecked")
     public static BakedModel resolveItemModel(
             ItemModelShaper shaper,
             ItemStack stack,
             BakedModel result
     ) {
+        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
         if (itemCacheComplete
-                || current == null
+                || registry == null
+                || registry.isRetired()
+                || stack == null
                 || locationsField == null
+                || modelsField == null
+                || !(shaper instanceof ItemModelMesherForge)
                 || result != shaper.getModelManager().getMissingModel()) {
             return result;
         }
         try {
+            Object key = stack.getItem().delegate;
+            Map<Object, BakedModel> models =
+                    (Map<Object, BakedModel>) modelsField.get(shaper);
+            if (key == null || models.containsKey(key)) {
+                return result;
+            }
             ModelResourceLocation location =
                     ((Map<Object, ModelResourceLocation>) locationsField
-                            .get(shaper)).get(stack.getItem().delegate);
-            return location == null
-                    ? result
-                    : shaper.getModelManager().getModel(location);
+                            .get(shaper)).get(key);
+            if (location == null || !registry.isDeferred(location)) {
+                return result;
+            }
+            BakedModel model = shaper.getModelManager().getModel(location);
+            if (model == null) {
+                return result;
+            }
+            if (RenderSystem.isOnRenderThread()) {
+                // Forge's cache is a plain HashMap owned by the render thread.
+                models.put(key, model);
+            }
+            return model;
         } catch (IllegalAccessException | IllegalArgumentException
                  | ClassCastException failure) {
             return result;
         }
-    }
-
-    /** Title-screen warmup, one budgeted step per client tick. */
-    public static void tick(Minecraft minecraft) {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
-        if (registry == null
-                || itemCacheComplete
-                || minecraft.level != null
-                || minecraft.getOverlay() != null) {
-            return;
-        }
-        long started = System.nanoTime();
-        int remaining = registry.warm(WARMUP_BUDGET_NANOS, System::nanoTime);
-        warmupNanos += System.nanoTime() - started;
-        if (remaining == 0) {
-            completeItemCache(minecraft, registry, "title-screen warmup");
-        }
-    }
-
-    /** Bakes everything left before a level is set. */
-    public static void drainBeforeLevel(Minecraft minecraft) {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
-        if (registry == null || itemCacheComplete) {
-            return;
-        }
-        long started = System.nanoTime();
-        registry.warm(Long.MAX_VALUE, System::nanoTime);
-        warmupNanos += System.nanoTime() - started;
-        completeItemCache(minecraft, registry, "level join");
-    }
-
-    private static void completeItemCache(
-            Minecraft minecraft,
-            DeferredModelRegistry<ResourceLocation, BakedModel> registry,
-            String trigger
-    ) {
-        ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        if (itemRenderer != null) {
-            // Every deferred value is resolved, so Forge's rebuild bakes nothing.
-            itemRenderer.getItemModelShaper().rebuildCache();
-        }
-        itemCacheComplete = true;
-        VHAccelerator.LOGGER.info(
-                "Completed {} deferred item models at {}: {} baked, "
-                        + "{} failed, {} ms of client-thread baking",
-                registry.initialDeferred(),
-                trigger,
-                registry.bakedOnDemand(),
-                registry.failedBakes(),
-                warmupNanos / 1_000_000L
-        );
     }
 
     private static synchronized boolean itemCacheFieldsAvailable() {

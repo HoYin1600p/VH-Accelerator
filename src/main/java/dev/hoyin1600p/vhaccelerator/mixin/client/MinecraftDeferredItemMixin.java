@@ -2,25 +2,22 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Warms deferred item models off-world and finishes them before any level renders. */
+/**
+ * Debug-only deferred item-model snapshots after rendered frames. Never bakes:
+ * deferred models resolve only on first use, including after level changes.
+ */
 @Mixin(Minecraft.class)
 public abstract class MinecraftDeferredItemMixin {
-    @Inject(method = "tick", at = @At("TAIL"))
-    private void vhaccelerator$warmDeferredItems(CallbackInfo callback) {
-        DeferredItemModelBaking.tick((Minecraft) (Object) this);
-    }
-
-    @Inject(method = "setLevel", at = @At("HEAD"))
-    private void vhaccelerator$finishDeferredItems(
-            ClientLevel level,
+    @Inject(method = "runTick", at = @At("TAIL"))
+    private void vhaccelerator$observeDeferredItems(
+            boolean renderLevel,
             CallbackInfo callback
     ) {
-        DeferredItemModelBaking.drainBeforeLevel((Minecraft) (Object) this);
+        DeferredItemModelBaking.observeFrame((Minecraft) (Object) this);
     }
 }

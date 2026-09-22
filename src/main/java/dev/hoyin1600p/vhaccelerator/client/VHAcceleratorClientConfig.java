@@ -331,11 +331,12 @@ public final class VHAcceleratorClientConfig {
                     .comment(
                             "Experimental. Defers baking of ordinary inventory item models",
                             "whose complete JSON graph is already loaded. Loading and atlas",
-                            "texture collection stay eager. Deferred models bake on first use",
-                            "or in small title-screen steps, and all remaining ones bake before",
-                            "a world is joined. Generated, custom, Vault gear, EveryCompat,",
-                            "Sophisticated, and BuildScape models stay eager. Inactive with CTM",
-                            "or ModernFix dynamic resources, and during in-world reloads.")
+                            "texture collection stay eager. Each deferred model bakes only on",
+                            "its first real use, which can cause a brief hitch in a world;",
+                            "nothing is baked at the menu or on world join. Generated, custom,",
+                            "Vault gear, EveryCompat, Sophisticated, and BuildScape models stay",
+                            "eager. Inactive with CTM or ModernFix dynamic resources, and during",
+                            "in-world reloads. Debug diagnostics log unresolved/baked counts.")
                     .define("deferItemModelBaking", false);
             builder.pop();
 

@@ -104,8 +104,20 @@ intentionally differs from the ModernFix 1.18 provider:
   in the bakery's unbaked cache, so a later bake never reads the resource manager.
 - `containsKey`, `size`, `keySet`, and `entrySet` describe one consistent key set.
   Key iteration never bakes, and entry values bake when read.
+- A deferred model bakes only on its first real lookup, through
+  `ModelManager#getModel` or Forge's item cache, which then stores the result
+  once. There is no menu warmup and no drain on level join, dimension change, or
+  server transfer, so a first use in a world may cause a hitch. This is
+  intentional: it must be measured, not hidden.
 - The registry is retired before `ModelManager#apply` closes the previous atlases.
-  All remaining models bake before a level is set.
+  Unbaked keys in a retired registry resolve to the missing model and never bake
+  against a closed atlas. Reloads that start while a world is loaded bake eagerly.
+- Upstream issues considered: CTM wraps every registry value during the bake
+  event (embeddedt/ModernFix#112), so the feature is inactive with CTM.
+  Backpack model variants (#475) are covered by keeping Sophisticated namespaces
+  eager. Null model keys (#495) are never deferred and never bake. Mod bake-event
+  interactions (#563) see consistent keys and lazily baked values, and a
+  replacement through `put` wins over the deferred bake.
 - VHA never runs this feature beside ModernFix's own dynamic-resources provider.
   If that option's state cannot be verified, the feature stays off (fail closed).
 

@@ -2,7 +2,6 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +12,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
 
 /**
  * Baked-model registry whose deferred keys are logically present from the
@@ -42,7 +40,6 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     private final Map<K, V> eager;
     private final Set<K> deferred;
     private final Map<K, V> resolved = new HashMap<>();
-    private final ArrayDeque<K> warmup;
     private final Set<K> baking = new HashSet<>();
     private final V fallback;
     private final FailureListener<? super K> failures;
@@ -65,10 +62,11 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         this.failures = Objects.requireNonNull(failures);
         this.fallback = fallback;
         LinkedHashSet<K> keys = new LinkedHashSet<>(deferredKeys);
+        // A null key is never deferred; lookups for it reach the eager map.
+        keys.remove(null);
         // An eagerly baked entry always wins; the two key sets stay disjoint.
         keys.removeAll(eager.keySet());
         this.deferred = keys;
-        this.warmup = new ArrayDeque<>(keys);
         this.initialDeferred = keys.size();
     }
 
@@ -147,7 +145,6 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
             ownVersion++;
         }
         resolved.clear();
-        warmup.clear();
     }
 
     /**
@@ -166,7 +163,6 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     /** Stops all future bakes; called before the owning atlases close. */
     public synchronized void retire() {
         baker = null;
-        warmup.clear();
     }
 
     public synchronized boolean isRetired() {
@@ -180,26 +176,22 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 && !resolved.containsKey(key);
     }
 
-    /**
-     * Bakes queued deferred keys until the budget is spent. At least one key
-     * is processed per call. Returns the number of queued keys remaining.
-     */
-    public synchronized int warm(long budgetNanos, LongSupplier clock) {
-        long started = clock.getAsLong();
-        while (baker != null && !warmup.isEmpty()) {
-            K key = warmup.poll();
-            if (deferred.contains(key) && !resolved.containsKey(key)) {
-                resolve(key);
-            }
-            if (clock.getAsLong() - started >= budgetNanos) {
-                break;
-            }
-        }
-        return warmup.size();
+    /** True for a present deferred key, whether or not it has baked. */
+    public synchronized boolean isDeferred(Object key) {
+        return deferred.contains(key);
     }
 
-    public synchronized int remainingWarmup() {
-        return warmup.size();
+    /**
+     * Present deferred keys whose value has never been read or replaced.
+     * Constant time; resolved values are always a subset of deferred keys.
+     */
+    public synchronized int unresolvedDeferred() {
+        return deferred.size() - resolved.size();
+    }
+
+    /** Deferred keys removed by callers since construction. */
+    public synchronized int removedDeferred() {
+        return initialDeferred - deferred.size();
     }
 
     public int initialDeferred() {
