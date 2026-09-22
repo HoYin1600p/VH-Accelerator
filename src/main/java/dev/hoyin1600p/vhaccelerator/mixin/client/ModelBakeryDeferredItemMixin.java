@@ -258,8 +258,10 @@ public abstract class ModelBakeryDeferredItemMixin
         if (blocks != null && !blocks.isEmpty()) {
             // First-use bakes may run on chunk workers beside render-thread
             // bakery use; both caches must be concurrent before publishing.
+            long copyStarted = System.nanoTime();
             bakedCache = DeferredBlockStateBaking.concurrentCopy(bakedCache);
             unbakedCache = DeferredBlockStateBaking.concurrentCopy(unbakedCache);
+            DeferredBlockStateBaking.recordCacheCopy(System.nanoTime() - copyStarted);
             bakedTopLevelModels = DeferredBlockStateBaking.install(
                     bakedTopLevelModels,
                     blocks,

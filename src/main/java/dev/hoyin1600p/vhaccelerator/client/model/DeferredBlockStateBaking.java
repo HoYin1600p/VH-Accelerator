@@ -57,8 +57,20 @@ public final class DeferredBlockStateBaking {
     );
     private static final int MAX_FIRST_USE_LOGS = 32;
 
+    /**
+     * Approximate registry bytes per deferred key (linked-hash-set entry and
+     * table share) and per resolved key (hash-map entry and table share).
+     */
+    private static final long REGISTRY_BYTES_PER_KEY = 48L;
+    private static final long RESOLVED_BYTES_PER_KEY = 40L;
+
     private static volatile ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel>
             current;
+
+    // Phase timings of the latest bake, reported once by buildShaperCache.
+    private static volatile long selectNanos;
+    private static volatile long copyNanos;
+    private static volatile long registryNanos;
 
     private DeferredBlockStateBaking() {
     }
@@ -95,6 +107,18 @@ public final class DeferredBlockStateBaking {
 
     /** Certified plain block-state keys; cache-only, never loads a model. */
     public static Set<ResourceLocation> select(
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache
+    ) {
+        long started = System.nanoTime();
+        try {
+            return selectCertified(topLevelModels, unbakedCache);
+        } finally {
+            selectNanos = System.nanoTime() - started;
+        }
+    }
+
+    private static Set<ResourceLocation> selectCertified(
             Map<ResourceLocation, UnbakedModel> topLevelModels,
             Map<ResourceLocation, UnbakedModel> unbakedCache
     ) {
@@ -162,11 +186,17 @@ public final class DeferredBlockStateBaking {
         return copy;
     }
 
+    /** Time spent switching the bakery caches to concurrent copies. */
+    public static void recordCacheCopy(long nanos) {
+        copyNanos = nanos;
+    }
+
     public static Map<ResourceLocation, BakedModel> install(
             Map<ResourceLocation, BakedModel> eager,
             Set<ResourceLocation> deferred,
             Function<ResourceLocation, BakedModel> baker
     ) {
+        long started = System.nanoTime();
         boolean debug = VHAcceleratorConfig.debugDiagnosticsEnabled();
         AtomicInteger logged = new AtomicInteger();
         ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry =
@@ -197,10 +227,14 @@ public final class DeferredBlockStateBaking {
                         }
                 );
         current = registry;
-        VHAccelerator.LOGGER.info(
-                "Deferred baking of {} plain block-state models until first use",
-                registry.initialDeferred()
-        );
+        registryNanos = System.nanoTime() - started;
+        if (debug) {
+            VHAccelerator.LOGGER.info(
+                    "[debug] Deferred baking of {} plain block-state models "
+                            + "until first use",
+                    registry.initialDeferred()
+            );
+        }
         return registry;
     }
 
@@ -213,18 +247,35 @@ public final class DeferredBlockStateBaking {
         }
         current = null;
         registry.retire(); // Waits for bakes in progress on any thread.
+        int failed = registry.failedBakes();
+        if (failed == 0 && !VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            return;
+        }
+        // One line per reload; failures are always reported.
         VHAccelerator.LOGGER.info(
                 "Retired deferred block-state models before reload: {} "
                         + "selected, {} baked on demand, {} failed, {} never "
-                        + "baked, {} removed, {} shared waits, {} retired lookups",
+                        + "baked, {} removed, {} shared waits, {} retired "
+                        + "lookups, registry ~{} KiB",
                 registry.initialDeferred(),
                 registry.bakedOnDemand(),
-                registry.failedBakes(),
+                failed,
                 registry.unresolvedDeferred(),
                 registry.removedDeferred(),
                 registry.sharedWaits(),
-                registry.retiredLookups()
+                registry.retiredLookups(),
+                registryBytes(registry) / 1024L
         );
+    }
+
+    /** Approximate deferred-key overhead of the registry, excluding models. */
+    static long registryBytes(
+            ConcurrentDeferredModelRegistry<?, ?> registry
+    ) {
+        int deferred = registry.initialDeferred() - registry.removedDeferred();
+        int resolved = deferred - registry.unresolvedDeferred();
+        return REGISTRY_BYTES_PER_KEY * deferred
+                + RESOLVED_BYTES_PER_KEY * resolved;
     }
 
     /**
@@ -245,33 +296,59 @@ public final class DeferredBlockStateBaking {
         for (Block block : Registry.BLOCK) {
             states.addAll(block.getStateDefinition().getPossibleStates());
         }
+        long collected = System.nanoTime();
+        // Only a model the registry has published may be kept: a retired or
+        // reentrant lookup returns the missing model without publishing it.
         LazyStateModelCache<BlockState, ModelResourceLocation, BakedModel> cache =
                 new LazyStateModelCache<>(
-                        states.size(),
+                        states,
+                        BlockModelShaper::stateToModelLocation,
                         manager::getModel,
-                        () -> !registry.isRetired()
+                        location -> !registry.isRetired()
+                                && !registry.isUnresolvedDeferred(location)
                 );
+        long indexed = System.nanoTime();
         AtomicInteger deferredStates = new AtomicInteger();
         // Every call here is thread-safe; resolved lookups never bake.
-        SharedWorkers.forRange(states.size(), index -> {
-            BlockState state = states.get(index);
+        // Deferred states stay pending with no per-state allocation.
+        SharedWorkers.forRange(cache.fixedSize(), position -> {
             ModelResourceLocation location =
-                    BlockModelShaper.stateToModelLocation(state);
+                    BlockModelShaper.stateToModelLocation(cache.keyAt(position));
             if (registry.isUnresolvedDeferred(location)) {
-                cache.defer(state, location);
                 deferredStates.incrementAndGet();
             } else {
-                cache.putResolved(state, manager.getModel(location));
+                cache.resolveAt(position, manager.getModel(location));
             }
         });
+        long filled = System.nanoTime();
         int pending = deferredStates.get();
         VHAccelerator.LOGGER.info(
-                "Built {} block model render lookups with {} left for "
-                        + "first-use baking in {} ms",
-                states.size(),
+                "Built {} block model render lookups with {} of {} deferred "
+                        + "block-state models left for first-use baking in {} ms",
+                cache.fixedSize(),
                 pending,
-                (System.nanoTime() - started) / 1_000_000L
+                registry.initialDeferred(),
+                (filled - started) / 1_000_000L
         );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            long cacheBytes = cache.estimatedBytes();
+            VHAccelerator.LOGGER.info(
+                    "[debug] Deferred block-state phases: select {} ms, "
+                            + "bakery cache copy {} ms, registry {} ms, state "
+                            + "collect {} ms, lookup index {} ms, lookup fill "
+                            + "{} ms; lookup ~{} KiB ({} B/state), registry "
+                            + "deferred keys ~{} KiB",
+                    selectNanos / 1_000_000L,
+                    copyNanos / 1_000_000L,
+                    registryNanos / 1_000_000L,
+                    (collected - started) / 1_000_000L,
+                    (indexed - collected) / 1_000_000L,
+                    (filled - indexed) / 1_000_000L,
+                    cacheBytes / 1024L,
+                    cache.fixedSize() == 0 ? 0 : cacheBytes / cache.fixedSize(),
+                    registryBytes(registry) / 1024L
+            );
+        }
         return cache;
     }
 

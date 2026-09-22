@@ -276,14 +276,16 @@ class ConcurrentDeferredModelRegistryTest {
     @Test void lazyStateCacheResolvesOnFirstReadAndCachesWhileLive() {
         AtomicInteger resolves = new AtomicInteger();
         AtomicBoolean live = new AtomicBoolean(true);
-        LazyStateModelCache<String, String, String> cache = new LazyStateModelCache<>(4,
+        Map<String, String> locations = Map.of(
+                "stone", "stone#", "log", "log#axis=y", "dirt", "dirt#");
+        LazyStateModelCache<String, String, String> cache = new LazyStateModelCache<>(
+                List.of("stone", "log", "dirt"),
+                locations::get,
                 location -> {
                     resolves.incrementAndGet();
                     return "model(" + location + ")";
-                }, live::get);
-        cache.putResolved("stone", "eager");
-        cache.defer("log", "log#axis=y");
-        cache.defer("dirt", "dirt#");
+                }, location -> live.get());
+        assertTrue(cache.resolveAt(0, "eager"));
         assertEquals(3, cache.size());
         assertTrue(cache.containsKey("log"));
         assertEquals(Set.of("stone", "log", "dirt"), new HashSet<>(cache.keySet()));
@@ -302,11 +304,12 @@ class ConcurrentDeferredModelRegistryTest {
     }
 
     @Test void lazyStateCacheConcurrentReadersAlwaysSeeRealModels() throws Exception {
-        LazyStateModelCache<Integer, Integer, String> cache = new LazyStateModelCache<>(256,
-                location -> "model" + location, () -> true);
+        List<Integer> states = new ArrayList<>();
         for (int i = 0; i < 256; i++) {
-            cache.defer(i, i);
+            states.add(i);
         }
+        LazyStateModelCache<Integer, Integer, String> cache = new LazyStateModelCache<>(
+                states, state -> state, location -> "model" + location, location -> true);
         Set<String> seen = ConcurrentHashMap.newKeySet();
         ExecutorService pool = Executors.newFixedThreadPool(4);
         try {

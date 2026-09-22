@@ -173,8 +173,26 @@ ModernFix 1.18's dynamic provider as follows:
   deferred states are pending entries. The first real read bakes through
   `ModelManager#getModel` on the calling thread and caches the result. There
   is no warmup on the menu, world join, dimension change, or server transfer.
+- The lookup is compact. It uses an immutable open-addressed index over the
+  states registered when it is built, with atomic value slots (about 16 bytes
+  per state estimated, versus a `ConcurrentHashMap` node plus a pending marker
+  and a retained location per deferred state before). Pending states share
+  one marker and recompute their location with
+  `BlockModelShaper#stateToModelLocation` when first read. Vanilla state IDs
+  are not used: Forge 1.18.2 rebuilds `Block.BLOCK_STATE_REGISTRY` whenever
+  the block registry is baked, including on server registry sync, so they
+  are not stable for the lookup's lifetime. Unknown states fall back to a
+  concurrent overflow map. The pending marker is only replaced by
+  compare-and-set and never reinstalled, so direct writes and removals always
+  win over a concurrent resolution. A resolved model is kept only if the live
+  registry has published it; a retired, reentrant, or missing result is
+  returned uncached. Trade-offs: the first read of a pending state pays for
+  building its location string, and iteration is weakly consistent.
 - Retirement at `ModelManager#apply` waits for bakes in progress before the
-  old atlases close. Known limitation: until the reload rebuilds the lookup, a
+  old atlases close. A first-use read that passes the live check just before
+  retirement may still store a model already published by the old registry.
+  That model's atlas is still open at that point, and every reload path
+  either replaces or clears this lookup before use. Known limitation: until the reload rebuilds the lookup, a
   chunk compile reading a never-baked state gets the missing model, uncached.
   The world renderer rebuilds every chunk after a reload, so such meshes are
   discarded. Not active with CTM or ModernFix's dynamic-resource provider,
