@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -42,6 +43,21 @@ public abstract class ParallelBlockModelShaperMixin {
     private void vhaccelerator$buildLookupInParallel(
             CallbackInfo callback
     ) {
+        try {
+            Map<BlockState, BakedModel> lazy =
+                    DeferredBlockStateBaking.buildShaperCache(modelManager);
+            if (lazy != null) {
+                modelByStateCache = lazy;
+                callback.cancel();
+                return;
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            // The lookup below reads every model, baking any deferred ones.
+            VHAccelerator.LOGGER.warn(
+                    "Deferred block model lookup failed; building it eagerly",
+                    failure
+            );
+        }
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.parallelBlockModelCache

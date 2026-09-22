@@ -146,6 +146,43 @@ intentionally differs from the ModernFix 1.18 provider:
   Post-GC heap readings were also inconclusive, so this remains default-off
   and is not presented as a measured launch-time improvement.
 
+Deferred block-state model baking (`deferBlockStateModelBaking`, off by
+default, client, independent of the item stage) is a separate prototype. It is
+also an independent design with no copied ModernFix source. It differs from
+ModernFix 1.18's dynamic provider as follows:
+
+- Only the top-level **bake** is deferred. Block-state graphs, parents, and
+  materials still load before stitching, so no texture is ever missing from
+  the atlas and no manifest is needed. Deferring graph loading for block states
+  was rejected: `ModelBakery#getModel`/`loadModel` mutate the unbaked cache and
+  loading stack, and the first reader is usually a chunk-compile worker.
+- A key qualifies only when its whole closure is a vanilla `MultiVariant` or
+  `MultiPart` over ordinary JSON `BlockModel`s already in the unbaked cache,
+  with parents bound, no custom geometry, no `builtin/` marker, and not the
+  missing model. Inventory variants and Vault, EveryCompat, Sophisticated,
+  BuildScape, and CTM namespaces stay eager.
+- Thread-safety basis: such a bake only reads bakery state, exactly as VHA's
+  parallel top-level bake already does on worker threads. Before the registry
+  is published, the bakery's unbaked and baked caches are replaced with
+  concurrent copies, so render-thread bakery use (including item first-use
+  loads) cannot corrupt a worker's reads. Bakes of different keys run in
+  parallel, while readers of the same key wait for a single bake. The item
+  registry reads block keys without holding its own lock, so render-thread
+  item bakes never wait for a worker's block bake.
+- `BlockModelShaper`'s lookup is rebuilt with every state present, and
+  deferred states are pending entries. The first real read bakes through
+  `ModelManager#getModel` on the calling thread and caches the result. There
+  is no warmup on the menu, world join, dimension change, or server transfer.
+- Retirement at `ModelManager#apply` waits for bakes in progress before the
+  old atlases close. Known limitation: until the reload rebuilds the lookup, a
+  chunk compile reading a never-baked state gets the missing model, uncached.
+  The world renderer rebuilds every chunk after a reload, so such meshes are
+  discarded. Not active with CTM or ModernFix's dynamic-resource provider,
+  in Compare Mode, or for in-world reloads.
+- Review risk: third-party code hooked into bake must be thread-safe after
+  apply, not just during the parallel bake window. No performance result is
+  claimed until independent CMA A/B testing.
+
 ## Rejected after 1.18.2 validation
 
 The newer compact `ImposterProtoChunk` mixin is intentionally not ported. In

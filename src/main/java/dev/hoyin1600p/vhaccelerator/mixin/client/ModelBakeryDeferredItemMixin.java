@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredTopLevelManifest;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import java.util.Collections;
@@ -55,7 +56,21 @@ public abstract class ModelBakeryDeferredItemMixin
 
     @Shadow
     @Final
+    @Mutable
     private Map<ResourceLocation, UnbakedModel> unbakedCache;
+
+    @Shadow
+    @Final
+    @Mutable
+    private Map<?, BakedModel> bakedCache;
+
+    /** Certified block-state keys whose bake is deferred; never null once selected. */
+    @Unique
+    private Set<ResourceLocation> vhaccelerator$deferredBlockStates;
+
+    /** Items plus block states; what the top-level bake loops skip. */
+    @Unique
+    private Set<ResourceLocation> vhaccelerator$deferredAll;
 
     @Shadow
     @Nullable
@@ -142,6 +157,45 @@ public abstract class ModelBakeryDeferredItemMixin
 
     @Override
     public Set<ResourceLocation> vhaccelerator$deferredItemModels() {
+        Set<ResourceLocation> all = vhaccelerator$deferredAll;
+        if (all != null) {
+            return all;
+        }
+        Set<ResourceLocation> items = vhaccelerator$selectDeferredItems();
+        Set<ResourceLocation> blocks = Collections.emptySet();
+        try {
+            if (DeferredBlockStateBaking.activeForThisBake()) {
+                blocks = Collections.unmodifiableSet(
+                        DeferredBlockStateBaking.select(
+                                topLevelModels,
+                                unbakedCache
+                        )
+                );
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            blocks = Collections.emptySet();
+            VHAccelerator.LOGGER.warn(
+                    "Could not select deferred block-state models; baking "
+                            + "them eagerly",
+                    failure
+            );
+        }
+        vhaccelerator$deferredBlockStates = blocks;
+        if (blocks.isEmpty()) {
+            all = items;
+        } else if (items.isEmpty()) {
+            all = blocks;
+        } else {
+            Set<ResourceLocation> combined = new LinkedHashSet<>(items);
+            combined.addAll(blocks);
+            all = Collections.unmodifiableSet(combined);
+        }
+        vhaccelerator$deferredAll = all;
+        return all;
+    }
+
+    @Unique
+    private Set<ResourceLocation> vhaccelerator$selectDeferredItems() {
         Set<ResourceLocation> selected = vhaccelerator$deferredItems;
         if (selected != null) {
             return selected;
@@ -200,6 +254,18 @@ public abstract class ModelBakeryDeferredItemMixin
             ProfilerFiller profiler,
             CallbackInfoReturnable<AtlasSet> callback
     ) {
+        Set<ResourceLocation> blocks = vhaccelerator$deferredBlockStates;
+        if (blocks != null && !blocks.isEmpty()) {
+            // First-use bakes may run on chunk workers beside render-thread
+            // bakery use; both caches must be concurrent before publishing.
+            bakedCache = DeferredBlockStateBaking.concurrentCopy(bakedCache);
+            unbakedCache = DeferredBlockStateBaking.concurrentCopy(unbakedCache);
+            bakedTopLevelModels = DeferredBlockStateBaking.install(
+                    bakedTopLevelModels,
+                    blocks,
+                    location -> bake(location, BlockModelRotation.X0_Y0)
+            );
+        }
         Set<ResourceLocation> deferred = vhaccelerator$deferredItems;
         if (deferred == null || deferred.isEmpty()) {
             return;

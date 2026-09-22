@@ -69,6 +69,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
     private final FailureListener<? super K> failures;
     private final BooleanSupplier bakeThread;
     private final int initialDeferred;
+    /** Eager layer is a thread-safe block-state registry read without this lock. */
+    private final boolean eagerSelfSynchronized;
     private Function<? super K, ? extends V> baker;
     private long ownVersion;
     private int bakedOnDemand;
@@ -107,6 +109,8 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         keys.removeAll(eager.keySet());
         this.deferred = keys;
         this.initialDeferred = keys.size();
+        this.eagerSelfSynchronized =
+                eager instanceof ConcurrentDeferredModelRegistry<?, ?>;
     }
 
     @Override
@@ -151,6 +155,23 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
 
     @SuppressWarnings("unchecked") // Only peek's own answers and UNRESOLVED.
     private V lookup(Object key, V absent, boolean absentWhileBaking) {
+        if (eagerSelfSynchronized) {
+            boolean own;
+            readLock.lock();
+            try {
+                own = deferred.contains(key);
+            } finally {
+                readLock.unlock();
+            }
+            if (!own) {
+                // The eager layer locks itself and may bake on any thread; never
+                // hold this lock across it, or a render-thread item bake would
+                // wait for a worker's block-state bake.
+                return absentWhileBaking
+                        ? eager.getOrDefault(key, absent)
+                        : eager.get(key);
+            }
+        }
         Object value;
         readLock.lock();
         try {

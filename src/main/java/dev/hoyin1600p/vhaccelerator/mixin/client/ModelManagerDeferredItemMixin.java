@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelManager;
@@ -21,5 +22,6 @@ public abstract class ModelManagerDeferredItemMixin {
             CallbackInfo callback
     ) {
         DeferredItemModelBaking.retireCurrent();
+        DeferredBlockStateBaking.retireCurrent();
     }
 }

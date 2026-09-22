@@ -136,6 +136,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue deferItemModelBaking;
+        public final ForgeConfigSpec.BooleanValue deferBlockStateModelBaking;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
@@ -338,6 +339,20 @@ public final class VHAcceleratorClientConfig {
                             "eager. Inactive with CTM or ModernFix dynamic resources, and during",
                             "in-world reloads. Debug diagnostics log unresolved/baked counts.")
                     .define("deferItemModelBaking", false);
+            deferBlockStateModelBaking = builder
+                    .comment(
+                            "Experimental, independent of deferItemModelBaking. Defers only",
+                            "the baking of block-state models whose complete graph is plain",
+                            "vanilla JSON (MultiVariant/MultiPart over ordinary BlockModels)",
+                            "already loaded and parent-bound. Loading and atlas texture",
+                            "collection stay eager. Each deferred model bakes on its first real",
+                            "lookup, usually on a chunk-compile worker, which can cause a brief",
+                            "hitch; nothing is baked at the menu or on world join. Vault,",
+                            "EveryCompat, Sophisticated, BuildScape, CTM, and custom or dynamic",
+                            "models stay eager. Inactive in Compare Mode, with CTM or",
+                            "ModernFix dynamic resources,",
+                            "and during in-world reloads.")
+                    .define("deferBlockStateModelBaking", false);
             builder.pop();
 
             builder.push("compatibility");
