@@ -99,8 +99,9 @@ client) was designed after studying ModernFix's dynamic-resources behavior. No
 ModernFix source was copied, so it carries no upstream provenance header. It
 intentionally differs from the ModernFix 1.18 provider:
 
-- Only baking is deferred. Unbaked graphs and materials load eagerly, so every
-  atlas texture is known before stitching. A deferred graph must be fully present
+- Only baking is deferred, apart from the warm top-level stage below. Unbaked
+  graphs and materials load eagerly, so every atlas texture is known before
+  stitching. A deferred graph must be fully present
   in the bakery's unbaked cache, so a later bake never reads the resource manager.
 - `containsKey`, `size`, `keySet`, and `entrySet` describe one consistent key set.
   Key iteration never bakes, and entry values bake when read.
@@ -120,6 +121,30 @@ intentionally differs from the ModernFix 1.18 provider:
   replacement through `put` wins over the deferred bake.
 - VHA never runs this feature beside ModernFix's own dynamic-resources provider.
   If that option's state cannot be verified, the feature stays off (fail closed).
+- Warm top-level stage (stage one of on-demand resource loading, inventory
+  models only). An eager initial launch certifies every deferred-eligible
+  inventory model of a registered item. Its whole graph must be plain JSON,
+  with no generated, builtin, custom-geometry, or eager-namespace node, and all
+  materials must be block-atlas textures with no unresolved reference. The
+  manifest stores the model keys and the complete material list of each
+  graph, including parent and override textures. It holds identifiers only,
+  plus the client asset fingerprint, counts, and a SHA-256 digest; any
+  validation failure reads as absent. On the next initial launch with a
+  matching fingerprint, `loadTopLevel` is skipped for certified keys. Before
+  grouping and atlas stitching, their manifest materials are added through the
+  material-collection hook. The keys stay present as deferred registry keys,
+  and the first real lookup loads the graph through `ModelBakery#getModel`,
+  resolves parents through `getMaterials`, and bakes. Block states, chunk
+  models, special or additional models, and atlas topology are unchanged. No
+  texture is ever added after an atlas is built. If deferral is unavailable
+  at bake time, the skipped graphs load before the bake loop instead. Once a
+  new ModelManager applies, unloaded graphs of the retiring registry resolve
+  to the missing model instead of reading the previous reload's packs.
+  CMA Remastered testing on 2026-09-22 skipped 6,766 graphs with no missing
+  sample item model or reload bake failure, but three warm launches differed
+  from the feature-off control by only about 0.15 seconds on the test PC.
+  Post-GC heap readings were also inconclusive, so this remains default-off
+  and is not presented as a measured launch-time improvement.
 
 ## Rejected after 1.18.2 validation
 
