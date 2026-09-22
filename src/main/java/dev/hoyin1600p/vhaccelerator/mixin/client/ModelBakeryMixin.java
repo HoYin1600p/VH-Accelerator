@@ -8,6 +8,8 @@ import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
@@ -312,11 +314,13 @@ public abstract class ModelBakeryMixin {
     private Set<?> vhaccelerator$bakeTopLevelModelsInParallel(
             Map<ResourceLocation, ?> models
     ) {
+        Set<ResourceLocation> deferred =
+                DeferredItemModelOwner.deferredFor(this);
         if (!vhaccelerator$clientOption(
                 VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.parallelModelBaking
                 ))) {
-            return models.keySet();
+            return DeferredItemModelBaking.without(models.keySet(), deferred);
         }
 
         vhaccelerator$findSequentialModels();
@@ -331,6 +335,7 @@ public abstract class ModelBakeryMixin {
         bakedCache = replacementBakedCache;
         List<ResourceLocation> locations = new ArrayList<>(models.keySet());
         locations.removeAll(vhaccelerator$sequentialModels);
+        locations.removeAll(deferred);
         Map<ResourceLocation, BakedModel> results =
                 new ConcurrentHashMap<>(
                         Math.max(16, locations.size())
@@ -367,7 +372,7 @@ public abstract class ModelBakeryMixin {
                     failures.size(),
                     models.size()
             );
-            return models.keySet();
+            return DeferredItemModelBaking.without(models.keySet(), deferred);
         }
 
         bakedTopLevelModels.putAll(results);
@@ -378,7 +383,10 @@ public abstract class ModelBakeryMixin {
                 vhaccelerator$sequentialModels.size(),
                 (System.nanoTime() - startedAt) / 1_000_000L
         );
-        return vhaccelerator$sequentialModels;
+        return DeferredItemModelBaking.without(
+                vhaccelerator$sequentialModels,
+                deferred
+        );
     }
 
     @Unique

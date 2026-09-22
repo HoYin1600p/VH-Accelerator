@@ -12,7 +12,8 @@ import java.util.Set;
  * All public mutation routes, including view iterators and Map default methods,
  * reach this wrapper. Replacing a value does not invalidate the key index.
  */
-public final class MutationTrackingMap<K, V> extends AbstractMap<K, V> {
+public final class MutationTrackingMap<K, V> extends AbstractMap<K, V>
+        implements StructurallyVersioned {
     private Map<K, V> delegate;
     private long structuralVersion;
 
@@ -23,7 +24,7 @@ public final class MutationTrackingMap<K, V> extends AbstractMap<K, V> {
         return new MutationTrackingMap<>(map);
     }
 
-    public long structuralVersion() { return structuralVersion; }
+    @Override public long structuralVersion() { return structuralVersion; }
 
     /** Preserve the owned map identity while pre-sizing its still-empty vanilla backing map. */
     public boolean reserveIfEmpty(int capacity) {

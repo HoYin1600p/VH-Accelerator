@@ -67,7 +67,7 @@ public final class ModelBakeRegistryIndex {
         if (activeRegistry != null && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info("Model index ownership: map={}, structuralVersion={}",
                     activeRegistry.getClass().getName(),
-                    activeRegistry instanceof MutationTrackingMap<?, ?> tracked ? tracked.structuralVersion() : -1);
+                    activeRegistry instanceof StructurallyVersioned tracked ? tracked.structuralVersion() : -1);
         }
         if (index != null && index.builds() > 0) {
             VHAccelerator.LOGGER.info(

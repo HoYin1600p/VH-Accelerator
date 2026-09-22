@@ -92,6 +92,23 @@ Optimization, which now owns their implementation and provenance records.
   the ownership decision is verified.
 - Unknown ModernFix option state fails closed.
 
+## Independently implemented, ModernFix-informed features
+
+Deferred inventory item-model baking (`deferItemModelBaking`, off by default,
+client) was designed after studying ModernFix's dynamic-resources behavior. No
+ModernFix source was copied, so it carries no upstream provenance header. It
+intentionally differs from the ModernFix 1.18 provider:
+
+- Only baking is deferred. Unbaked graphs and materials load eagerly, so every
+  atlas texture is known before stitching. A deferred graph must be fully present
+  in the bakery's unbaked cache, so a later bake never reads the resource manager.
+- `containsKey`, `size`, `keySet`, and `entrySet` describe one consistent key set.
+  Key iteration never bakes, and entry values bake when read.
+- The registry is retired before `ModelManager#apply` closes the previous atlases.
+  All remaining models bake before a level is set.
+- VHA never runs this feature beside ModernFix's own dynamic-resources provider.
+  If that option's state cannot be verified, the feature stays off (fail closed).
+
 ## Rejected after 1.18.2 validation
 
 The newer compact `ImposterProtoChunk` mixin is intentionally not ported. In

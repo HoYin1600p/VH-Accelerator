@@ -219,6 +219,7 @@ or an implementation that has not landed also prevents VHA ownership.
 | `cacheBlockStateModelLocations` | `true` | Attaches each immutable BlockState's canonical model key for reuse. |
 | `parallelBlockStateModelLocations` | `true` | Precomputes missing canonical model keys across available processors. |
 | `parallelBlockModelCache` | `true` | Builds the final BlockState-to-baked-model lookup in worker-owned ranges after Forge callbacks. |
+| `deferItemModelBaking` | `false` | Experimental. Defers only the baking of ordinary inventory item models whose complete JSON graph is already loaded. Loading and atlas texture collection stay eager. Deferred models bake on first lookup or in small title-screen steps, and every remaining model bakes before a world is joined. Generated (`builtin/generated`), block-entity, custom-geometry, Vault gear, EveryCompat, Sophisticated, and BuildScape models stay eager. Inactive with CTM, during in-world reloads, and when ModernFix dynamic resources are enabled or unverifiable. |
 
 ### `[compatibility]`
 

@@ -4,6 +4,8 @@ import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
 import java.util.ArrayList;
@@ -79,11 +81,13 @@ public abstract class ModernFixCompatibleModelBakingMixin {
     private Set<?> vhaccelerator$bakeTopLevelModelsBesideModernFix(
             Map<ResourceLocation, ?> models
     ) {
+        Set<ResourceLocation> deferred =
+                DeferredItemModelOwner.deferredFor(this);
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.parallelModelBaking
                 )) {
-            return models.keySet();
+            return DeferredItemModelBaking.without(models.keySet(), deferred);
         }
 
         vhaccelerator$findSequentialModels();
@@ -99,6 +103,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
         List<ResourceLocation> locations =
                 new ArrayList<>(models.keySet());
         locations.removeAll(vhaccelerator$sequentialModels);
+        locations.removeAll(deferred);
         Map<ResourceLocation, BakedModel> results =
                 new ConcurrentHashMap<>(
                         Math.max(16, locations.size())
@@ -141,7 +146,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
                     failures.size(),
                     models.size()
             );
-            return models.keySet();
+            return DeferredItemModelBaking.without(models.keySet(), deferred);
         }
 
         bakedTopLevelModels.putAll(results);
@@ -153,7 +158,10 @@ public abstract class ModernFixCompatibleModelBakingMixin {
                 vhaccelerator$sequentialModels.size(),
                 (System.nanoTime() - startedAt) / 1_000_000L
         );
-        return vhaccelerator$sequentialModels;
+        return DeferredItemModelBaking.without(
+                vhaccelerator$sequentialModels,
+                deferred
+        );
     }
 
     @Unique

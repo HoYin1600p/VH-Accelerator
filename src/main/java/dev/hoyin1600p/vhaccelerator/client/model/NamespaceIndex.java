@@ -29,7 +29,7 @@ final class NamespaceIndex<K, V> {
 
     private List<K> matching(String target) {
         // An unknown map may mutate through aliases; size is NOT a valid epoch.
-        long version = registry instanceof MutationTrackingMap<?, ?> tracked
+        long version = registry instanceof StructurallyVersioned tracked
                 ? tracked.structuralVersion() : -1;
         if (version < 0 || indexedVersion != version) {
             long start = System.nanoTime();

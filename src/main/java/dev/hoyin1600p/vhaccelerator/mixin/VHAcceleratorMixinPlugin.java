@@ -622,6 +622,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return physicalClient && ferriteCoreLoaded;
         }
+        if (mixinClassName.endsWith("DeferredItemMixin")) {
+            // Never beside ModernFix's own dynamic-resource provider; unknown fails closed.
+            return physicalClient
+                    && !modDiscoveryFailed
+                    && (!modernFixLoaded
+                    || !modernFixDynamicResourcesEnabled());
+        }
         if (mixinClassName.contains(".client.") || mixinClassName.contains(".compat.")) {
             if (!physicalClient) {
                 return false;

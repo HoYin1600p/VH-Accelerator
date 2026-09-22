@@ -135,6 +135,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue cacheBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
+        public final ForgeConfigSpec.BooleanValue deferItemModelBaking;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
@@ -326,6 +327,16 @@ public final class VHAcceleratorClientConfig {
                             "The complete identity map is published only after every",
                             "worker joins; any failure runs Minecraft's original pass.")
                     .define("parallelBlockModelCache", true);
+            deferItemModelBaking = builder
+                    .comment(
+                            "Experimental. Defers baking of ordinary inventory item models",
+                            "whose complete JSON graph is already loaded. Loading and atlas",
+                            "texture collection stay eager. Deferred models bake on first use",
+                            "or in small title-screen steps, and all remaining ones bake before",
+                            "a world is joined. Generated, custom, Vault gear, EveryCompat,",
+                            "Sophisticated, and BuildScape models stay eager. Inactive with CTM",
+                            "or ModernFix dynamic resources, and during in-world reloads.")
+                    .define("deferItemModelBaking", false);
             builder.pop();
 
             builder.push("compatibility");
