@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockModelShaper;
@@ -44,8 +45,9 @@ import net.minecraftforge.fml.ModList;
  *
  * <p>{@code BlockModelShaper}'s lookup is rebuilt as a
  * {@link LazyStateModelCache}: deferred states resolve through
- * {@code ModelManager#getModel} on first read. Nothing is baked at the menu,
- * on world join, or on a dimension change. The registry is retired at the
+ * {@code ModelManager#getModel} on first read. There is no eager warmup at the
+ * menu, join, or dimension change; initial chunks can cause first-use bakes
+ * before the first playable frame. The registry is retired at the
  * start of the next {@code ModelManager#apply}, before its atlases close.
  */
 public final class DeferredBlockStateBaking {
@@ -66,6 +68,9 @@ public final class DeferredBlockStateBaking {
 
     private static volatile ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel>
             current;
+    /** Non-null only while a registry installed with debug on is live. */
+    private static volatile DeferredBlockStateFirstUseDiagnostics
+            firstUseDiagnostics;
 
     // Phase timings of the latest bake, reported once by buildShaperCache.
     private static volatile long selectNanos;
@@ -199,6 +204,9 @@ public final class DeferredBlockStateBaking {
         long started = System.nanoTime();
         boolean debug = VHAcceleratorConfig.debugDiagnosticsEnabled();
         AtomicInteger logged = new AtomicInteger();
+        // Set once the registry exists; bakes cannot start before publication.
+        AtomicReference<DeferredBlockStateFirstUseDiagnostics> diagnosticsSlot =
+                debug ? new AtomicReference<>() : null;
         ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry =
                 new ConcurrentDeferredModelRegistry<>(
                         eager,
@@ -213,7 +221,16 @@ public final class DeferredBlockStateBaking {
                                         location,
                                         failure
                                 );
-                            } else if (debug && logged.getAndIncrement()
+                            }
+                            if (diagnosticsSlot == null) {
+                                return; // Debug off: no timing aggregation.
+                            }
+                            DeferredBlockStateFirstUseDiagnostics recorder =
+                                    diagnosticsSlot.get();
+                            if (recorder != null) {
+                                recorder.recordBake(location, nanos);
+                            }
+                            if (!failed && logged.getAndIncrement()
                                     < MAX_FIRST_USE_LOGS) {
                                 VHAccelerator.LOGGER.info(
                                         "[debug] Deferred block-state model {} "
@@ -226,6 +243,12 @@ public final class DeferredBlockStateBaking {
                             }
                         }
                 );
+        DeferredBlockStateFirstUseDiagnostics diagnostics = null;
+        if (diagnosticsSlot != null) {
+            diagnostics = new DeferredBlockStateFirstUseDiagnostics(registry);
+            diagnosticsSlot.set(diagnostics);
+        }
+        firstUseDiagnostics = diagnostics;
         current = registry;
         registryNanos = System.nanoTime() - started;
         if (debug) {
@@ -240,6 +263,8 @@ public final class DeferredBlockStateBaking {
 
     /** Called at the start of every ModelManager apply, before atlases close. */
     public static void retireCurrent() {
+        // A pending first-use snapshot would describe a retired registry.
+        firstUseDiagnostics = null;
         ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry =
                 current;
         if (registry == null) {
@@ -266,6 +291,31 @@ public final class DeferredBlockStateBaking {
                 registry.retiredLookups(),
                 registryBytes(registry) / 1024L
         );
+    }
+
+    /**
+     * Render thread, on each playable world frame. Logs the first-frame and
+     * about five-second first-use snapshots of the level's session. Only a
+     * volatile read when debug diagnostics were off at install.
+     */
+    public static void observePlayableFrame(Object level) {
+        DeferredBlockStateFirstUseDiagnostics diagnostics = firstUseDiagnostics;
+        if (diagnostics == null || level == null) {
+            return;
+        }
+        DeferredBlockStateFirstUseDiagnostics.Snapshot snapshot =
+                diagnostics.observeFrame(level, System.nanoTime());
+        if (snapshot != null) {
+            VHAccelerator.LOGGER.info("[debug] {}", snapshot.describe());
+        }
+    }
+
+    /** Disconnect: drops any pending first-use snapshot. */
+    public static void worldExited() {
+        DeferredBlockStateFirstUseDiagnostics diagnostics = firstUseDiagnostics;
+        if (diagnostics != null) {
+            diagnostics.cancelSession();
+        }
     }
 
     /** Approximate deferred-key overhead of the registry, excluding models. */

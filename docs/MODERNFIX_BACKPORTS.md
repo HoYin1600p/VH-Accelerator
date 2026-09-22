@@ -197,6 +197,14 @@ ModernFix 1.18's dynamic provider as follows:
   The world renderer rebuilds every chunk after a reload, so such meshes are
   discarded. Not active with CTM or ModernFix's dynamic-resource provider,
   in Compare Mode, or for in-world reloads.
+- Post-first-frame measurement (debug only): each world session logs one
+  snapshot at its first playable frame and one about five seconds later in
+  the same level. Each covers registry counts plus the first-use bake count,
+  summed bake time, and five slowest models in its interval. The summed time
+  adds up bakes across chunk-compile workers and the render thread. It shows
+  whether baking continues after the first playable frame. It is not a frame
+  timing, and whether that baking causes gameplay hitches still needs in-game
+  validation. A disconnect, new level, or reload cancels a pending snapshot.
 - Review risk: third-party code hooked into bake must be thread-safe after
   apply, not just during the parallel bake window. No performance result is
   claimed until independent CMA A/B testing.

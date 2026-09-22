@@ -21,6 +21,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCa
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeService;
 import net.minecraft.ChatFormatting;
@@ -336,6 +337,7 @@ public final class VHAcceleratorClient {
     }
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
+        DeferredBlockStateBaking.worldExited();
         if (closeConnection(event.getConnection(), "Forge player logout")) {
             ServerLoginTimer.cancelActiveAttempt();
             ServerTransferTimer.cancelActiveAttempt();
@@ -356,6 +358,7 @@ public final class VHAcceleratorClient {
             AdaptiveJeiWorkScheduler.markGameplayActive();
         }
         PostLoginWorkTimer.markFirstPlayableFrame();
+        DeferredBlockStateBaking.observePlayableFrame(minecraft.level);
         ServerLoginTimer.Sample loginSample = ServerLoginTimer.markFirstPlayableFrame();
         ServerTransferTimer.Sample transferSample =
                 ServerTransferTimer.markFirstPlayableFrame();
