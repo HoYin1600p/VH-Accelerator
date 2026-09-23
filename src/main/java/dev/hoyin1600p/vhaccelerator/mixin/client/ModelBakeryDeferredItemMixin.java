@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredTopLevelManifest;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateCacheMissGuard;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import java.util.Collections;
@@ -155,6 +156,19 @@ public abstract class ModelBakeryDeferredItemMixin
         }
     }
 
+    /** Refuse an off-thread load only inside a deferred block-state bake. */
+    @Inject(
+            method = "getModel(Lnet/minecraft/resources/ResourceLocation;)"
+                    + "Lnet/minecraft/client/resources/model/UnbakedModel;",
+            at = @At("HEAD")
+    )
+    private void vhaccelerator$guardDeferredCacheMiss(
+            ResourceLocation location,
+            CallbackInfoReturnable<UnbakedModel> callback
+    ) {
+        DeferredBlockStateCacheMissGuard.check(this, unbakedCache, location);
+    }
+
     @Override
     public Set<ResourceLocation> vhaccelerator$deferredItemModels() {
         Set<ResourceLocation> all = vhaccelerator$deferredAll;
@@ -265,7 +279,11 @@ public abstract class ModelBakeryDeferredItemMixin
             bakedTopLevelModels = DeferredBlockStateBaking.install(
                     bakedTopLevelModels,
                     blocks,
-                    location -> bake(location, BlockModelRotation.X0_Y0)
+                    location -> DeferredBlockStateCacheMissGuard.bake(
+                            this,
+                            location,
+                            key -> bake(key, BlockModelRotation.X0_Y0)
+                    )
             );
         }
         Set<ResourceLocation> deferred = vhaccelerator$deferredItems;

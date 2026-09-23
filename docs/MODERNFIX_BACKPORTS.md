@@ -169,6 +169,12 @@ ModernFix 1.18's dynamic provider as follows:
   parallel, while readers of the same key wait for a single bake. The item
   registry reads block keys without holding its own lock, so render-thread
   item bakes never wait for a worker's block bake.
+- During a deferred bake, a scoped cache-miss guard intercepts
+  `ModelBakery#getModel` before vanilla can enter its unsynchronized load path
+  from a chunk worker. It uses no second retained graph and does no dependency
+  traversal on healthy first-use bakes. A missing key falls back to the missing
+  model with a warning. It cannot detect in-place model mutation or a key
+  removed concurrently after the check.
 - `BlockModelShaper`'s lookup is rebuilt with every state present, and
   deferred states are pending entries. The first real read bakes through
   `ModelManager#getModel` on the calling thread and caches the result. There
