@@ -39,7 +39,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.ItemModelMesherForge;
-import net.minecraftforge.fml.ModList;
 
 /**
  * Client-thread lifecycle for deferred inventory-model baking.
@@ -89,8 +88,7 @@ public final class DeferredItemModelBaking {
                 )) {
             return false;
         }
-        ModList mods = ModList.get();
-        if (mods == null || mods.isLoaded("ctm")) {
+        if (!DeferredModelCompatibility.allowsDeferral()) {
             // CTM reads every registry value during the bake event.
             return false;
         }

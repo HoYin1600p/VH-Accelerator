@@ -27,7 +27,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.fml.ModList;
 
 /**
  * Lifecycle of deferred block-state model baking.
@@ -89,8 +88,7 @@ public final class DeferredBlockStateBaking {
                 )) {
             return false;
         }
-        ModList mods = ModList.get();
-        if (mods == null || mods.isLoaded("ctm")) {
+        if (!DeferredModelCompatibility.allowsDeferral()) {
             // CTM reads every value in the bake event. The mixin plugin
             // separately excludes this bakery path when ModernFix's own
             // dynamic-resource provider is active or cannot be verified off.
