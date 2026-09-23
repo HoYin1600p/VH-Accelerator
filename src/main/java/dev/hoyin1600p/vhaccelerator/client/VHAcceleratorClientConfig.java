@@ -137,6 +137,8 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue deferItemModelBaking;
         public final ForgeConfigSpec.BooleanValue deferBlockStateModelBaking;
+        public final ForgeConfigSpec.BooleanValue
+                recordBlockStateMaterialManifest;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
         public final ForgeConfigSpec.BooleanValue indexModelBakeRegistries;
         public final ForgeConfigSpec.BooleanValue memoizeCtmModelBakeTraversal;
@@ -354,6 +356,18 @@ public final class VHAcceleratorClientConfig {
                             "ModernFix dynamic resources,",
                             "and during in-world reloads.")
                     .define("deferBlockStateModelBaking", false);
+            recordBlockStateMaterialManifest = builder
+                    .comment(
+                            "Experimental research capture only; it records for later",
+                            "experiments and does not speed up launches or save memory.",
+                            "On the initial launch, writes the block-atlas texture list of",
+                            "each plain vanilla minecraft block-state model to",
+                            "cache/vhaccelerator/client-assets/deferred-block-state-v1.bin.gz.",
+                            "Nothing reads that file yet: model loading, atlases, baking, and",
+                            "the model registry are unchanged, and recording adds a small",
+                            "cost to that launch. Inactive in Compare Mode, with CTM or",
+                            "ModernFix dynamic resources, and on every later resource reload.")
+                    .define("recordBlockStateMaterialManifest", false);
             builder.pop();
 
             builder.push("compatibility");

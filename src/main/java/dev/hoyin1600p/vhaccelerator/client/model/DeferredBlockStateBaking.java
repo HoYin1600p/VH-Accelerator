@@ -2,14 +2,19 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -19,12 +24,14 @@ import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.MultiVariant;
 import net.minecraft.client.renderer.block.model.multipart.MultiPart;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -75,6 +82,10 @@ public final class DeferredBlockStateBaking {
     private static volatile long selectNanos;
     private static volatile long copyNanos;
     private static volatile long registryNanos;
+
+    /** The opt-in material recorder runs at most once per JVM. */
+    private static final AtomicBoolean materialRecordClaimed =
+            new AtomicBoolean();
 
     private DeferredBlockStateBaking() {
     }
@@ -152,6 +163,131 @@ public final class DeferredBlockStateBaking {
                     }
                 }
         );
+    }
+
+    /**
+     * Opt-in research capture at {@code processLoading} TAIL, after the eager
+     * load, material pass, and stitch preparation. Writes the block-state
+     * manifest for later experiments; nothing reads it, and no model, atlas,
+     * bake, or registry state changes. Initial launch only, once per JVM;
+     * never reads client world state.
+     */
+    public static void recordMaterialsIfEnabled(
+            ResourceManager resourceManager,
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache,
+            Function<ResourceLocation, UnbakedModel> getter
+    ) {
+        if (!DeferredBlockStateMaterialRecorder.shouldRecord(
+                        LaunchTimer.isFinished(),
+                        () -> VHAcceleratorClientConfig.launchValue(
+                                VHAcceleratorClientConfig.VALUES
+                                        .recordBlockStateMaterialManifest
+                        ),
+                        VHAcceleratorClientConfig::optimizationsEnabled,
+                        VHAcceleratorConfig::compareModeEnabled,
+                        DeferredModelCompatibility::allowsDeferral
+                )
+                || resourceManager == null
+                || !materialRecordClaimed.compareAndSet(false, true)) {
+            return;
+        }
+        long started = System.nanoTime();
+        DeferredBlockStateMaterialRecorder.Result result;
+        try {
+            result = DeferredBlockStateMaterialRecorder.<ResourceLocation>record(
+                    ClientAssetFingerprint.current(resourceManager),
+                    () -> recordableKeys(topLevelModels, unbakedCache),
+                    location -> materialIds(
+                            topLevelModels.get(location),
+                            getter
+                    )
+            );
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not record block-state materials for later "
+                            + "experiments; nothing was written",
+                    failure
+            );
+            return;
+        }
+        long millis = (System.nanoTime() - started) / 1_000_000L;
+        if (!result.fingerprinted()) {
+            VHAccelerator.LOGGER.info(
+                    "Block-state material recording skipped: no stable "
+                            + "client asset fingerprint; nothing was written"
+            );
+            return;
+        }
+        PersistentDeferredBlockStateManifest.Manifest manifest =
+                result.manifest();
+        VHAccelerator.LOGGER.info(
+                "Recorded {} of {} minecraft block-state material lists "
+                        + "({} skipped, {} failed) in {} ms for later "
+                        + "experiments; {}",
+                result.recorded(),
+                result.candidates(),
+                result.skipped(),
+                result.failed(),
+                millis,
+                manifest == null
+                        ? "nothing was written"
+                        : "nothing reads this manifest yet"
+        );
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            for (String detail : result.details()) {
+                VHAccelerator.LOGGER.info(
+                        "[debug] Block-state material recording left out {}",
+                        detail
+                );
+            }
+        }
+        if (manifest != null) {
+            PersistentDeferredBlockStateManifest.writeAsync(manifest);
+        }
+    }
+
+    /** Selected plain block-state keys in the {@code minecraft} namespace. */
+    private static List<ResourceLocation> recordableKeys(
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache
+    ) {
+        List<ResourceLocation> keys = new ArrayList<>();
+        for (ResourceLocation location
+                : selectCertified(topLevelModels, unbakedCache)) {
+            if ("minecraft".equals(location.getNamespace())) {
+                keys.add(location);
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * Materials of an already-loaded, parent-bound plain graph. Selection
+     * guarantees every dependency is cached, so this loads nothing.
+     */
+    private static List<PersistentDeferredBlockStateManifest.MaterialId>
+            materialIds(
+                    UnbakedModel model,
+                    Function<ResourceLocation, UnbakedModel> getter
+            ) {
+        if (model == null) {
+            return null;
+        }
+        Collection<Material> materials =
+                model.getMaterials(getter, new HashSet<>());
+        List<PersistentDeferredBlockStateManifest.MaterialId> ids =
+                new ArrayList<>(materials.size());
+        for (Material material : materials) {
+            // A null id is rejected, leaving the whole key out.
+            ids.add(material == null
+                    ? null
+                    : new PersistentDeferredBlockStateManifest.MaterialId(
+                            material.atlasLocation().toString(),
+                            material.texture().toString()
+                    ));
+        }
+        return ids;
     }
 
     static boolean plainNode(UnbakedModel node, UnbakedModel missing) {

@@ -122,6 +122,33 @@ class PersistentDeferredBlockStateManifestTest {
                 "minecraft:missing#facing=north")).isEmpty());
     }
 
+    @Test void acceptsNeverClosesTheBuilder() {
+        Builder builder = new Builder();
+        assertFalse(builder.accepts(FURNACE, List.of()));
+        assertFalse(builder.accepts("minecraft:stone#inventory",
+                List.of(texture("minecraft:block/stone"))));
+        assertFalse(builder.accepts(FURNACE, List.of(
+                texture(PersistentDeferredBlockStateManifest.MISSING_TEXTURE))));
+        assertEquals(0, builder.rejected());
+        assertTrue(builder.accepts(FURNACE,
+                List.of(texture("minecraft:block/furnace_top"))));
+        assertEquals(0, builder.size(), "accepts does not add");
+        assertTrue(builder.add(FURNACE,
+                List.of(texture("minecraft:block/furnace_top"))));
+        assertFalse(builder.accepts(FURNACE,
+                List.of(texture("minecraft:block/furnace_top"))),
+                "duplicate");
+        assertNotNull(builder.build(FINGERPRINT));
+    }
+
+    @Test void acceptsIsFalseOnceTheBuilderFailed() {
+        Builder builder = new Builder();
+        assertFalse(builder.add(FURNACE, List.of()));
+        assertFalse(builder.accepts(STAIRS,
+                List.of(texture("minecraft:block/oak_planks"))));
+        assertNull(builder.build(FINGERPRINT));
+    }
+
     @Test void formatIsDistinctFromTheInventoryManifest()
             throws IOException {
         assertNotEquals(PersistentDeferredTopLevelManifest.MAGIC,

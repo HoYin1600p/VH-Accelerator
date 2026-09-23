@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -35,8 +36,9 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * Persists certified Minecraft block-state keys and the complete block-atlas
  * material list of each key for a later warm-launch experiment.
  *
- * <p>Only identifiers are stored; no model object is serialized. Nothing in
- * the current launch reads or writes this file. A manifest is trusted only
+ * <p>Only identifiers are stored; no model object is serialized. Only the
+ * opt-in initial-launch recorder writes this file, and nothing reads it
+ * yet. A manifest is trusted only
  * when its magic, version, fingerprint, counts, identifiers, canonical
  * ordering, material constraints, and SHA-256 digest all validate. Another
  * format version reads as absent. Any other failure leaves block states
@@ -167,12 +169,8 @@ public final class PersistentDeferredBlockStateManifest {
         private boolean failed;
 
         public boolean add(String modelKey, Collection<MaterialId> materials) {
-            List<MaterialId> canonical = canonicalEntry(modelKey, materials);
-            if (canonical == null
-                    || entries.containsKey(modelKey)
-                    || entries.size() >= MAX_ENTRIES
-                    || totalMaterials + canonical.size()
-                            > MAX_TOTAL_MATERIALS) {
+            List<MaterialId> canonical = admissible(modelKey, materials);
+            if (canonical == null) {
                 rejected++;
                 failed = true;
                 return false;
@@ -180,6 +178,30 @@ public final class PersistentDeferredBlockStateManifest {
             entries.put(modelKey, canonical);
             totalMaterials += canonical.size();
             return true;
+        }
+
+        /**
+         * Whether {@link #add} would accept this entry on an open builder.
+         * Never changes or closes the builder, so a caller can leave an
+         * ineligible entry out before the sticky {@code add}.
+         */
+        public boolean accepts(String modelKey, Collection<MaterialId> materials) {
+            return !failed && admissible(modelKey, materials) != null;
+        }
+
+        private List<MaterialId> admissible(
+                String modelKey,
+                Collection<MaterialId> materials
+        ) {
+            List<MaterialId> canonical = canonicalEntry(modelKey, materials);
+            if (canonical == null
+                    || entries.containsKey(modelKey)
+                    || entries.size() >= MAX_ENTRIES
+                    || totalMaterials + canonical.size()
+                            > MAX_TOTAL_MATERIALS) {
+                return null;
+            }
+            return canonical;
         }
 
         public int rejected() {
@@ -250,7 +272,7 @@ public final class PersistentDeferredBlockStateManifest {
      * variants are rejected. Blocks with no properties are outside this
      * stage because their variant is empty.
      */
-    static boolean validModelKey(String key) {
+    public static boolean validModelKey(String key) {
         if (key == null || key.length() > MAX_IDENTIFIER_LENGTH) {
             return false;
         }
@@ -563,8 +585,11 @@ public final class PersistentDeferredBlockStateManifest {
                         StandardCopyOption.REPLACE_EXISTING
                 );
             }
+            if (!VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                return; // The recorder already logged its one summary line.
+            }
             VHAccelerator.LOGGER.info(
-                    "Saved {} certified minecraft block-state models ({} "
+                    "[debug] Saved {} certified minecraft block-state models ({} "
                             + "materials) to the deferred block-state "
                             + "manifest",
                     manifest.size(),

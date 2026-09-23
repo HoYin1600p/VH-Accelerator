@@ -156,6 +156,29 @@ public abstract class ModelBakeryDeferredItemMixin
         }
     }
 
+    /** Opt-in, write-only block-state material capture; changes no state. */
+    @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
+    private void vhaccelerator$recordBlockStateMaterials(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        try {
+            DeferredBlockStateBaking.recordMaterialsIfEnabled(
+                    resourceManager,
+                    topLevelModels,
+                    unbakedCache,
+                    this::getModel
+            );
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not record block-state materials for later "
+                            + "experiments; nothing was written",
+                    failure
+            );
+        }
+    }
+
     /** Refuse an off-thread load only inside a deferred block-state bake. */
     @Inject(
             method = "getModel(Lnet/minecraft/resources/ResourceLocation;)"
