@@ -52,6 +52,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     private boolean modernFixLoaded;
     private boolean modDiscoveryFailed;
+    private boolean modListKnown;
     private boolean ferriteCoreLoaded;
     private boolean externalShapeOptimizerLoaded;
     private boolean optifinePresent;
@@ -71,6 +72,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean refinedStorageLoaded;
     private boolean sophisticatedCoreLoaded;
     private boolean ctmCompatible;
+    private boolean ctmInstalled;
     private boolean mekanismModelBakeCompatible;
     private boolean cableTiersModelBakeCompatible;
     private boolean cloudStorageModelBakeCompatible;
@@ -105,9 +107,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         physicalClient = FMLEnvironment.dist == Dist.CLIENT;
         try {
             LoadingModList modList = LoadingModList.get();
+            modListKnown = modList != null;
             targetDummySetupFix = hasVersion(modList, "dummmmmmy", "1.18-1.5.2")
                     && dev.hoyin1600p.vhaccelerator.compat.targetdummy.TargetDummySetupFix.enabled();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
+            ctmInstalled = modList != null && modList.getModFileById("ctm") != null;
             ferriteCoreLoaded = modList != null
                     && modList.getModFileById("ferritecore") != null;
             externalShapeOptimizerLoaded = modList != null
@@ -203,6 +207,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             }
         } catch (RuntimeException exception) {
             modDiscoveryFailed = true;
+            modListKnown = false;
             targetDummySetupFix = false;
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
@@ -223,6 +228,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             refinedStorageLoaded = false;
             sophisticatedCoreLoaded = false;
             ctmCompatible = false;
+            ctmInstalled = false;
             mekanismModelBakeCompatible = false;
             cableTiersModelBakeCompatible = false;
             cloudStorageModelBakeCompatible = false;
@@ -623,11 +629,23 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return physicalClient && ferriteCoreLoaded;
         }
         if (mixinClassName.endsWith("DeferredItemMixin")) {
-            // Never beside ModernFix's own dynamic-resource provider; unknown fails closed.
-            return physicalClient
+            // Omit all deferred-item mixins for CTM, unknown mod discovery,
+            // a dedicated server, or ModernFix dynamic resources.
+            Boolean modernFixDynamicResources = null;
+            if (physicalClient
                     && !modDiscoveryFailed
-                    && (!modernFixLoaded
-                    || !modernFixDynamicResourcesEnabled());
+                    && modListKnown
+                    && !ctmInstalled
+                    && modernFixLoaded) {
+                modernFixDynamicResources = modernFixDynamicResourcesEnabled();
+            }
+            return DeferredModelMixinPolicy.allowDeferredItemMixins(
+                    physicalClient,
+                    modListKnown && !modDiscoveryFailed,
+                    ctmInstalled,
+                    modernFixLoaded,
+                    modernFixDynamicResources
+            );
         }
         if (mixinClassName.contains(".client.") || mixinClassName.contains(".compat.")) {
             if (!physicalClient) {
