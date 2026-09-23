@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.decocraft.DecocraftBbModelCache;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockStateGraphLoadDiagnostics;
 import dev.hoyin1600p.vhaccelerator.client.model.PlaceboItemMappingProfiler;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -82,6 +83,11 @@ public abstract class ModelBakeryLoadProfilerMixin {
     private int vhaccelerator$itemMissingCalls;
     @Unique
     private int vhaccelerator$itemCachedCalls;
+    /** Non-null only while a profiled processLoading call is running. */
+    @Unique
+    private BlockStateGraphLoadDiagnostics vhaccelerator$blockStateLoads;
+    @Unique
+    private long vhaccelerator$processLoadingStarted;
     @Inject(method = "processLoading", at = @At("HEAD"), remap = false)
     private void vhaccelerator$beginLoadProfile(
             ProfilerFiller profiler,
@@ -110,6 +116,43 @@ public abstract class ModelBakeryLoadProfilerMixin {
             vhaccelerator$itemTopLevelCalls = 0;
             vhaccelerator$itemMissingCalls = 0;
             vhaccelerator$itemCachedCalls = 0;
+            vhaccelerator$blockStateLoads =
+                    new BlockStateGraphLoadDiagnostics();
+            vhaccelerator$processLoadingStarted = System.nanoTime();
+        } else {
+            vhaccelerator$blockStateLoads = null;
+        }
+    }
+
+    @Inject(method = "loadTopLevel", at = @At("HEAD"))
+    private void vhaccelerator$beginBlockStateTopLevelLoad(
+            ModelResourceLocation location,
+            CallbackInfo callback
+    ) {
+        BlockStateGraphLoadDiagnostics diagnostics =
+                vhaccelerator$blockStateLoads;
+        if (diagnostics == null
+                || "inventory".equals(location.getVariant())) {
+            return;
+        }
+        diagnostics.begin(
+                location,
+                BlockStateGraphLoadDiagnostics.candidate(location),
+                unbakedCache.containsKey(location),
+                System.nanoTime()
+        );
+    }
+
+    @Inject(method = "loadTopLevel", at = @At("RETURN"))
+    private void vhaccelerator$finishBlockStateTopLevelLoad(
+            ModelResourceLocation location,
+            CallbackInfo callback
+    ) {
+        BlockStateGraphLoadDiagnostics diagnostics =
+                vhaccelerator$blockStateLoads;
+        if (diagnostics != null
+                && !"inventory".equals(location.getVariant())) {
+            diagnostics.finish(location, System.nanoTime());
         }
     }
 
@@ -222,6 +265,18 @@ public abstract class ModelBakeryLoadProfilerMixin {
             CallbackInfo callback
     ) {
         Map<String, long[]> timings = vhaccelerator$loadTimings;
+        BlockStateGraphLoadDiagnostics blockStateLoads =
+                vhaccelerator$blockStateLoads;
+        vhaccelerator$blockStateLoads = null;
+        if (blockStateLoads != null) {
+            VHAccelerator.LOGGER.info(
+                    "[debug] {}",
+                    blockStateLoads.describe(
+                            System.nanoTime()
+                                    - vhaccelerator$processLoadingStarted
+                    )
+            );
+        }
         vhaccelerator$profileLoads = false;
         vhaccelerator$loadTimings = null;
         vhaccelerator$currentLoad = null;
