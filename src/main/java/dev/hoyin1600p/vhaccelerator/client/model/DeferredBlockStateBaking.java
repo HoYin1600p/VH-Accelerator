@@ -7,8 +7,10 @@ import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -169,11 +171,13 @@ public final class DeferredBlockStateBaking {
      * Opt-in research capture at {@code processLoading} TAIL, after the eager
      * load, material pass, and stitch preparation. Writes the block-state
      * manifest for later experiments; nothing reads it, and no model, atlas,
-     * bake, or registry state changes. Initial launch only, once per JVM;
-     * never reads client world state.
+     * bake, or registry state changes. Model groups are only read from the
+     * bakery's existing map. Initial launch only, once per JVM; never reads
+     * client world state.
      */
     public static void recordMaterialsIfEnabled(
             ResourceManager resourceManager,
+            ModelBakery bakery,
             Map<ResourceLocation, UnbakedModel> topLevelModels,
             Map<ResourceLocation, UnbakedModel> unbakedCache,
             Function<ResourceLocation, UnbakedModel> getter
@@ -189,15 +193,23 @@ public final class DeferredBlockStateBaking {
                         DeferredModelCompatibility::allowsDeferral
                 )
                 || resourceManager == null
+                || bakery == null
                 || !materialRecordClaimed.compareAndSet(false, true)) {
             return;
         }
         long started = System.nanoTime();
         DeferredBlockStateMaterialRecorder.Result result;
         try {
+            Object2IntMap<BlockState> modelGroups = bakery.getModelGroups();
+            // Filled when the candidates are read, after the fingerprint.
+            Map<ResourceLocation, BlockState> states = new HashMap<>();
             result = DeferredBlockStateMaterialRecorder.<ResourceLocation>record(
                     ClientAssetFingerprint.current(resourceManager),
-                    () -> recordableKeys(topLevelModels, unbakedCache),
+                    () -> {
+                        states.putAll(minecraftStates());
+                        return recordableKeys(topLevelModels, unbakedCache);
+                    },
+                    location -> stateGroup(states.get(location), modelGroups),
                     location -> materialIds(
                             topLevelModels.get(location),
                             getter
@@ -223,12 +235,15 @@ public final class DeferredBlockStateBaking {
                 result.manifest();
         VHAccelerator.LOGGER.info(
                 "Recorded {} of {} minecraft block-state material lists "
-                        + "({} skipped, {} failed) in {} ms for later "
+                        + "and model groups ({} skipped, {} failed; {} of {} "
+                        + "blocks fully covered) in {} ms for later "
                         + "experiments; {}",
                 result.recorded(),
                 result.candidates(),
                 result.skipped(),
                 result.failed(),
+                manifest == null ? 0 : manifest.completeBlocks(),
+                manifest == null ? 0 : manifest.blocks().size(),
                 millis,
                 manifest == null
                         ? "nothing was written"
@@ -260,6 +275,51 @@ public final class DeferredBlockStateBaking {
             }
         }
         return keys;
+    }
+
+    /**
+     * Every state of each {@code minecraft} block by its model location, as
+     * the bakery keys them. A location shared by two states maps to null, so
+     * its key is skipped as uncertain. Reads the registry only.
+     */
+    private static Map<ResourceLocation, BlockState> minecraftStates() {
+        Map<ResourceLocation, BlockState> states = new HashMap<>();
+        for (Block block : Registry.BLOCK) {
+            if (!"minecraft".equals(Registry.BLOCK.getKey(block).getNamespace())) {
+                continue;
+            }
+            for (BlockState state
+                    : block.getStateDefinition().getPossibleStates()) {
+                ResourceLocation location =
+                        BlockModelShaper.stateToModelLocation(state);
+                states.put(location,
+                        states.containsKey(location) ? null : state);
+            }
+        }
+        return states;
+    }
+
+    /**
+     * Block, possible-state count, and existing model-group code of a state;
+     * null when the state or the map's {@code -1} default is uncertain.
+     * An absent state is ungrouped, exactly as {@code getInt} reports it.
+     */
+    private static DeferredBlockStateMaterialRecorder.StateGroup stateGroup(
+            BlockState state,
+            Object2IntMap<BlockState> modelGroups
+    ) {
+        if (state == null
+                || modelGroups == null
+                || modelGroups.defaultReturnValue()
+                        != PersistentDeferredBlockStateManifest.UNGROUPED) {
+            return null;
+        }
+        Block block = state.getBlock();
+        return new DeferredBlockStateMaterialRecorder.StateGroup(
+                Registry.BLOCK.getKey(block).toString(),
+                block.getStateDefinition().getPossibleStates().size(),
+                modelGroups.getInt(state)
+        );
     }
 
     /**

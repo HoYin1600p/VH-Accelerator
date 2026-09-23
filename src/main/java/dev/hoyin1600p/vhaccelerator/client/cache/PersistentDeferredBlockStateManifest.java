@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,16 +34,27 @@ import java.util.zip.GZIPOutputStream;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 /**
- * Persists certified Minecraft block-state keys and the complete block-atlas
- * material list of each key for a later warm-launch experiment.
+ * Persists certified Minecraft block-state keys, the complete block-atlas
+ * material list of each key, and each key's model-group code for a later
+ * warm-launch experiment.
  *
- * <p>Only identifiers are stored; no model object is serialized. Only the
- * opt-in initial-launch recorder writes this file, and nothing reads it
- * yet. A manifest is trusted only
- * when its magic, version, fingerprint, counts, identifiers, canonical
- * ordering, material constraints, and SHA-256 digest all validate. Another
- * format version reads as absent. Any other failure leaves block states
- * eager.</p>
+ * <p>Only identifiers and small integers are stored; no model object is
+ * serialized. Only the opt-in initial-launch recorder writes this file, and
+ * nothing reads it yet. A manifest is trusted only when its magic, version,
+ * fingerprint, counts, identifiers, block coverage, key-to-block
+ * association, group codes, canonical ordering, material constraints, and
+ * SHA-256 digest all validate. Another format version, including v1, reads
+ * as absent. Any other failure leaves block states eager.</p>
+ *
+ * <p>Group codes mirror {@code ModelBakery}'s model groups within one
+ * block: {@link #UNGROUPED} ({@code -1}, the map default), {@link
+ * #NON_MODEL_GROUP} ({@code 0}, non-{@code MODEL} render shape), or a
+ * positive label. Positive labels keep only the equality partition of the
+ * bakery's IDs: within a block they are renumbered from 1 in key order, so
+ * unstable global IDs are never stored. Each block also records its full
+ * possible-state count and how many of its states were recorded. A block
+ * whose recorded count is below its state count is partial; nothing may
+ * treat a partial block as safe to skip.</p>
  *
  * <p>A gzip cache read may consume at most
  * {@link #MAX_UNCOMPRESSED_BYTES} inflated bytes. Oversize or malformed
@@ -58,8 +70,13 @@ import net.minecraftforge.fml.loading.FMLPaths;
 public final class PersistentDeferredBlockStateManifest {
     /** File magic {@code VHBS}, distinct from the inventory manifest. */
     static final int MAGIC = 0x56484253;
-    static final int FORMAT_VERSION = 1;
+    static final int FORMAT_VERSION = 2;
+    /** Ungrouped state: the bakery's model-group map default. */
+    public static final int UNGROUPED = -1;
+    /** State whose render shape is not {@code MODEL}. */
+    public static final int NON_MODEL_GROUP = 0;
     static final int MAX_ENTRIES = 100_000;
+    static final int MAX_STATES_PER_BLOCK = 65_536;
     static final int MAX_MATERIALS_PER_ENTRY = 512;
     static final int MAX_TOTAL_MATERIALS = 2_000_000;
     static final int MAX_FINGERPRINT_LENGTH = 4_096;
@@ -72,7 +89,7 @@ public final class PersistentDeferredBlockStateManifest {
     static final long MAX_UNCOMPRESSED_BYTES = 64L * 1024L * 1024L;
     private static final int DIGEST_BYTES = 32;
     private static final String FILE_NAME =
-            "deferred-block-state-v1.bin.gz";
+            "deferred-block-state-v2.bin.gz";
     private static final String MINECRAFT_PREFIX = "minecraft:";
     private static final String INVENTORY_VARIANT = "inventory";
     public static final String BLOCK_ATLAS =
@@ -93,20 +110,46 @@ public final class PersistentDeferredBlockStateManifest {
         }
     }
 
+    /**
+     * Whole-block coverage: every possible state of the block, and how many
+     * of them this manifest records.
+     */
+    public record BlockCoverage(int states, int recorded) {
+        /** Whether every possible state of the block is recorded. */
+        public boolean complete() {
+            return recorded == states;
+        }
+    }
+
+    /** One key's group code and sorted materials. */
+    private record Entry(int group, List<MaterialId> materials) {
+    }
+
     /** An immutable, validated manifest. */
     public static final class Manifest {
         private final String fingerprint;
-        private final Map<String, List<MaterialId>> entries;
+        private final Map<String, Entry> entries;
+        private final Map<String, BlockCoverage> blocks;
         private final int totalMaterials;
+        private final int completeBlocks;
 
         private Manifest(
                 String fingerprint,
-                Map<String, List<MaterialId>> entries,
+                Map<String, Entry> entries,
+                Map<String, BlockCoverage> blocks,
                 int totalMaterials
         ) {
             this.fingerprint = fingerprint;
             this.entries = entries;
+            this.blocks = blocks;
             this.totalMaterials = totalMaterials;
+            int complete = 0;
+            for (BlockCoverage coverage : blocks.values()) {
+                if (coverage.complete()) {
+                    complete++;
+                }
+            }
+            this.completeBlocks = complete;
         }
 
         public String fingerprint() {
@@ -136,20 +179,47 @@ public final class PersistentDeferredBlockStateManifest {
 
         /** Sorted material list, or {@code null} for an unknown key. */
         public List<MaterialId> materials(String modelKey) {
-            return entries.get(modelKey);
+            Entry entry = entries.get(modelKey);
+            return entry == null ? null : entry.materials();
+        }
+
+        /**
+         * Canonical group code of a key: {@link #UNGROUPED}, {@link
+         * #NON_MODEL_GROUP}, or a positive label that is meaningful only
+         * against other keys of the same block. {@code null} for an unknown
+         * key.
+         */
+        public Integer group(String modelKey) {
+            Entry entry = entries.get(modelKey);
+            return entry == null ? null : entry.group();
         }
 
         public Set<String> keys() {
             return entries.keySet();
         }
 
+        /** Block IDs with at least one recorded state, sorted. */
+        public Set<String> blocks() {
+            return blocks.keySet();
+        }
+
+        /** Coverage of a block, or {@code null} for an unknown block. */
+        public BlockCoverage coverage(String block) {
+            return blocks.get(block);
+        }
+
+        /** Blocks whose every possible state is recorded. */
+        public int completeBlocks() {
+            return completeBlocks;
+        }
+
         /** Distinct materials of the given keys; unknown keys add nothing. */
         public Set<MaterialId> union(Collection<String> modelKeys) {
             TreeSet<MaterialId> union = new TreeSet<>();
             for (String key : modelKeys) {
-                List<MaterialId> materials = entries.get(key);
-                if (materials != null) {
-                    union.addAll(materials);
+                Entry entry = entries.get(key);
+                if (entry != null) {
+                    union.addAll(entry.materials());
                 }
             }
             return Collections.unmodifiableSet(union);
@@ -160,22 +230,45 @@ public final class PersistentDeferredBlockStateManifest {
      * Collects certified entries. Malformed, duplicate, incomplete, or
      * over-limit input is left out, and any rejected add closes this
      * builder so {@link #build} stays null.
+     *
+     * <p>Each add carries the block's full possible-state count and the
+     * bakery's raw group ID of that state. Every key of one block must
+     * report the same state count, a block cannot record more keys than it
+     * has states, and a positive raw ID may belong to only one block. Raw
+     * positive IDs are relabeled per block at {@link #build}.</p>
      */
     public static final class Builder {
-        private final TreeMap<String, List<MaterialId>> entries =
-                new TreeMap<>();
+        /** Raw group IDs until {@link #build}. */
+        private final TreeMap<String, Entry> entries = new TreeMap<>();
+        private final Map<String, BlockCoverage> blocks = new HashMap<>();
+        private final Map<Integer, String> groupOwners = new HashMap<>();
         private long totalMaterials;
         private int rejected;
         private boolean failed;
 
-        public boolean add(String modelKey, Collection<MaterialId> materials) {
-            List<MaterialId> canonical = admissible(modelKey, materials);
+        public boolean add(
+                String modelKey,
+                int blockStates,
+                int group,
+                Collection<MaterialId> materials
+        ) {
+            List<MaterialId> canonical =
+                    admissible(modelKey, blockStates, group, materials);
             if (canonical == null) {
                 rejected++;
                 failed = true;
                 return false;
             }
-            entries.put(modelKey, canonical);
+            String block = blockOf(modelKey);
+            BlockCoverage coverage = blocks.get(block);
+            blocks.put(block, new BlockCoverage(
+                    blockStates,
+                    coverage == null ? 1 : coverage.recorded() + 1
+            ));
+            if (group > NON_MODEL_GROUP) {
+                groupOwners.putIfAbsent(group, block);
+            }
+            entries.put(modelKey, new Entry(group, canonical));
             totalMaterials += canonical.size();
             return true;
         }
@@ -185,12 +278,21 @@ public final class PersistentDeferredBlockStateManifest {
          * Never changes or closes the builder, so a caller can leave an
          * ineligible entry out before the sticky {@code add}.
          */
-        public boolean accepts(String modelKey, Collection<MaterialId> materials) {
-            return !failed && admissible(modelKey, materials) != null;
+        public boolean accepts(
+                String modelKey,
+                int blockStates,
+                int group,
+                Collection<MaterialId> materials
+        ) {
+            return !failed
+                    && admissible(modelKey, blockStates, group, materials)
+                            != null;
         }
 
         private List<MaterialId> admissible(
                 String modelKey,
+                int blockStates,
+                int group,
                 Collection<MaterialId> materials
         ) {
             List<MaterialId> canonical = canonicalEntry(modelKey, materials);
@@ -198,8 +300,24 @@ public final class PersistentDeferredBlockStateManifest {
                     || entries.containsKey(modelKey)
                     || entries.size() >= MAX_ENTRIES
                     || totalMaterials + canonical.size()
-                            > MAX_TOTAL_MATERIALS) {
+                            > MAX_TOTAL_MATERIALS
+                    || blockStates < 1
+                    || blockStates > MAX_STATES_PER_BLOCK
+                    || group < UNGROUPED) {
                 return null;
+            }
+            String block = blockOf(modelKey);
+            BlockCoverage coverage = blocks.get(block);
+            if (coverage != null
+                    && (coverage.states() != blockStates
+                            || coverage.recorded() >= blockStates)) {
+                return null;
+            }
+            if (group > NON_MODEL_GROUP) {
+                String owner = groupOwners.get(group);
+                if (owner != null && !owner.equals(block)) {
+                    return null;
+                }
             }
             return canonical;
         }
@@ -225,10 +343,51 @@ public final class PersistentDeferredBlockStateManifest {
             }
             return new Manifest(
                     fingerprint,
-                    Collections.unmodifiableMap(new TreeMap<>(entries)),
+                    Collections.unmodifiableMap(canonicalGroups(entries)),
+                    Collections.unmodifiableMap(new TreeMap<>(blocks)),
                     (int) totalMaterials
             );
         }
+
+        /**
+         * Relabels positive raw IDs per block, from 1 in key order, keeping
+         * only which keys share a group.
+         */
+        private static TreeMap<String, Entry> canonicalGroups(
+                TreeMap<String, Entry> raw
+        ) {
+            TreeMap<String, Entry> canonical = new TreeMap<>();
+            Map<String, Map<Integer, Integer>> labels = new HashMap<>();
+            for (Map.Entry<String, Entry> entry : raw.entrySet()) {
+                int group = entry.getValue().group();
+                if (group > NON_MODEL_GROUP) {
+                    Map<Integer, Integer> blockLabels = labels.computeIfAbsent(
+                            blockOf(entry.getKey()),
+                            ignored -> new HashMap<>()
+                    );
+                    Integer label = blockLabels.get(group);
+                    if (label == null) {
+                        label = blockLabels.size() + 1;
+                        blockLabels.put(group, label);
+                    }
+                    group = label;
+                }
+                canonical.put(
+                        entry.getKey(),
+                        new Entry(group, entry.getValue().materials())
+                );
+            }
+            return canonical;
+        }
+    }
+
+    /** Block ID of a valid model key: the location before {@code #}. */
+    public static String blockOf(String modelKey) {
+        return modelKey.substring(0, modelKey.indexOf('#'));
+    }
+
+    static boolean validBlock(String block) {
+        return validLocation(block) && block.startsWith(MINECRAFT_PREFIX);
     }
 
     /** Sorted, distinct materials for a valid entry, else {@code null}. */
@@ -385,7 +544,12 @@ public final class PersistentDeferredBlockStateManifest {
         return c >= '0' && c <= '9';
     }
 
-    /** Writes the uncompressed canonical form followed by its digest. */
+    /**
+     * Writes the uncompressed canonical form followed by its digest: the
+     * header, the sorted block coverage table, then every entry in key
+     * order. Key order is block-major because every identifier character
+     * sorts after {@code #}.
+     */
     public static void write(Manifest manifest, OutputStream target)
             throws IOException {
         MessageDigest digest = sha256();
@@ -396,11 +560,18 @@ public final class PersistentDeferredBlockStateManifest {
         output.writeUTF(manifest.fingerprint);
         output.writeInt(manifest.entries.size());
         output.writeInt(manifest.totalMaterials);
-        for (Map.Entry<String, List<MaterialId>> entry
-                : manifest.entries.entrySet()) {
+        output.writeInt(manifest.blocks.size());
+        for (Map.Entry<String, BlockCoverage> block
+                : manifest.blocks.entrySet()) {
+            output.writeUTF(block.getKey());
+            output.writeInt(block.getValue().states());
+            output.writeInt(block.getValue().recorded());
+        }
+        for (Map.Entry<String, Entry> entry : manifest.entries.entrySet()) {
             output.writeUTF(entry.getKey());
-            output.writeInt(entry.getValue().size());
-            for (MaterialId material : entry.getValue()) {
+            output.writeInt(entry.getValue().group());
+            output.writeInt(entry.getValue().materials().size());
+            for (MaterialId material : entry.getValue().materials()) {
                 output.writeUTF(material.atlas());
                 output.writeUTF(material.texture());
             }
@@ -441,10 +612,52 @@ public final class PersistentDeferredBlockStateManifest {
                 || declaredMaterials > MAX_TOTAL_MATERIALS) {
             throw new IOException("Invalid manifest counts");
         }
-        TreeMap<String, List<MaterialId>> entries = new TreeMap<>();
+        int blockCount = input.readInt();
+        if (blockCount <= 0 || blockCount > count) {
+            throw new IOException("Invalid manifest counts");
+        }
+        TreeMap<String, BlockCoverage> blocks = new TreeMap<>();
+        String previousBlock = null;
+        long coveredEntries = 0L;
+        for (int index = 0; index < blockCount; index++) {
+            String block = readModifiedUtf(
+                    input,
+                    MAX_IDENTIFIER_LENGTH,
+                    "Manifest identifier is too long"
+            );
+            if (!validBlock(block)) {
+                throw new IOException("Invalid manifest block");
+            }
+            if (previousBlock != null
+                    && previousBlock.compareTo(block) >= 0) {
+                throw new IOException("Manifest blocks are not canonical");
+            }
+            previousBlock = block;
+            int states = input.readInt();
+            int recorded = input.readInt();
+            if (states <= 0 || states > MAX_STATES_PER_BLOCK
+                    || recorded <= 0 || recorded > states) {
+                throw new IOException("Invalid manifest block coverage");
+            }
+            coveredEntries += recorded;
+            if (coveredEntries > count) {
+                throw new IOException("Manifest block coverage mismatch");
+            }
+            blocks.put(block, new BlockCoverage(states, recorded));
+        }
+        if (coveredEntries != count) {
+            throw new IOException("Manifest block coverage mismatch");
+        }
+        TreeMap<String, Entry> entries = new TreeMap<>();
         String previousKey = null;
         long totalMaterials = 0L;
-        for (int index = 0; index < count; index++) {
+        for (Map.Entry<String, BlockCoverage> block : blocks.entrySet()) {
+            String blockId = block.getKey();
+            // Positive labels must appear as 1, 2, ... in key order.
+            int nextLabel = 1;
+            for (int blockIndex = 0;
+                    blockIndex < block.getValue().recorded();
+                    blockIndex++) {
             String key = readModifiedUtf(
                     input,
                     MAX_IDENTIFIER_LENGTH,
@@ -454,6 +667,20 @@ public final class PersistentDeferredBlockStateManifest {
                 throw new IOException("Manifest keys are not canonical");
             }
             previousKey = key;
+            if (key.length() <= blockId.length()
+                    || !key.startsWith(blockId)
+                    || key.charAt(blockId.length()) != '#') {
+                throw new IOException(
+                        "Manifest key does not match its block"
+                );
+            }
+            int group = input.readInt();
+            if (group < UNGROUPED || group > nextLabel) {
+                throw new IOException("Invalid manifest group");
+            }
+            if (group == nextLabel) {
+                nextLabel++;
+            }
             int materialCount = input.readInt();
             if (materialCount <= 0
                     || materialCount > MAX_MATERIALS_PER_ENTRY) {
@@ -492,7 +719,8 @@ public final class PersistentDeferredBlockStateManifest {
             if (canonical == null) {
                 throw new IOException("Invalid manifest entry " + key);
             }
-            entries.put(key, canonical);
+            entries.put(key, new Entry(group, canonical));
+            }
         }
         if (totalMaterials != declaredMaterials) {
             throw new IOException("Manifest material count mismatch");
@@ -510,6 +738,7 @@ public final class PersistentDeferredBlockStateManifest {
         return new Manifest(
                 fingerprint,
                 Collections.unmodifiableMap(entries),
+                Collections.unmodifiableMap(blocks),
                 declaredMaterials
         );
     }

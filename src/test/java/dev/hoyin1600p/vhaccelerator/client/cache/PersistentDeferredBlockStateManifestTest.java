@@ -22,6 +22,11 @@ class PersistentDeferredBlockStateManifestTest {
     private static final String ATLAS =
             PersistentDeferredBlockStateManifest.BLOCK_ATLAS;
     private static final String FINGERPRINT = "v5|a|b|c|d";
+    private static final int STATES = 64;
+    private static final int UNGROUPED =
+            PersistentDeferredBlockStateManifest.UNGROUPED;
+    private static final int NON_MODEL_GROUP =
+            PersistentDeferredBlockStateManifest.NON_MODEL_GROUP;
     private static final String FURNACE =
             "minecraft:furnace#facing=north,lit=false";
     private static final String STAIRS =
@@ -39,9 +44,9 @@ class PersistentDeferredBlockStateManifestTest {
 
     private static Manifest sample() {
         Builder builder = new Builder();
-        assertTrue(builder.add(STAIRS, List.of(
+        assertTrue(builder.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"))));
-        assertTrue(builder.add(FURNACE, List.of(
+        assertTrue(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_top"),
                 texture("minecraft:block/furnace_front"),
                 texture("minecraft:block/furnace_side"),
@@ -92,6 +97,217 @@ class PersistentDeferredBlockStateManifestTest {
         output.writeUTF(texture);
     }
 
+    /** Block table: pairs of block ID and recorded count, STATES each. */
+    private static void blockTable(DataOutputStream output, Object... blocks)
+            throws IOException {
+        output.writeInt(blocks.length / 2);
+        for (int index = 0; index < blocks.length; index += 2) {
+            output.writeUTF((String) blocks[index]);
+            output.writeInt(STATES);
+            output.writeInt((Integer) blocks[index + 1]);
+        }
+    }
+
+    private static void entryKey(DataOutputStream output, String key)
+            throws IOException {
+        output.writeUTF(key);
+        output.writeInt(UNGROUPED);
+    }
+
+    /** One furnace entry with the given coverage and group. */
+    private static byte[] furnace(int states, int recorded, int group)
+            throws Exception {
+        return withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeUTF("minecraft:furnace");
+            output.writeInt(states);
+            output.writeInt(recorded);
+            output.writeUTF(FURNACE);
+            output.writeInt(group);
+            output.writeInt(1);
+            writeMaterial(output, "minecraft:block/furnace_front");
+        });
+    }
+
+    @Test void groupsAndCoverageRoundTrip() throws Exception {
+        String north = "minecraft:furnace#facing=north,lit=true";
+        String south = "minecraft:furnace#facing=south,lit=false";
+        Builder builder = new Builder();
+        assertTrue(builder.add(south, 8, 77,
+                List.of(texture("minecraft:block/furnace_side"))));
+        assertTrue(builder.add(north, 8, 3,
+                List.of(texture("minecraft:block/furnace_side"))));
+        assertTrue(builder.add(FURNACE, 8, 77,
+                List.of(texture("minecraft:block/furnace_side"))));
+        assertTrue(builder.add(STAIRS, 80, NON_MODEL_GROUP,
+                List.of(texture("minecraft:block/oak_planks"))));
+        Manifest manifest = builder.build(FINGERPRINT);
+        assertNotNull(manifest);
+        // Key order: FURNACE (lit=false) < north (lit=true) < south.
+        assertEquals(Integer.valueOf(1), manifest.group(FURNACE));
+        assertEquals(Integer.valueOf(2), manifest.group(north));
+        assertEquals(Integer.valueOf(1), manifest.group(south));
+        assertEquals(Integer.valueOf(0), manifest.group(STAIRS));
+        assertEquals(new PersistentDeferredBlockStateManifest.BlockCoverage(
+                8, 3), manifest.coverage("minecraft:furnace"));
+        assertFalse(manifest.coverage("minecraft:furnace").complete());
+        assertEquals(0, manifest.completeBlocks());
+        Manifest restored = decode(encode(manifest));
+        assertEquals(Integer.valueOf(2), restored.group(north));
+        assertEquals(List.of("minecraft:furnace", "minecraft:oak_stairs"),
+                List.copyOf(restored.blocks()));
+        assertArrayEquals(encode(manifest), encode(restored));
+
+        Builder complete = new Builder();
+        assertTrue(complete.add(FURNACE, 1, UNGROUPED,
+                List.of(texture("minecraft:block/furnace_side"))));
+        Manifest whole = decode(encode(complete.build(FINGERPRINT)));
+        assertTrue(whole.coverage("minecraft:furnace").complete());
+        assertEquals(1, whole.completeBlocks());
+        assertEquals(Integer.valueOf(-1), whole.group(FURNACE));
+    }
+
+    @Test void builderRejectsInconsistentGroupsAndCoverage() {
+        String north = "minecraft:furnace#facing=north,lit=true";
+        List<MaterialId> stone = List.of(texture("minecraft:block/stone"));
+        Builder mismatch = new Builder();
+        assertTrue(mismatch.add(FURNACE, 8, UNGROUPED, stone));
+        assertFalse(mismatch.accepts(north, 9, UNGROUPED, stone));
+        assertFalse(mismatch.add(north, 9, UNGROUPED, stone));
+        assertNull(mismatch.build(FINGERPRINT));
+
+        Builder overflow = new Builder();
+        assertTrue(overflow.add(FURNACE, 1, UNGROUPED, stone));
+        assertFalse(overflow.add(north, 1, UNGROUPED, stone));
+        assertNull(overflow.build(FINGERPRINT));
+
+        Builder shared = new Builder();
+        assertTrue(shared.add(FURNACE, 8, 5, stone));
+        assertFalse(shared.add(STAIRS, 80, 5, stone));
+        assertNull(shared.build(FINGERPRINT));
+
+        for (int[] bad : new int[][] {{0, -1}, {-3, -1}, {8, -2},
+                {PersistentDeferredBlockStateManifest.MAX_STATES_PER_BLOCK
+                        + 1, -1}}) {
+            Builder builder = new Builder();
+            assertFalse(builder.accepts(FURNACE, bad[0], bad[1], stone));
+            assertFalse(builder.add(FURNACE, bad[0], bad[1], stone));
+            assertNull(builder.build(FINGERPRINT));
+        }
+    }
+
+    @Test void tamperedGroupAndCoverageAreRejected() throws Exception {
+        assertNotNull(decode(furnace(8, 1, UNGROUPED)));
+        assertNotNull(decode(furnace(8, 1, 0)));
+        assertNotNull(decode(furnace(8, 1, 1)));
+        assertEquals("Invalid manifest group", assertThrows(IOException.class,
+                () -> decode(furnace(8, 1, 2))).getMessage());
+        assertEquals("Invalid manifest group", assertThrows(IOException.class,
+                () -> decode(furnace(8, 1, -2))).getMessage());
+        assertEquals("Invalid manifest group", assertThrows(IOException.class,
+                () -> decode(furnace(8, 1, Integer.MAX_VALUE))).getMessage());
+        for (int[] coverage : new int[][] {{0, 1}, {-1, 1}, {1, 2}, {8, 0},
+                {PersistentDeferredBlockStateManifest.MAX_STATES_PER_BLOCK
+                        + 1, 1}}) {
+            assertEquals("Invalid manifest block coverage",
+                    assertThrows(IOException.class, () -> decode(
+                            furnace(coverage[0], coverage[1], -1)))
+                            .getMessage());
+        }
+
+        byte[] countMismatch = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(2);
+            output.writeInt(2);
+            blockTable(output, "minecraft:furnace", 1);
+        });
+        assertEquals("Manifest block coverage mismatch",
+                assertThrows(IOException.class,
+                        () -> decode(countMismatch)).getMessage());
+
+        byte[] tooManyBlocks = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeInt(2);
+        });
+        assertEquals("Invalid manifest counts",
+                assertThrows(IOException.class,
+                        () -> decode(tooManyBlocks)).getMessage());
+
+        byte[] wrongBlock = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            blockTable(output, "minecraft:furnac", 1);
+            entryKey(output, FURNACE);
+            output.writeInt(1);
+            writeMaterial(output, "minecraft:block/furnace_front");
+        });
+        assertEquals("Manifest key does not match its block",
+                assertThrows(IOException.class,
+                        () -> decode(wrongBlock)).getMessage());
+
+        byte[] foreignBlock = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            blockTable(output, "create:shaft", 1);
+        });
+        assertEquals("Invalid manifest block",
+                assertThrows(IOException.class,
+                        () -> decode(foreignBlock)).getMessage());
+
+        byte[] unsortedBlocks = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(2);
+            output.writeInt(2);
+            blockTable(output,
+                    "minecraft:oak_stairs", 1, "minecraft:furnace", 1);
+        });
+        assertEquals("Manifest blocks are not canonical",
+                assertThrows(IOException.class,
+                        () -> decode(unsortedBlocks)).getMessage());
+    }
+
+    @Test void versionOneReadsAsAbsent() throws Exception {
+        byte[] v1 = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(1);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeUTF(FURNACE);
+            output.writeInt(1);
+            writeMaterial(output, "minecraft:block/furnace_front");
+        });
+        assertNull(decode(v1));
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(v1),
+                PersistentDeferredBlockStateManifest.MAX_UNCOMPRESSED_BYTES));
+    }
+
     @Test void roundTripPreservesKeysMaterialsAndFingerprint()
             throws IOException {
         Manifest manifest = sample();
@@ -124,18 +340,18 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void acceptsNeverClosesTheBuilder() {
         Builder builder = new Builder();
-        assertFalse(builder.accepts(FURNACE, List.of()));
-        assertFalse(builder.accepts("minecraft:stone#inventory",
+        assertFalse(builder.accepts(FURNACE, STATES, UNGROUPED, List.of()));
+        assertFalse(builder.accepts("minecraft:stone#inventory", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/stone"))));
-        assertFalse(builder.accepts(FURNACE, List.of(
+        assertFalse(builder.accepts(FURNACE, STATES, UNGROUPED, List.of(
                 texture(PersistentDeferredBlockStateManifest.MISSING_TEXTURE))));
         assertEquals(0, builder.rejected());
-        assertTrue(builder.accepts(FURNACE,
+        assertTrue(builder.accepts(FURNACE, STATES, UNGROUPED,
                 List.of(texture("minecraft:block/furnace_top"))));
         assertEquals(0, builder.size(), "accepts does not add");
-        assertTrue(builder.add(FURNACE,
+        assertTrue(builder.add(FURNACE, STATES, UNGROUPED,
                 List.of(texture("minecraft:block/furnace_top"))));
-        assertFalse(builder.accepts(FURNACE,
+        assertFalse(builder.accepts(FURNACE, STATES, UNGROUPED,
                 List.of(texture("minecraft:block/furnace_top"))),
                 "duplicate");
         assertNotNull(builder.build(FINGERPRINT));
@@ -143,8 +359,8 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void acceptsIsFalseOnceTheBuilderFailed() {
         Builder builder = new Builder();
-        assertFalse(builder.add(FURNACE, List.of()));
-        assertFalse(builder.accepts(STAIRS,
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of()));
+        assertFalse(builder.accepts(STAIRS, STATES, UNGROUPED,
                 List.of(texture("minecraft:block/oak_planks"))));
         assertNull(builder.build(FINGERPRINT));
     }
@@ -168,26 +384,26 @@ class PersistentDeferredBlockStateManifestTest {
     @Test void builderAcceptsStructuralMinecraftBlockStates() {
         Builder builder = new Builder();
         assertTrue(builder.add(
-                "minecraft:composter#level=0",
+                "minecraft:composter#level=0", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/composter_side"))));
         assertTrue(builder.add(
-                "minecraft:wheat#age=7",
+                "minecraft:wheat#age=7", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/wheat_stage7"))));
         assertTrue(builder.add(
-                "minecraft:cake#bites=6",
+                "minecraft:cake#bites=6", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/cake_side"))));
         assertTrue(builder.add(
                 "minecraft:redstone_wire#east=side,north=none,power=0,"
-                        + "south=side,west=up",
+                        + "south=side,west=up", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/redstone_dust_dot"))));
         assertTrue(builder.add(
-                "minecraft:observer#powered=false,facing=north",
+                "minecraft:observer#powered=false,facing=north", STATES, UNGROUPED,
                 List.of(texture("minecraft:block/observer_front"))));
         String maxKey = maxLengthKey();
         assertEquals(
                 PersistentDeferredBlockStateManifest.MAX_IDENTIFIER_LENGTH,
                 maxKey.length());
-        assertTrue(builder.add(maxKey,
+        assertTrue(builder.add(maxKey, STATES, UNGROUPED,
                 List.of(texture("minecraft:block/stone"))));
         Manifest manifest = builder.build(FINGERPRINT);
         assertNotNull(manifest);
@@ -244,14 +460,14 @@ class PersistentDeferredBlockStateManifestTest {
                 "minecraft:stone##facing=north"
         };
         for (String key : malformed) {
-            assertFalse(builder.add(key, List.of(
+            assertFalse(builder.add(key, STATES, UNGROUPED, List.of(
                     texture("minecraft:block/stone"))), key);
         }
         String tooLong = "minecraft:"
                 + "a".repeat(PersistentDeferredBlockStateManifest
                         .MAX_IDENTIFIER_LENGTH)
                 + "#n=1";
-        assertFalse(builder.add(tooLong, List.of(
+        assertFalse(builder.add(tooLong, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/stone"))));
         assertEquals(malformed.length + 1, builder.rejected());
         assertEquals(0, builder.size());
@@ -260,7 +476,7 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void inventoryKeysAreRejected() {
         Builder builder = new Builder();
-        assertTrue(builder.add(FURNACE, List.of(
+        assertTrue(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"))));
         String[] inventory = {
                 "minecraft:stone#inventory",
@@ -269,14 +485,14 @@ class PersistentDeferredBlockStateManifestTest {
                 "minecraft:furnace#inventory"
         };
         for (String key : inventory) {
-            assertFalse(builder.add(key, List.of(
+            assertFalse(builder.add(key, STATES, UNGROUPED, List.of(
                     texture("minecraft:block/stone"))), key);
         }
         assertEquals(inventory.length, builder.rejected());
         assertNull(builder.build(FINGERPRINT));
 
         Builder fresh = new Builder();
-        assertTrue(fresh.add(FURNACE, List.of(
+        assertTrue(fresh.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"))));
         Manifest manifest = fresh.build(FINGERPRINT);
         assertNotNull(manifest);
@@ -300,7 +516,7 @@ class PersistentDeferredBlockStateManifestTest {
                 "mod:stone#facing=north"
         };
         for (String key : foreign) {
-            assertFalse(builder.add(key, List.of(
+            assertFalse(builder.add(key, STATES, UNGROUPED, List.of(
                     texture("minecraft:block/stone"))), key);
         }
         assertEquals(foreign.length, builder.rejected());
@@ -309,35 +525,35 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void nonBlockAtlasMaterialsAreRejected() {
         Builder builder = new Builder();
-        assertFalse(builder.add(FURNACE, List.of()));
-        assertFalse(builder.add(FURNACE, null));
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of()));
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, null));
         List<MaterialId> nullMember = new ArrayList<>();
         nullMember.add(null);
-        assertFalse(builder.add(FURNACE, nullMember));
-        assertFalse(builder.add(FURNACE, List.of(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, nullMember));
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture(PersistentDeferredBlockStateManifest
                         .MISSING_TEXTURE))));
-        assertFalse(builder.add(FURNACE, List.of(new MaterialId(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(new MaterialId(
                 "minecraft:textures/atlas/signs.png",
                 "minecraft:entity/signs/oak"))));
-        assertFalse(builder.add(FURNACE, List.of(new MaterialId(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(new MaterialId(
                 "minecraft:textures/atlas/particles.png",
                 "minecraft:block/stone"))));
-        assertFalse(builder.add(FURNACE, List.of(new MaterialId(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(new MaterialId(
                 "minecraft:textures/atlas/chest.png",
                 "minecraft:entity/chest/normal"))));
-        assertFalse(builder.add(FURNACE, List.of(new MaterialId(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(new MaterialId(
                 ATLAS + ".bak",
                 "minecraft:block/stone"))));
-        assertFalse(builder.add(FURNACE, List.of(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 new MaterialId(null, "minecraft:block/stone"))));
-        assertFalse(builder.add(FURNACE, List.of(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 new MaterialId(ATLAS, null))));
-        assertFalse(builder.add(FURNACE, List.of(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("Block/Stone"))));
-        assertFalse(builder.add(FURNACE, List.of(
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:"))));
-        assertFalse(builder.add(STAIRS, List.of(
+        assertFalse(builder.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"),
                 new MaterialId(
                         "minecraft:textures/atlas/beds.png",
@@ -345,7 +561,7 @@ class PersistentDeferredBlockStateManifestTest {
         String longTexture = "minecraft:" + "a".repeat(
                 PersistentDeferredBlockStateManifest
                         .MAX_IDENTIFIER_LENGTH);
-        assertFalse(builder.add(FURNACE, List.of(texture(longTexture))));
+        assertFalse(builder.add(FURNACE, STATES, UNGROUPED, List.of(texture(longTexture))));
         assertEquals(0, builder.size());
         assertNull(builder.build(FINGERPRINT),
                 "a partial material list is not certified");
@@ -366,7 +582,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF("minecraft:stone#inventory");
+            blockTable(output, "minecraft:stone", 1);
+            entryKey(output, "minecraft:stone#inventory");
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/stone");
         });
@@ -400,14 +617,16 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(2);
             output.writeInt(2);
-            output.writeUTF(STAIRS);
+            blockTable(output,
+                    "minecraft:furnace", 1, "minecraft:oak_stairs", 1);
+            entryKey(output, STAIRS);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/oak_planks");
-            output.writeUTF(FURNACE);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_front");
         });
-        assertEquals("Manifest keys are not canonical",
+        assertEquals("Manifest key does not match its block",
                 assertThrows(IOException.class,
                         () -> decode(unsortedKeys)).getMessage());
 
@@ -418,10 +637,11 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(2);
             output.writeInt(2);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 2);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_front");
-            output.writeUTF(FURNACE);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_top");
         });
@@ -436,7 +656,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(2);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(2);
             writeMaterial(output, "minecraft:block/furnace_top");
             writeMaterial(output, "minecraft:block/furnace_front");
@@ -452,7 +673,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(2);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(2);
             writeMaterial(output, "minecraft:block/furnace_front");
             writeMaterial(output, "minecraft:block/furnace_front");
@@ -464,9 +686,9 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void entriesAreSortedAndDuplicatesDoNotOverwrite() {
         Builder builder = new Builder();
-        assertTrue(builder.add(STAIRS, List.of(
+        assertTrue(builder.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"))));
-        assertTrue(builder.add(FURNACE, List.of(
+        assertTrue(builder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_top"),
                 texture("minecraft:block/furnace_front"),
                 texture("minecraft:block/furnace_front"))));
@@ -480,11 +702,11 @@ class PersistentDeferredBlockStateManifestTest {
         assertEquals(3, manifest.totalMaterials());
 
         Builder duplicate = new Builder();
-        assertTrue(duplicate.add(FURNACE, List.of(
+        assertTrue(duplicate.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"),
                 texture("minecraft:block/furnace_top"))));
         assertEquals(1, duplicate.size());
-        assertFalse(duplicate.add(FURNACE, List.of(
+        assertFalse(duplicate.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_side"))));
         assertEquals(1, duplicate.size());
         assertEquals(1, duplicate.rejected());
@@ -500,7 +722,7 @@ class PersistentDeferredBlockStateManifestTest {
                 index++) {
             full.add(texture("minecraft:block/m" + index));
         }
-        assertTrue(materials.add(FURNACE, full));
+        assertTrue(materials.add(FURNACE, STATES, UNGROUPED, full));
         Manifest fullManifest = materials.build(FINGERPRINT);
         assertNotNull(fullManifest);
         assertEquals(
@@ -513,7 +735,7 @@ class PersistentDeferredBlockStateManifestTest {
         List<MaterialId> tooMany = new ArrayList<>(full);
         tooMany.add(texture("minecraft:block/overflow"));
         Builder overflow = new Builder();
-        assertFalse(overflow.add(FURNACE, tooMany));
+        assertFalse(overflow.add(FURNACE, STATES, UNGROUPED, tooMany));
         assertNull(overflow.build(FINGERPRINT));
 
         Builder entries = new Builder();
@@ -522,20 +744,20 @@ class PersistentDeferredBlockStateManifestTest {
         int accepted = 0;
         for (int index = 0; index < limit; index++) {
             if (entries.add(
-                    "minecraft:b" + index + "#n=1",
+                    "minecraft:b" + index + "#n=1", STATES, UNGROUPED,
                     List.of(stone))) {
                 accepted++;
             }
         }
         assertEquals(limit, accepted);
         assertFalse(entries.add(
-                "minecraft:overflow#n=1",
+                "minecraft:overflow#n=1", STATES, UNGROUPED,
                 List.of(stone)));
         assertEquals(limit, entries.size());
         assertNull(entries.build(FINGERPRINT));
 
         Builder fingerprint = new Builder();
-        assertTrue(fingerprint.add(FURNACE, List.of(
+        assertTrue(fingerprint.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"))));
         assertNull(fingerprint.build(null));
         assertNull(fingerprint.build(""));
@@ -550,15 +772,15 @@ class PersistentDeferredBlockStateManifestTest {
         assertEquals(maxFingerprint,
                 decode(encode(longFingerprint)).fingerprint());
 
-        assertTrue(fingerprint.add(maxLengthKey(), List.of(stone))
+        assertTrue(fingerprint.add(maxLengthKey(), STATES, UNGROUPED, List.of(stone))
                 || fingerprint.size() == 1);
         Builder longKey = new Builder();
-        assertTrue(longKey.add(maxLengthKey(), List.of(stone)));
+        assertTrue(longKey.add(maxLengthKey(), STATES, UNGROUPED, List.of(stone)));
         Manifest maxKeyManifest = longKey.build(FINGERPRINT);
         assertNotNull(maxKeyManifest);
         assertEquals(List.of(maxLengthKey()),
                 List.copyOf(decode(encode(maxKeyManifest)).keys()));
-        assertFalse(longKey.add(maxLengthKey() + "a", List.of(stone)));
+        assertFalse(longKey.add(maxLengthKey() + "a", STATES, UNGROUPED, List.of(stone)));
         assertNull(longKey.build(FINGERPRINT));
 
         byte[] emptyManifest = header(0, 0, FINGERPRINT);
@@ -590,7 +812,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(
                     PersistentDeferredBlockStateManifest
                             .MAX_MATERIALS_PER_ENTRY + 1);
@@ -608,7 +831,8 @@ class PersistentDeferredBlockStateManifestTest {
                             .MAX_FINGERPRINT_LENGTH + 1));
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_front");
         });
@@ -634,7 +858,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_front");
         });
@@ -650,7 +875,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(1);
             writeMaterial(output, "minecraft:block/furnace_front");
         });
@@ -675,36 +901,36 @@ class PersistentDeferredBlockStateManifestTest {
 
     @Test void rejectedAddClosesTheBuilderUntilAFreshOneIsUsed() {
         Builder duplicate = new Builder();
-        assertTrue(duplicate.add(FURNACE, List.of(
+        assertTrue(duplicate.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"),
                 texture("minecraft:block/furnace_top"))));
-        assertFalse(duplicate.add(FURNACE, List.of(
+        assertFalse(duplicate.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_side"))));
         assertNull(duplicate.build(FINGERPRINT));
-        assertTrue(duplicate.add(STAIRS, List.of(
+        assertTrue(duplicate.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"))));
         assertNull(duplicate.build(FINGERPRINT));
 
         Builder incomplete = new Builder();
-        assertTrue(incomplete.add(STAIRS, List.of(
+        assertTrue(incomplete.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"))));
-        assertFalse(incomplete.add(FURNACE, List.of()));
-        assertFalse(incomplete.add(FURNACE, null));
+        assertFalse(incomplete.add(FURNACE, STATES, UNGROUPED, List.of()));
+        assertFalse(incomplete.add(FURNACE, STATES, UNGROUPED, null));
         assertNull(incomplete.build(FINGERPRINT));
 
         Builder invalidMaterial = new Builder();
-        assertFalse(invalidMaterial.add(FURNACE, List.of(new MaterialId(
+        assertFalse(invalidMaterial.add(FURNACE, STATES, UNGROUPED, List.of(new MaterialId(
                 "minecraft:textures/atlas/chest.png",
                 "minecraft:entity/chest/normal"))));
         assertNull(invalidMaterial.build(FINGERPRINT));
-        assertTrue(invalidMaterial.add(FURNACE, List.of(
+        assertTrue(invalidMaterial.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"))));
         assertNull(invalidMaterial.build(FINGERPRINT));
 
         Builder fresh = new Builder();
-        assertTrue(fresh.add(STAIRS, List.of(
+        assertTrue(fresh.add(STAIRS, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/oak_planks"))));
-        assertTrue(fresh.add(FURNACE, List.of(
+        assertTrue(fresh.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_top"),
                 texture("minecraft:block/furnace_front"))));
         Manifest manifest = fresh.build(FINGERPRINT);
@@ -789,7 +1015,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(Integer.MAX_VALUE);
         });
         byte[] negativeMaterialCount = withDigest(output -> {
@@ -799,7 +1026,8 @@ class PersistentDeferredBlockStateManifestTest {
             output.writeUTF(FINGERPRINT);
             output.writeInt(1);
             output.writeInt(1);
-            output.writeUTF(FURNACE);
+            blockTable(output, "minecraft:furnace", 1);
+            entryKey(output, FURNACE);
             output.writeInt(-1);
         });
         assertEquals("Invalid manifest material count",
@@ -844,7 +1072,7 @@ class PersistentDeferredBlockStateManifestTest {
                 PersistentDeferredBlockStateManifest
                         .MAX_FINGERPRINT_LENGTH);
         Builder wideBuilder = new Builder();
-        assertTrue(wideBuilder.add(FURNACE, List.of(
+        assertTrue(wideBuilder.add(FURNACE, STATES, UNGROUPED, List.of(
                 texture("minecraft:block/furnace_front"))));
         Manifest wideManifest = wideBuilder.build(wide);
         assertNotNull(wideManifest);
@@ -885,8 +1113,9 @@ class PersistentDeferredBlockStateManifestTest {
         output.writeUTF(FINGERPRINT);
         output.writeInt(1);
         output.writeInt(1);
+        blockTable(output, "minecraft:furnace", 1);
         if (materialField) {
-            output.writeUTF(FURNACE);
+            entryKey(output, FURNACE);
             output.writeInt(1);
         }
         output.writeShort(utfByteLength);

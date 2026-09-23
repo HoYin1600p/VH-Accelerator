@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 class DeferredBlockStateMaterialRecorderTest {
+    private static final int STATES = 64;
     private static final String ATLAS =
             PersistentDeferredBlockStateManifest.BLOCK_ATLAS;
     private static final String FINGERPRINT = "v5|a|b|c|d";
@@ -42,11 +45,151 @@ class DeferredBlockStateMaterialRecorderTest {
             List<String> keys,
             Map<String, Collection<MaterialId>> materials
     ) {
-        return DeferredBlockStateMaterialRecorder.<String>record(
+        return recordUngrouped(
                 fingerprint,
                 () -> keys,
                 materials::get
         );
+    }
+
+    private static DeferredBlockStateMaterialRecorder.StateGroup ungrouped(
+            String key
+    ) {
+        return new DeferredBlockStateMaterialRecorder.StateGroup(
+                PersistentDeferredBlockStateManifest.blockOf(key),
+                STATES,
+                PersistentDeferredBlockStateManifest.UNGROUPED
+        );
+    }
+
+    private static DeferredBlockStateMaterialRecorder.Result recordUngrouped(
+            String fingerprint,
+            Supplier<? extends Iterable<? extends String>> candidates,
+            Function<? super String, ? extends Collection<MaterialId>> materials
+    ) {
+        return DeferredBlockStateMaterialRecorder.record(
+                fingerprint,
+                candidates,
+                key -> PersistentDeferredBlockStateManifest.validModelKey(key)
+                        ? ungrouped(key)
+                        : null,
+                materials
+        );
+    }
+
+    private static DeferredBlockStateMaterialRecorder.Result recordGroups(
+            List<String> keys,
+            Map<String, DeferredBlockStateMaterialRecorder.StateGroup> groups
+    ) {
+        return DeferredBlockStateMaterialRecorder.record(
+                FINGERPRINT,
+                () -> keys,
+                groups::get,
+                key -> plain("minecraft:block/stone")
+        );
+    }
+
+    private static DeferredBlockStateMaterialRecorder.StateGroup group(
+            String key,
+            int states,
+            int group
+    ) {
+        return new DeferredBlockStateMaterialRecorder.StateGroup(
+                PersistentDeferredBlockStateManifest.blockOf(key), states, group);
+    }
+
+    @Test
+    void groupsAreCanonicalPerBlockWithCoverage() throws IOException {
+        String a = "minecraft:lever#face=wall,facing=east,powered=false";
+        String b = "minecraft:lever#face=wall,facing=north,powered=false";
+        String c = "minecraft:lever#face=wall,facing=south,powered=false";
+        String d = "minecraft:lever#face=wall,facing=west,powered=false";
+        String e = "minecraft:oak_stairs#facing=east,half=top,"
+                + "shape=straight,waterlogged=false";
+        Map<String, DeferredBlockStateMaterialRecorder.StateGroup> groups =
+                new java.util.HashMap<>();
+        groups.put(a, group(a, 4, 907));
+        groups.put(b, group(b, 4, 12));
+        groups.put(c, group(c, 4, 907));
+        groups.put(d, group(d, 4, PersistentDeferredBlockStateManifest.NON_MODEL_GROUP));
+        groups.put(STAIRS, group(STAIRS, 80, 44));
+        groups.put(e, group(e, 80, PersistentDeferredBlockStateManifest.UNGROUPED));
+        DeferredBlockStateMaterialRecorder.Result result =
+                recordGroups(List.of(STAIRS, d, c, e, b, a), groups);
+        Manifest manifest = result.manifest();
+        assertNotNull(manifest);
+        assertEquals(6, result.recorded());
+        assertEquals(Integer.valueOf(1), manifest.group(a));
+        assertEquals(Integer.valueOf(2), manifest.group(b));
+        assertEquals(Integer.valueOf(1), manifest.group(c));
+        assertEquals(Integer.valueOf(0), manifest.group(d));
+        assertEquals(Integer.valueOf(1), manifest.group(STAIRS));
+        assertEquals(Integer.valueOf(-1), manifest.group(e));
+        assertNull(manifest.group(FURNACE));
+        assertTrue(manifest.coverage("minecraft:lever").complete());
+        assertEquals(new PersistentDeferredBlockStateManifest.BlockCoverage(80, 2),
+                manifest.coverage("minecraft:oak_stairs"));
+        assertFalse(manifest.coverage("minecraft:oak_stairs").complete());
+        assertEquals(1, manifest.completeBlocks());
+        Manifest read = PersistentDeferredBlockStateManifest.read(
+                new ByteArrayInputStream(encode(manifest)));
+        assertNotNull(read);
+        assertEquals(Integer.valueOf(2), read.group(b));
+        assertEquals(1, read.completeBlocks());
+        assertArrayEquals(encode(manifest), encode(read));
+    }
+
+    @Test
+    void uncertainGroupsAreSkipped() {
+        Map<String, DeferredBlockStateMaterialRecorder.StateGroup> groups =
+                new java.util.HashMap<>();
+        groups.put(FURNACE, null);
+        groups.put(LEVER, new DeferredBlockStateMaterialRecorder.StateGroup(
+                "minecraft:furnace", 24, -1));
+        groups.put(STAIRS, group(STAIRS, 80, -2));
+        String wheat = "minecraft:wheat#age=7";
+        groups.put(wheat, group(wheat, 0, -1));
+        String cake = "minecraft:cake#bites=6";
+        groups.put(cake, group(cake, 7, 3));
+        DeferredBlockStateMaterialRecorder.Result result = recordGroups(
+                List.of(FURNACE, LEVER, STAIRS, wheat, cake), groups);
+        assertEquals(4, result.skipped());
+        assertEquals(1, result.recorded());
+        assertTrue(result.manifest().contains(cake));
+    }
+
+    @Test
+    void inconsistentBlocksAreSkippedWhole() {
+        String north = "minecraft:furnace#facing=north,lit=true";
+        String south = "minecraft:furnace#facing=south,lit=false";
+        String wheat = "minecraft:wheat#age=7";
+        String cake = "minecraft:cake#bites=6";
+        String cake5 = "minecraft:cake#bites=5";
+        String lever = LEVER;
+        String leverUp = "minecraft:lever#face=floor,facing=north,powered=false";
+        Map<String, DeferredBlockStateMaterialRecorder.StateGroup> groups =
+                new java.util.HashMap<>();
+        // Furnace disagrees on its state count.
+        groups.put(FURNACE, group(FURNACE, 8, -1));
+        groups.put(north, group(north, 9, -1));
+        // Wheat and cake share raw ID 5.
+        groups.put(wheat, group(wheat, 8, 5));
+        groups.put(cake, group(cake, 7, 5));
+        groups.put(cake5, group(cake5, 7, 6));
+        // Lever records more keys than its states.
+        groups.put(lever, group(lever, 1, -1));
+        groups.put(leverUp, group(leverUp, 1, -1));
+        groups.put(south, group(south, 8, -1));
+        groups.put(STAIRS, group(STAIRS, 80, -1));
+        DeferredBlockStateMaterialRecorder.Result result = recordGroups(
+                List.of(FURNACE, north, south, wheat, cake, cake5, lever,
+                        leverUp, STAIRS),
+                groups);
+        assertEquals(8, result.skipped());
+        assertEquals(1, result.recorded());
+        Manifest manifest = result.manifest();
+        assertNotNull(manifest);
+        assertEquals(List.of(STAIRS), new ArrayList<>(manifest.keys()));
     }
 
     private static byte[] encode(Manifest manifest) throws IOException {
@@ -114,7 +257,7 @@ class DeferredBlockStateMaterialRecorderTest {
     void nullFingerprintReadsNoCandidatesAndWritesNothing() {
         AtomicInteger reads = new AtomicInteger();
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         null,
                         () -> {
                             reads.incrementAndGet();
@@ -141,7 +284,7 @@ class DeferredBlockStateMaterialRecorderTest {
                 FURNACE
         );
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> keys,
                         key -> {
@@ -204,7 +347,7 @@ class DeferredBlockStateMaterialRecorderTest {
     @Test
     void duplicateKeyKeepsTheFirstEntry() {
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> List.of(FURNACE, FURNACE),
                         key -> plain("minecraft:block/furnace_top")
@@ -217,7 +360,7 @@ class DeferredBlockStateMaterialRecorderTest {
     @Test
     void throwingGraphIsSkippedAndOthersRecorded() {
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> List.of(FURNACE, LEVER, STAIRS),
                         key -> {
@@ -239,7 +382,7 @@ class DeferredBlockStateMaterialRecorderTest {
     @Test
     void candidateSourceFailurePropagatesSoNothingIsWritten() {
         assertThrows(IllegalStateException.class, () ->
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> {
                             throw new IllegalStateException("selector failed");
@@ -251,7 +394,7 @@ class DeferredBlockStateMaterialRecorderTest {
     @Test
     void nothingRecordedMeansNoManifest() {
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> List.of(FURNACE),
                         key -> List.of()
@@ -306,7 +449,7 @@ class DeferredBlockStateMaterialRecorderTest {
             keys.add("minecraft:bad" + index + "#inventory");
         }
         DeferredBlockStateMaterialRecorder.Result result =
-                DeferredBlockStateMaterialRecorder.<String>record(
+                recordUngrouped(
                         FINGERPRINT,
                         () -> keys,
                         key -> plain("minecraft:block/stone")

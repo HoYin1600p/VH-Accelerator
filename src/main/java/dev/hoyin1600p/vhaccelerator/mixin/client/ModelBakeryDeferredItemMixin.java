@@ -166,6 +166,7 @@ public abstract class ModelBakeryDeferredItemMixin
         try {
             DeferredBlockStateBaking.recordMaterialsIfEnabled(
                     resourceManager,
+                    (ModelBakery) (Object) this,
                     topLevelModels,
                     unbakedCache,
                     this::getModel

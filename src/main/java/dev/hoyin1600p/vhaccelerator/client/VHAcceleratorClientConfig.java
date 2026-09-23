@@ -360,9 +360,10 @@ public final class VHAcceleratorClientConfig {
                     .comment(
                             "Experimental research capture only; it records for later",
                             "experiments and does not speed up launches or save memory.",
-                            "On the initial launch, writes the block-atlas texture list of",
-                            "each plain vanilla minecraft block-state model to",
-                            "cache/vhaccelerator/client-assets/deferred-block-state-v1.bin.gz.",
+                            "On the initial launch, writes the block-atlas texture list and",
+                            "model-group code of each plain vanilla minecraft block-state",
+                            "model, plus per-block state coverage, to",
+                            "cache/vhaccelerator/client-assets/deferred-block-state-v2.bin.gz.",
                             "Nothing reads that file yet: model loading, atlases, baking, and",
                             "the model registry are unchanged, and recording adds a small",
                             "cost to that launch. Inactive in Compare Mode, with CTM or",
