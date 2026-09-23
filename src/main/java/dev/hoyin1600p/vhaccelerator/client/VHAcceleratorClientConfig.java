@@ -355,7 +355,7 @@ public final class VHAcceleratorClientConfig {
                             "models stay eager. Inactive in Compare Mode, with CTM or",
                             "ModernFix dynamic resources,",
                             "and during in-world reloads.")
-                    .define("deferBlockStateModelBaking", false);
+                    .define("deferBlockStateModelBaking", true);
             recordBlockStateMaterialManifest = builder
                     .comment(
                             "Experimental research capture only; it records for later",

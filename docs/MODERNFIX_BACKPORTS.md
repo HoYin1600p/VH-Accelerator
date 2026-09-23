@@ -146,7 +146,7 @@ intentionally differs from the ModernFix 1.18 provider:
   Post-GC heap readings were also inconclusive, so this remains default-off
   and is not presented as a measured launch-time improvement.
 
-Deferred block-state model baking (`deferBlockStateModelBaking`, off by
+Deferred block-state model baking (`deferBlockStateModelBaking`, on by
 default, client, independent of the item stage) is a separate prototype. It is
 also an independent design with no copied ModernFix source. It differs from
 ModernFix 1.18's dynamic provider as follows:
