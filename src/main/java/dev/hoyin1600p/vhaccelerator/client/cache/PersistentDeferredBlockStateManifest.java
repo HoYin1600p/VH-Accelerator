@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -41,6 +42,11 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * format version reads as absent. Any other failure leaves block states
  * eager.</p>
  *
+ * <p>A gzip cache read may consume at most
+ * {@link #MAX_UNCOMPRESSED_BYTES} inflated bytes. Oversize or malformed
+ * cache input is absent. Modified-UTF-8 lengths are rejected before
+ * that payload is allocated.</p>
+ *
  * <p>Accepted keys are {@code minecraft} model-location strings whose
  * variant is a nonempty {@code name=value} property list. Inventory
  * variants, empty variants, and every other namespace are rejected.
@@ -55,8 +61,13 @@ public final class PersistentDeferredBlockStateManifest {
     static final int MAX_MATERIALS_PER_ENTRY = 512;
     static final int MAX_TOTAL_MATERIALS = 2_000_000;
     static final int MAX_FINGERPRINT_LENGTH = 4_096;
+    /** Modified UTF-8 byte ceiling for a maximum-length fingerprint. */
+    static final int MAX_FINGERPRINT_UTF_BYTES =
+            MAX_FINGERPRINT_LENGTH * 3;
     static final int MAX_IDENTIFIER_LENGTH = 512;
     static final long MAX_FILE_BYTES = 64L * 1024L * 1024L;
+    /** Inflated bytes a gzip cache read may consume. */
+    static final long MAX_UNCOMPRESSED_BYTES = 64L * 1024L * 1024L;
     private static final int DIGEST_BYTES = 32;
     private static final String FILE_NAME =
             "deferred-block-state-v1.bin.gz";
@@ -144,14 +155,16 @@ public final class PersistentDeferredBlockStateManifest {
     }
 
     /**
-     * Collects certified entries. Malformed, duplicate, or over-limit input
-     * is rejected whole and left out; accepted entries stay canonical.
+     * Collects certified entries. Malformed, duplicate, incomplete, or
+     * over-limit input is left out, and any rejected add closes this
+     * builder so {@link #build} stays null.
      */
     public static final class Builder {
         private final TreeMap<String, List<MaterialId>> entries =
                 new TreeMap<>();
         private long totalMaterials;
         private int rejected;
+        private boolean failed;
 
         public boolean add(String modelKey, Collection<MaterialId> materials) {
             List<MaterialId> canonical = canonicalEntry(modelKey, materials);
@@ -161,6 +174,7 @@ public final class PersistentDeferredBlockStateManifest {
                     || totalMaterials + canonical.size()
                             > MAX_TOTAL_MATERIALS) {
                 rejected++;
+                failed = true;
                 return false;
             }
             entries.put(modelKey, canonical);
@@ -176,9 +190,15 @@ public final class PersistentDeferredBlockStateManifest {
             return entries.size();
         }
 
-        /** Null when the fingerprint is unusable or nothing was certified. */
+        /**
+         * Null when any add was rejected, the fingerprint is unusable,
+         * or nothing was certified. A rejected builder stays closed;
+         * certify with a fresh builder.
+         */
         public Manifest build(String fingerprint) {
-            if (!validFingerprint(fingerprint) || entries.isEmpty()) {
+            if (failed
+                    || !validFingerprint(fingerprint)
+                    || entries.isEmpty()) {
                 return null;
             }
             return new Manifest(
@@ -372,6 +392,7 @@ public final class PersistentDeferredBlockStateManifest {
     /**
      * Reads a manifest written by {@link #write}. Returns {@code null} for
      * another format version; throws for anything corrupt or incomplete.
+     * Modified-UTF-8 lengths are rejected before that payload is allocated.
      */
     public static Manifest read(InputStream source) throws IOException {
         MessageDigest digest = sha256();
@@ -383,7 +404,11 @@ public final class PersistentDeferredBlockStateManifest {
         if (input.readInt() != FORMAT_VERSION) {
             return null;
         }
-        String fingerprint = input.readUTF();
+        String fingerprint = readModifiedUtf(
+                input,
+                MAX_FINGERPRINT_UTF_BYTES,
+                "Invalid manifest fingerprint"
+        );
         if (!validFingerprint(fingerprint)) {
             throw new IOException("Invalid manifest fingerprint");
         }
@@ -398,7 +423,11 @@ public final class PersistentDeferredBlockStateManifest {
         String previousKey = null;
         long totalMaterials = 0L;
         for (int index = 0; index < count; index++) {
-            String key = input.readUTF();
+            String key = readModifiedUtf(
+                    input,
+                    MAX_IDENTIFIER_LENGTH,
+                    "Manifest identifier is too long"
+            );
             if (previousKey != null && previousKey.compareTo(key) >= 0) {
                 throw new IOException("Manifest keys are not canonical");
             }
@@ -418,8 +447,16 @@ public final class PersistentDeferredBlockStateManifest {
                     materialIndex < materialCount;
                     materialIndex++) {
                 MaterialId material = new MaterialId(
-                        input.readUTF(),
-                        input.readUTF()
+                        readModifiedUtf(
+                                input,
+                                MAX_IDENTIFIER_LENGTH,
+                                "Manifest identifier is too long"
+                        ),
+                        readModifiedUtf(
+                                input,
+                                MAX_IDENTIFIER_LENGTH,
+                                "Manifest identifier is too long"
+                        )
                 );
                 if (previous != null && previous.compareTo(material) >= 0) {
                     throw new IOException(
@@ -487,10 +524,8 @@ public final class PersistentDeferredBlockStateManifest {
             if (Files.size(file) > MAX_FILE_BYTES) {
                 throw new IOException("Manifest file is too large");
             }
-            try (InputStream input = new GZIPInputStream(
-                    new BufferedInputStream(Files.newInputStream(file))
-            )) {
-                return read(input);
+            try (InputStream input = Files.newInputStream(file)) {
+                return readCompressed(input, MAX_UNCOMPRESSED_BYTES);
             }
         } catch (IOException | RuntimeException failure) {
             VHAccelerator.LOGGER.warn(
@@ -548,6 +583,103 @@ public final class PersistentDeferredBlockStateManifest {
         }
     }
 
+    /**
+     * Gzip cache decode. Malformed, truncated, and over-limit input is
+     * absent. {@code maxUncompressed} counts inflated bytes.
+     */
+    static Manifest readGzipCache(byte[] gzipBytes, long maxUncompressed) {
+        if (gzipBytes == null) {
+            return null;
+        }
+        try (InputStream input = new ByteArrayInputStream(gzipBytes)) {
+            return readCompressed(input, maxUncompressed);
+        } catch (IOException | RuntimeException failure) {
+            return null;
+        }
+    }
+
+    static Manifest readCompressed(
+            InputStream compressed,
+            long maxUncompressed
+    ) throws IOException {
+        if (maxUncompressed < 0) {
+            throw new IOException("Manifest exceeds uncompressed limit");
+        }
+        try (InputStream gzip = new GZIPInputStream(
+                new BufferedInputStream(compressed))) {
+            return read(new BoundedInputStream(gzip, maxUncompressed));
+        }
+    }
+
+    /**
+     * Rejects a modified-UTF-8 length before allocating its payload.
+     * Bytes already read remain on the caller's digest stream.
+     */
+    private static String readModifiedUtf(
+            DataInputStream input,
+            int maxBytes,
+            String tooLongMessage
+    ) throws IOException {
+        int utfLength = input.readUnsignedShort();
+        if (utfLength > maxBytes) {
+            throw new IOException(tooLongMessage);
+        }
+        byte[] prefixed = new byte[utfLength + 2];
+        prefixed[0] = (byte) (utfLength >>> 8);
+        prefixed[1] = (byte) utfLength;
+        input.readFully(prefixed, 2, utfLength);
+        return new DataInputStream(new ByteArrayInputStream(prefixed))
+                .readUTF();
+    }
+
+    /** Counts inflated bytes and fails closed at the cache budget. */
+    private static final class BoundedInputStream extends InputStream {
+        private final InputStream delegate;
+        private long remaining;
+
+        private BoundedInputStream(InputStream delegate, long maxBytes) {
+            this.delegate = delegate;
+            this.remaining = maxBytes;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (remaining <= 0) {
+                return endOrOverflow();
+            }
+            int value = delegate.read();
+            if (value >= 0) {
+                remaining--;
+            }
+            return value;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length)
+                throws IOException {
+            if (length == 0) {
+                return 0;
+            }
+            if (remaining <= 0) {
+                return endOrOverflow();
+            }
+            int allowed = (int) Math.min(remaining, length);
+            int count = delegate.read(buffer, offset, allowed);
+            if (count > 0) {
+                remaining -= count;
+            }
+            return count;
+        }
+
+        private int endOrOverflow() throws IOException {
+            int next = delegate.read();
+            if (next < 0) {
+                return -1;
+            }
+            throw new IOException("Manifest exceeds uncompressed limit");
+        }
+    }
+
     private static MessageDigest sha256() {
         try {
             return MessageDigest.getInstance("SHA-256");
@@ -559,4 +691,3 @@ public final class PersistentDeferredBlockStateManifest {
         }
     }
 }
-

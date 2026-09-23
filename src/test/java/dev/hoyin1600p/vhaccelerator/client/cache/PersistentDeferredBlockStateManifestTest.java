@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 import org.junit.jupiter.api.Test;
 
 class PersistentDeferredBlockStateManifestTest {
@@ -53,6 +54,14 @@ class PersistentDeferredBlockStateManifestTest {
     private static byte[] encode(Manifest manifest) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         PersistentDeferredBlockStateManifest.write(manifest, bytes);
+        return bytes.toByteArray();
+    }
+
+    private static byte[] gzip(byte[] raw) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzip = new GZIPOutputStream(bytes)) {
+            gzip.write(raw);
+        }
         return bytes.toByteArray();
     }
 
@@ -236,12 +245,17 @@ class PersistentDeferredBlockStateManifestTest {
             assertFalse(builder.add(key, List.of(
                     texture("minecraft:block/stone"))), key);
         }
-        Manifest manifest = builder.build(FINGERPRINT);
+        assertEquals(inventory.length, builder.rejected());
+        assertNull(builder.build(FINGERPRINT));
+
+        Builder fresh = new Builder();
+        assertTrue(fresh.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_front"))));
+        Manifest manifest = fresh.build(FINGERPRINT);
         assertNotNull(manifest);
         assertEquals(1, manifest.size());
         assertTrue(manifest.contains(FURNACE));
         assertFalse(manifest.contains("minecraft:furnace#inventory"));
-        assertEquals(inventory.length, builder.rejected());
     }
 
     @Test void otherNamespacesStayEager() {
@@ -429,8 +443,6 @@ class PersistentDeferredBlockStateManifestTest {
                 texture("minecraft:block/furnace_top"),
                 texture("minecraft:block/furnace_front"),
                 texture("minecraft:block/furnace_front"))));
-        assertFalse(builder.add(FURNACE, List.of(
-                texture("minecraft:block/furnace_side"))));
         Manifest manifest = builder.build(FINGERPRINT);
         assertNotNull(manifest);
         assertEquals(List.of(FURNACE, STAIRS), List.copyOf(manifest.keys()));
@@ -439,7 +451,17 @@ class PersistentDeferredBlockStateManifestTest {
                 texture("minecraft:block/furnace_top")),
                 manifest.materials(FURNACE));
         assertEquals(3, manifest.totalMaterials());
-        assertEquals(1, builder.rejected());
+
+        Builder duplicate = new Builder();
+        assertTrue(duplicate.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_front"),
+                texture("minecraft:block/furnace_top"))));
+        assertEquals(1, duplicate.size());
+        assertFalse(duplicate.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_side"))));
+        assertEquals(1, duplicate.size());
+        assertEquals(1, duplicate.rejected());
+        assertNull(duplicate.build(FINGERPRINT));
     }
 
     @Test void overLimitInputsAreRejected() throws Exception {
@@ -483,6 +505,7 @@ class PersistentDeferredBlockStateManifestTest {
                 "minecraft:overflow#n=1",
                 List.of(stone)));
         assertEquals(limit, entries.size());
+        assertNull(entries.build(FINGERPRINT));
 
         Builder fingerprint = new Builder();
         assertTrue(fingerprint.add(FURNACE, List.of(
@@ -504,7 +527,12 @@ class PersistentDeferredBlockStateManifestTest {
                 || fingerprint.size() == 1);
         Builder longKey = new Builder();
         assertTrue(longKey.add(maxLengthKey(), List.of(stone)));
+        Manifest maxKeyManifest = longKey.build(FINGERPRINT);
+        assertNotNull(maxKeyManifest);
+        assertEquals(List.of(maxLengthKey()),
+                List.copyOf(decode(encode(maxKeyManifest)).keys()));
         assertFalse(longKey.add(maxLengthKey() + "a", List.of(stone)));
+        assertNull(longKey.build(FINGERPRINT));
 
         byte[] emptyManifest = header(0, 0, FINGERPRINT);
         assertEquals("Invalid manifest counts",
@@ -618,6 +646,191 @@ class PersistentDeferredBlockStateManifestTest {
                         () -> decode(trailing)).getMessage());
     }
 
+    @Test void rejectedAddClosesTheBuilderUntilAFreshOneIsUsed() {
+        Builder duplicate = new Builder();
+        assertTrue(duplicate.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_front"),
+                texture("minecraft:block/furnace_top"))));
+        assertFalse(duplicate.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_side"))));
+        assertNull(duplicate.build(FINGERPRINT));
+        assertTrue(duplicate.add(STAIRS, List.of(
+                texture("minecraft:block/oak_planks"))));
+        assertNull(duplicate.build(FINGERPRINT));
+
+        Builder incomplete = new Builder();
+        assertTrue(incomplete.add(STAIRS, List.of(
+                texture("minecraft:block/oak_planks"))));
+        assertFalse(incomplete.add(FURNACE, List.of()));
+        assertFalse(incomplete.add(FURNACE, null));
+        assertNull(incomplete.build(FINGERPRINT));
+
+        Builder invalidMaterial = new Builder();
+        assertFalse(invalidMaterial.add(FURNACE, List.of(new MaterialId(
+                "minecraft:textures/atlas/chest.png",
+                "minecraft:entity/chest/normal"))));
+        assertNull(invalidMaterial.build(FINGERPRINT));
+        assertTrue(invalidMaterial.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_front"))));
+        assertNull(invalidMaterial.build(FINGERPRINT));
+
+        Builder fresh = new Builder();
+        assertTrue(fresh.add(STAIRS, List.of(
+                texture("minecraft:block/oak_planks"))));
+        assertTrue(fresh.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_top"),
+                texture("minecraft:block/furnace_front"))));
+        Manifest manifest = fresh.build(FINGERPRINT);
+        assertNotNull(manifest);
+        assertEquals(List.of(FURNACE, STAIRS), List.copyOf(manifest.keys()));
+        assertEquals(List.of(
+                texture("minecraft:block/furnace_front"),
+                texture("minecraft:block/furnace_top")),
+                manifest.materials(FURNACE));
+        assertEquals(3, manifest.totalMaterials());
+    }
+
+    @Test void gzipCacheRejectsOversizeInflationAndBadCounts()
+            throws Exception {
+        assertEquals(64L * 1024L * 1024L,
+                PersistentDeferredBlockStateManifest.MAX_UNCOMPRESSED_BYTES);
+        assertEquals(
+                PersistentDeferredBlockStateManifest.MAX_FINGERPRINT_LENGTH
+                        * 3,
+                PersistentDeferredBlockStateManifest
+                        .MAX_FINGERPRINT_UTF_BYTES);
+
+        byte[] raw = encode(sample());
+        byte[] compressed = gzip(raw);
+        assertTrue(raw.length > 32);
+        IOException overflow = assertThrows(IOException.class, () ->
+                PersistentDeferredBlockStateManifest.readCompressed(
+                        new ByteArrayInputStream(compressed),
+                        raw.length - 1L));
+        assertEquals("Manifest exceeds uncompressed limit",
+                overflow.getMessage());
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                compressed, raw.length - 1L));
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                compressed, 0L));
+        Manifest restored = PersistentDeferredBlockStateManifest
+                .readGzipCache(
+                        compressed,
+                        PersistentDeferredBlockStateManifest
+                                .MAX_UNCOMPRESSED_BYTES);
+        assertNotNull(restored);
+        assertArrayEquals(raw, encode(restored));
+
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                new byte[] {1, 2, 3, 4},
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                null,
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+
+        byte[] negativeCount = header(-1, 1, FINGERPRINT);
+        byte[] negativeMaterials = header(1, Integer.MIN_VALUE, FINGERPRINT);
+        byte[] hugeCount = header(Integer.MAX_VALUE, 1, FINGERPRINT);
+        assertEquals("Invalid manifest counts",
+                assertThrows(IOException.class,
+                        () -> decode(negativeCount)).getMessage());
+        assertEquals("Invalid manifest counts",
+                assertThrows(IOException.class,
+                        () -> decode(negativeMaterials)).getMessage());
+        assertEquals("Invalid manifest counts",
+                assertThrows(IOException.class,
+                        () -> decode(hugeCount)).getMessage());
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(negativeCount),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(negativeMaterials),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(hugeCount),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+
+        byte[] hugeMaterialCount = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeUTF(FURNACE);
+            output.writeInt(Integer.MAX_VALUE);
+        });
+        byte[] negativeMaterialCount = withDigest(output -> {
+            output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+            output.writeInt(
+                    PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+            output.writeUTF(FINGERPRINT);
+            output.writeInt(1);
+            output.writeInt(1);
+            output.writeUTF(FURNACE);
+            output.writeInt(-1);
+        });
+        assertEquals("Invalid manifest material count",
+                assertThrows(IOException.class,
+                        () -> decode(hugeMaterialCount)).getMessage());
+        assertEquals("Invalid manifest material count",
+                assertThrows(IOException.class,
+                        () -> decode(negativeMaterialCount)).getMessage());
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(hugeMaterialCount),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+
+        byte[] overlongKey = identifierLengthPrefix(
+                PersistentDeferredBlockStateManifest.MAX_IDENTIFIER_LENGTH
+                        + 1,
+                false);
+        byte[] overlongTexture = identifierLengthPrefix(65_535, true);
+        assertEquals("Manifest identifier is too long",
+                assertThrows(IOException.class,
+                        () -> decode(overlongKey)).getMessage());
+        assertEquals("Manifest identifier is too long",
+                assertThrows(IOException.class,
+                        () -> decode(overlongTexture)).getMessage());
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(overlongKey),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+
+        byte[] overlongFingerprint = fingerprintLengthPrefix(
+                PersistentDeferredBlockStateManifest
+                        .MAX_FINGERPRINT_UTF_BYTES + 1);
+        assertEquals("Invalid manifest fingerprint",
+                assertThrows(IOException.class,
+                        () -> decode(overlongFingerprint)).getMessage());
+        assertNull(PersistentDeferredBlockStateManifest.readGzipCache(
+                gzip(overlongFingerprint),
+                PersistentDeferredBlockStateManifest
+                        .MAX_UNCOMPRESSED_BYTES));
+
+        String wide = "\u0800".repeat(
+                PersistentDeferredBlockStateManifest
+                        .MAX_FINGERPRINT_LENGTH);
+        Builder wideBuilder = new Builder();
+        assertTrue(wideBuilder.add(FURNACE, List.of(
+                texture("minecraft:block/furnace_front"))));
+        Manifest wideManifest = wideBuilder.build(wide);
+        assertNotNull(wideManifest);
+        assertEquals(wide, decode(encode(wideManifest)).fingerprint());
+        Manifest wideRestored = PersistentDeferredBlockStateManifest
+                .readGzipCache(
+                        gzip(encode(wideManifest)),
+                        PersistentDeferredBlockStateManifest
+                                .MAX_UNCOMPRESSED_BYTES);
+        assertNotNull(wideRestored);
+        assertEquals(wide, wideRestored.fingerprint());
+    }
+
     private static byte[] header(
             int count,
             int declaredMaterials,
@@ -633,6 +846,39 @@ class PersistentDeferredBlockStateManifestTest {
         });
     }
 
+    private static byte[] identifierLengthPrefix(
+            int utfByteLength,
+            boolean materialField
+    ) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        DataOutputStream output = new DataOutputStream(bytes);
+        output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+        output.writeInt(
+                PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+        output.writeUTF(FINGERPRINT);
+        output.writeInt(1);
+        output.writeInt(1);
+        if (materialField) {
+            output.writeUTF(FURNACE);
+            output.writeInt(1);
+        }
+        output.writeShort(utfByteLength);
+        output.flush();
+        return bytes.toByteArray();
+    }
+
+    private static byte[] fingerprintLengthPrefix(int utfByteLength)
+            throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        DataOutputStream output = new DataOutputStream(bytes);
+        output.writeInt(PersistentDeferredBlockStateManifest.MAGIC);
+        output.writeInt(
+                PersistentDeferredBlockStateManifest.FORMAT_VERSION);
+        output.writeShort(utfByteLength);
+        output.flush();
+        return bytes.toByteArray();
+    }
+
     private static String maxLengthKey() {
         String suffix = "#n=1";
         int pathLength =
@@ -642,4 +888,3 @@ class PersistentDeferredBlockStateManifestTest {
         return "minecraft:" + "a".repeat(pathLength) + suffix;
     }
 }
-
