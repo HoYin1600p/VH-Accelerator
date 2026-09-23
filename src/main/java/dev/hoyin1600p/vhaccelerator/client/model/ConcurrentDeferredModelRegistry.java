@@ -12,6 +12,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -39,6 +40,8 @@ import java.util.function.Function;
  * (missing) model, as {@code ModelManager#getModel} would observe for a key
  * vanilla failed to bake. After {@link #retire()}, which waits for bakes in
  * progress, unbaked keys read as the fallback without caching it.
+ * An uncaught fatal error is propagated to all readers of that bake rather
+ * than silently completing waiting readers with the fallback.
  */
 public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, V>
         implements StructurallyVersioned {
@@ -158,9 +161,21 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
         CompletableFuture<V> running = inFlight.putIfAbsent(key, mine);
         if (running != null) {
             sharedWaits.incrementAndGet();
-            return running.join();
+            try {
+                return running.join();
+            } catch (CompletionException wrapped) {
+                Throwable failure = wrapped.getCause();
+                if (failure instanceof Error error) {
+                    throw error;
+                }
+                if (failure instanceof RuntimeException runtime) {
+                    throw runtime;
+                }
+                throw wrapped;
+            }
         }
         V result = fallback;
+        Throwable escaped = null;
         try {
             // A previous bake may have published and removed its future after
             // lookup checked resolved but before this future was installed.
@@ -179,8 +194,15 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
                 readLock.unlock();
             }
             result = bakeAndPublish(key);
+        } catch (Throwable failure) {
+            escaped = failure;
+            throw failure;
         } finally {
-            mine.complete(result);
+            if (escaped == null) {
+                mine.complete(result);
+            } else {
+                mine.completeExceptionally(escaped);
+            }
             inFlight.remove(key, mine);
         }
         return result;

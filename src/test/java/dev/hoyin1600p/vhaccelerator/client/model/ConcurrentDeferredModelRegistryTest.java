@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -152,6 +153,51 @@ class ConcurrentDeferredModelRegistryTest {
         var nullMap = registry(key -> null);
         assertEquals("missing", nullMap.get("b:log#axis=y"));
         assertEquals(1, nullMap.failedBakes());
+    }
+
+    @Test void fatalBakeErrorReachesEveryWaitingReader() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger calls = new AtomicInteger();
+        AssertionError fatal = new AssertionError("fatal bake");
+        var map = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("x"), key -> {
+                    if (calls.incrementAndGet() > 1) {
+                        return "recovered";
+                    }
+                    started.countDown();
+                    try {
+                        release.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                    throw fatal;
+                }, "missing", (key, nanos, failed, failure) -> { }
+        );
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<String> owner = pool.submit(() -> map.get("x"));
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            Future<String> waiter = pool.submit(() -> map.get("x"));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (map.sharedWaits() < 1) {
+                assertTrue(System.nanoTime() < deadline, "waiter did not join the bake");
+                Thread.sleep(1);
+            }
+            release.countDown();
+            ExecutionException ownerFailure = assertThrows(
+                    ExecutionException.class, () -> owner.get(10, TimeUnit.SECONDS));
+            ExecutionException waiterFailure = assertThrows(
+                    ExecutionException.class, () -> waiter.get(10, TimeUnit.SECONDS));
+            assertSame(fatal, ownerFailure.getCause());
+            assertSame(fatal, waiterFailure.getCause());
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+        assertEquals(1, calls.get());
+        assertTrue(map.isUnresolvedDeferred("x"));
+        assertEquals("recovered", map.get("x"));
     }
 
     @Test void retiredRegistryNeverBakesOrCaches() {
