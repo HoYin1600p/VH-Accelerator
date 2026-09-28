@@ -61,6 +61,45 @@ final class ImmutablePathPackIndexTest {
     }
 
     @Test
+    void leadingSlashPrefixesMatchForgeWalkAndReturnNothing() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("slash.jar");
+        try (FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + archive.toUri()), Map.of("create", "true"))) {
+            Path root = fs.getPath("/");
+            write(root, "assets/demo/textures/gui/modifiers/speed.png");
+            write(root, "assets/demo/textures/gui/modifiers/speed.png.mcmeta");
+            ImmutablePathPackIndex index = ImmutablePathPackIndex.create(
+                    archive, paths -> resolve(root, paths));
+            assertNotNull(index);
+            for (String prefix : new String[] {"/textures/gui/modifiers", "textures/gui/modifiers"}) {
+                Collection<ResourceLocation> indexed = index.resources(PackType.CLIENT_RESOURCES,
+                        "demo", prefix, Integer.MAX_VALUE, name -> name.endsWith(".png"));
+                assertNotNull(indexed);
+                assertEquals(Set.copyOf(forgeWalk(root.resolve("assets").resolve("demo"),
+                                "demo", prefix)), Set.copyOf(indexed), prefix);
+            }
+            assertTrue(index.resources(PackType.CLIENT_RESOURCES, "demo",
+                    "/textures/gui/modifiers", Integer.MAX_VALUE, name -> true).isEmpty());
+        }
+    }
+
+    /** Forge 40.3.11 PathResourcePack.getResources, for comparison. */
+    private static java.util.List<ResourceLocation> forgeWalk(Path namespaceRoot, String namespace,
+                                                               String prefix) throws Exception {
+        Path rootPath = namespaceRoot.toAbsolutePath();
+        Path inputPath = rootPath.getFileSystem().getPath(prefix);
+        try (java.util.stream.Stream<Path> walk = Files.walk(rootPath)) {
+            return walk.map(rootPath::relativize)
+                    .filter(path -> !path.toString().endsWith(".mcmeta") && path.startsWith(inputPath))
+                    .filter(path -> path.getFileName().toString().endsWith(".png"))
+                    .map(path -> new ResourceLocation(namespace, String.join("/",
+                            java.util.stream.StreamSupport.stream(path.spliterator(), false)
+                                    .map(Path::toString).toList())))
+                    .toList();
+        }
+    }
+
+    @Test
     void immutableSourceCannotAuthorizeMixedMutableResourceRoots() throws Exception {
         Path archive = this.temporaryDirectory.resolve("mixed.jar");
         try (FileSystem fs = FileSystems.newFileSystem(
@@ -232,6 +271,67 @@ final class ImmutablePathPackIndexTest {
                     "generated.json"
             ));
             assertEquals(1, missing.size());
+        }
+    }
+
+    @Test
+    void largeDirectoriesKeepWalkOrderAndExactLookups() throws Exception {
+        Path archive = this.temporaryDirectory.resolve("large.jar");
+        try (FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + archive.toUri()), Map.of("create", "true"))) {
+            Path root = fs.getPath("/");
+            for (int index = 40; index > 0; index--) {
+                write(root, "assets/demo/textures/block/b" + index + ".png");
+                write(root, "assets/ns" + index + "/lang/en_us.json");
+            }
+            // A directory and a file whose names share a prefix.
+            write(root, "assets/demo/textures/block/b1/extra.png");
+
+            ImmutablePathPackIndex index = ImmutablePathPackIndex.create(
+                    archive,
+                    paths -> resolve(root, paths)
+            );
+            assertNotNull(index);
+
+            java.util.List<ResourceLocation> expected = new java.util.ArrayList<>();
+            Path block = root.resolve("assets/demo/textures/block");
+            try (java.util.stream.Stream<Path> walk = Files.find(
+                    root.resolve("assets/demo"),
+                    Integer.MAX_VALUE,
+                    (path, attributes) -> attributes.isRegularFile()
+            )) {
+                walk.forEach(path -> expected.add(new ResourceLocation(
+                        "demo",
+                        root.resolve("assets/demo").relativize(path).toString()
+                )));
+            }
+            assertEquals(
+                    expected,
+                    java.util.List.copyOf(index.resources(
+                            PackType.CLIENT_RESOURCES,
+                            "demo",
+                            "textures",
+                            Integer.MAX_VALUE,
+                            name -> true
+                    )),
+                    "Listings keep the filesystem walk order"
+            );
+            for (int number = 1; number <= 40; number++) {
+                assertTrue(index.hasResource(
+                        "assets/demo/textures/block/b" + number + ".png"));
+                assertEquals(
+                        1,
+                        index.resources(PackType.CLIENT_RESOURCES, "ns" + number,
+                                "lang", Integer.MAX_VALUE, name -> true).size()
+                );
+            }
+            assertFalse(index.hasResource("assets/demo/textures/block/b41.png"));
+            assertFalse(index.hasResource("assets/demo/textures/block/b1"));
+            assertTrue(index.hasResource("assets/demo/textures/block/b1/extra.png"));
+            assertTrue(index.resources(PackType.CLIENT_RESOURCES, "ns41",
+                    "lang", Integer.MAX_VALUE, name -> true).isEmpty());
+            assertEquals(41, index.cachedNamespaces(PackType.CLIENT_RESOURCES).size());
+            assertTrue(Files.isDirectory(block));
         }
     }
 

@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -47,6 +49,8 @@ public final class PersistentVanillaIngredientCache {
 
     private static volatile CompletableFuture<Map<String, CachedIngredientList>>
             preload;
+    private static boolean released;
+    private static String retainedServerKey;
     private static final ThreadLocal<List<ItemStack>> RESTORED_RESULT =
             new ThreadLocal<>();
     private static String reportedMissKey;
@@ -55,17 +59,70 @@ public final class PersistentVanillaIngredientCache {
     }
 
     public static void prewarm() {
-        if (preload != null) {
-            return;
+        loaded();
+    }
+
+    private static CompletableFuture<Map<String, CachedIngredientList>> loaded() {
+        CompletableFuture<Map<String, CachedIngredientList>> current = preload;
+        if (current != null) {
+            return current;
         }
         synchronized (PersistentVanillaIngredientCache.class) {
             if (preload == null) {
+                if (released && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                    VHAccelerator.LOGGER.info(
+                            "[debug] Rereading released {} files from disk",
+                            "PersistentVanillaIngredientCache"
+                    );
+                }
+                released = false;
                 preload = CompletableFuture.supplyAsync(
                         PersistentVanillaIngredientCache::loadAll,
                         SharedWorkers.io()
                 );
             }
+            return preload;
         }
+    }
+
+    /**
+     * Once the client has consumed this cache, keeps only
+     * {@code keepServerKey}'s entries in memory, so a reconnect or proxy
+     * backend switch to the same address never rereads them, and releases
+     * every other server's data. With no key, or before the preload has
+     * finished, everything is released. Cache files always stay on disk.
+     */
+    public static synchronized void releaseMemory(String keepServerKey) {
+        CompletableFuture<Map<String, CachedIngredientList>> current = preload;
+        if (current == null) {
+            return;
+        }
+        if (keepServerKey == null
+                || !current.isDone()
+                || current.isCompletedExceptionally()) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+            return;
+        }
+        preload = CompletableFuture.completedFuture(
+                ServerScopedCacheMemory.retain(current.join(), keepServerKey)
+        );
+        retainedServerKey = keepServerKey;
+    }
+
+    /**
+     * Starts reading the cache files for a new connection unless this
+     * server's entries are already held in memory.
+     */
+    public static synchronized void prewarmFor(String serverKey) {
+        if (retainedServerKey != null
+                && (serverKey == null || !retainedServerKey.equals(serverKey))) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+        }
+        prewarm();
     }
 
     public static synchronized void beginConnection() {
@@ -85,7 +142,7 @@ public final class PersistentVanillaIngredientCache {
 
         prewarm();
         String cacheKey = cacheKey(fingerprint.serverKey(), jeiGeneration);
-        CachedIngredientList cached = preload.join().get(cacheKey);
+        CachedIngredientList cached = loaded().join().get(cacheKey);
         if (cached == null) {
             reportMiss(
                     fingerprint,
@@ -185,7 +242,7 @@ public final class PersistentVanillaIngredientCache {
         );
         String cacheKey = cacheKey(fingerprint.serverKey(), jeiGeneration);
         prewarm();
-        preload.join().put(cacheKey, cached);
+        loaded().join().put(cacheKey, cached);
         VHAccelerator.LOGGER.info(
                 "Captured {} JEI {} vanilla item ingredients for persistent "
                         + "caching in {} ms",

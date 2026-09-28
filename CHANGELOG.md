@@ -7,6 +7,459 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- New `skipReturningPlayerSpawnSearch` (common, default on): the
+  `ServerPlayer` constructor's world-spawn search (chunk loads and collision
+  probes around the shared spawn) is skipped when vanilla discards its result
+  anyway: on login when saved player data exists, and on respawn when a valid
+  bed or anchor position was found. New players, players whose respawn point
+  is gone, fake players and mod-constructed players run the unchanged search
+  at its original point. Reimplements ServerCore's idea for Forge 40.
+- New `fasterIngredientEmptinessCheck` backport (common, default on): Forge's
+  `hasNoElements`, which the recipe book calls for every ingredient of every
+  recipe on each join, now counts the stacks a vanilla ingredient would expand
+  to instead of allocating them. The count reproduces Forge 40's result
+  exactly, including its "Empty Tag" barrier rule; custom ingredients, already
+  expanded ingredients and the server data-reload window keep Forge's path.
+- New `debugLevelSourceStateView` backport (common, default on): on every
+  block-registry bake (launch, each world join's registry injection, each
+  world exit's restore) Forge re-streams every block state to rebuild the
+  debug generator's block list. VHA gives it an ID-ordered view of the
+  block-state ID map Forge filled in the same bake instead; order and
+  contents are identical, and the duplicate list is no longer retained.
+- New `fastRegistryFreezeCheck` backport (common, default on): Forge's
+  registry-freeze validation, run for every registry at load completion and
+  around each world's registry injection and restore, checks for unbound
+  holders with plain loops instead of stream pipelines that only exist to
+  build a failure message. An unbound holder still reaches Forge's original
+  code and throws the same exception.
+- New `strongholdRingEarlyRejection` backport (common, default on): structure
+  checks for chunks that lie outside the radial band any stronghold ring
+  position can reach no longer wait for the asynchronous ring computation a
+  new world or dimension starts on its first check. The band comes from
+  vanilla's placement math (`4i + 6i*ring +/- 1.25i` chunks) with slack for
+  rounding and the 112-block biome snap, verified by a replay test, so a real
+  stronghold chunk is never rejected; chunks inside the band keep the vanilla
+  lookup. Only the rejection is ported, not ModernFix's ring cache.
+- Deferred item and block-state model baking, block-graph skipping, and
+  `ResourceLocation` namespace deduplication are now on by default. Each was
+  confirmed in CMA Remastered, Wolds Vaults 0.34.1 and Asgard.
+- Decocraft 3.0.4's Blockbench furniture models are baked on first use instead
+  of at launch. Their bake is stateless and thread-safe; the gate is pinned to
+  the verified Decocraft version, and their graphs still load eagerly. In
+  Asgard this cut launch-time baked quads from 5.8 M to 0.7 M: about 45-48 s
+  and 3.3 GB at the menu, against 60.5 s and 5.6 GB with VHA 1.0.14.
+- New `trimDecocraftModels` (common, default on, Decocraft 3.0.4 only).
+  Decocraft parses a `.bbmodel` per block at registration and keeps every copy;
+  each embeds its images as base64 text, which nothing reads again. Block
+  variants of one file now share a parse, and that text is cleared. In Asgard
+  the menu heap fell from 3.29 GB to 2.04 GB (in world 4.95 GB to 3.64 GB),
+  and warm launch to about 42 s. Decocraft's client model loader also reuses
+  the registration parse of a file when the resource it reads has the same
+  bytes (CRC-32), so a resource-pack override is still parsed: 635 fewer
+  parses and a further 66 MB in Asgard.
+- New `lazyVaultLootCdf` (client, default on): Vault Hunters' tiered-loot
+  distributions are computed the first time loot generation needs one, instead
+  of 53 per supported loot table on every config load. A multiplayer client
+  never needs them. In Asgard: 115 MB less at the menu, and Vault's loot-table
+  config step fell from 1.06 s to 0.08 s. Each distribution takes 0-9 ms on
+  first use.
+
+- Sprite-generated item models (`item/generated`) are now baked on first use
+  like other deferred items; their quads are generated from the stitched
+  sprites, which the atlas keeps. Their graphs still load at launch. In Asgard
+  this covered Decocraft's 3,207 item icons (320,000 quads): 94 MB less at the
+  menu.
+
+- New `compactFerriteCorePropertyMaps` (common, default on, FerriteCore 4.2.2
+  only): FerriteCore keeps a 32-byte property-map view per block and fluid
+  state only so vanilla code can read the state's `values` field. VHA answers
+  those reads (`getValue`, `setValue`, `hasProperty`, `getProperties`) from
+  FerriteCore's shared `FastMap` directly, skipping the view's indirection,
+  and builds the view only when `getValues()` asks for the whole map. Asgard:
+  1.52 M objects and 47 MB less at the menu.
+- New `compactModelFaceLists` (client, default on): backports FerriteCore's
+  newer `modelSides` to 1.18.2, storing simple baked models' face lists as
+  exact-size immutable lists. Skipped when Vault Render Optimization, which
+  does the same, is installed.
+
+- New `lazyBakeEventModels` (client, default on): while mods' model-bake-event
+  handlers run, a deferred block-state model they read is a stand-in that bakes
+  on first use. In Asgard, handlers (Create, Mekanism, Refined Storage and
+  others) forced 31,879 deferred bakes at launch; now none, and the event
+  takes about 0.2 s less. CTM's pass and FramedBlocks keys still get real
+  models. Wrapped blocks render identically.
+
+- New `releaseLevelPinningReferences` (common, default on). After leaving a
+  singleplayer world, many mods' static fields kept the whole integrated server
+  and client level (every chunk, entity and scheduled tick) until the next
+  world: Copycats+ (now fixed at the source), Open Parties and Claims, FTB
+  Backups, Vault Filters, Neruina, Immersive Engineering, Mekanism,
+  PneumaticCraft and others. Once an integrated server has fully stopped, VHA
+  empties its levels' chunk maps, entity storage, scheduled ticks and player
+  lists, and once the title screen is open, the old client level's chunks and
+  entities; anything still holding them keeps a small shell. Proxy server
+  transfers trigger neither. Also: the shared empty item stack never keeps an
+  item entity, and Forge's static model-data caches are cleared with the level.
+  Wolds: 3.27 GB to 2.96 GB at the menu after leaving a world; rejoining works
+  normally.
+- The integrated server's data-pack reload listeners (including Forge's wrapped
+  mod listeners, now named by the mod's class) and the tag update after it are
+  timed with debug diagnostics.
+
+- New `parallelKubeJsRecipeFilters` (common, default on, KubeJS
+  1802.5.5-build.569): a recipe script's `remove` / `forEachRecipe` filter is
+  evaluated across worker threads when it is built only from KubeJS's
+  data-only filters and ingredients (IDs, types, mods, regexes, items, tags,
+  and their and/or/not groups); the matches are then applied on the calling
+  thread in the original order. Script functions and custom predicates stay
+  sequential. Wolds: the recipe script phase fell from about 6 s to about 1 s
+  per world open (and per /reload and dedicated-server start), with identical
+  results (10,224 added, 2,440 removed, 70 modified).
+
+- New `parallelCraftTweakerRecipeRemoval` (client, default on): CraftTweaker's
+  own recipe-removal matchers (by output, input or mod) are evaluated across
+  worker threads and the matches removed on the calling thread. Wolds' 792
+  removals by output: CraftTweaker's reload step 2.0-2.5 s to 1.0 s, with the
+  same final recipes. Together with the KubeJS change, Wolds' server data-pack
+  reload at world open fell from 11.4-13.4 s to 6.1 s.
+
+- Entity-model cube compaction (`compactEntityModels`, client, default on) is
+  back in VHA for packs without Vault Render Optimization, which ships the same
+  fix and owns it when installed. Wolds (no VRO): entity-model vertices 790k to
+  225k and cubes 32.9k to 9.4k at the menu.
+
+- The synchronized recipe fingerprint used by VHA's JEI caches is built in
+  parallel and hashes both of its variants in one pass: 48,441 recipes in
+  about 260 ms instead of about 600 ms on the render thread during JEI's
+  start. (Its format changed, so each cache misses once.)
+
+- New `indexCreateBlockCuttingRecipes` (client, default on, Create 0.5.1.i):
+  Create's JEI block-cutting category groups stonecutting recipes through a
+  map keyed by ingredient items instead of comparing each recipe with every
+  group; verified identical to Create's grouping in Wolds (1,958 groups from
+  12,844 recipes).
+
+- KubeJS's JEI item hiding (`jei.hide.items`, same option and KubeJS build as
+  `parallelKubeJsRecipeFilters`) parses each `event.hide(...)` argument once
+  instead of once per JEI ingredient, and tests data-only ingredients across
+  worker threads. Wolds (206 hides over about 54,000 items): 614-843 ms to
+  210 ms during JEI's start, with the same visible item list.
+
+- New `indexVaultSmeltingJeiRecipes` (client, default on): Vault Hunters' JEI
+  tool-smelting category gets its per-item smelting lookups (about 39,000)
+  from one index built in the recipe manager's order. Verified identical to
+  `getRecipeFor` for every item in Wolds.
+
+- New `lazyGeckoLibResources` (client, default on, GeckoLib 3.0.57 and Ars
+  Nouveau 2.9.0's shaded copy): resource reloads only list GeckoLib animation
+  and geo files, and each is loaded the first time it is rendered. Both copies
+  had parsed every mod's files (464 in Wolds, twice): about 30 MB at the Wolds
+  menu, now 0.3 MB in game with ten GeckoLib mobs rendered.
+
+- New `persistentEveryCompatPack` (client, default on; Every Compat 1.5.18 or
+  1.6.7 with Selene 1.17.14 or 1.17.17): Every Compat's generated client pack
+  is stored on disk after one generation and restored on the next launch
+  instead of generating it again on the render thread (Remastered 0.8-1.0 s,
+  Wolds 1.3 s; restore 77-102 ms, 24,991 and 48,775 resources). Keyed by mod
+  files, registered blocks and items, Every Compat's and Selene's configs,
+  resource packs, KubeJS inputs and pack order; a fresh generation was
+  byte-identical to the stored copy.
+
+- New `suspendIntegratedServerDuringJoin` (client, default on): on a
+  singleplayer join the integrated server holds its world ticks until the
+  client has processed the join data (a marker packet queued after the
+  player's placement returns through the client thread), at most 60 s. Chunk
+  loading and the connection keep running. Adapted from ModernFix's
+  suspend_integrated_server_during_load.
+
+- New `restoreSmoothBootThreadPriorities` (common `[compatibility]`, default
+  on): when Smooth Boot (Reloaded) is installed, the Bootstrap, Main, IO and
+  `modloading-worker` threads it lowers to priority 1 are raised back to 5.
+  Thread counts, names and handlers stay Smooth Boot's; priorities are only
+  raised. Applies on both physical sides.
+
+- New `boundFarsightChunkRetention` (client `[compatibility]`, default on;
+  only when Farsight is installed; a Vault Render Optimization build that
+  ships its own bound declares `META-INF/vro-features/farsight-chunk-bound`
+  and then owns it): Farsight 1.9 cancels every chunk-forget
+  packet, so the client kept every chunk it had seen in a level, with its
+  light data and Embeddium render sections. Every 20 ticks VHA now forgets
+  chunks beyond max(server view distance, render distance) + 1 exactly as
+  vanilla does (chunk drop, light cleanup, Embeddium's unload hook).
+
+- New `deduplicateModelLocationPaths` (client, default on): model locations
+  (one per block state and item, about 1.3 M in Wolds) share one copy of each
+  block or item path instead of each keeping its own. The Wolds cake-vault
+  heap dump showed 1.29 M of 1.30 M model-location paths were duplicates.
+
+- New `indexVaultCascadeModifiers` (client, default on; Vault builds without
+  grouped modifiers, such as 3.21.6 and 20.0.3; singleplayer): each stack of
+  a cascade modifier (the cake vault's chest, coin and ore cascades) asked
+  `DecoratorCascadeModifier.getCascadeRun`, which scans every modifier entry,
+  on every generated chunk. A cake vault adds about 15 entries per cake, so
+  the cost grew with the square of the cakes eaten: in a Wolds cake vault each
+  cake took 2.7 s at 100 cakes and 14 s at 420, with 92% of the server thread
+  in that loop. The same answer now comes from an index rebuilt only when the
+  modifier list changes. Newer Vault (Asgard 3.21.62) already groups modifiers
+  and is left alone.
+
+- New `cacheVaultModifierViews` (client, default on): Vault's HUD and its
+  camera, held-item and crosshair hooks rebuild the vault modifier list from
+  every entry each frame (`Modifiers.getModifiers`/`getDisplayGroup`): 56% of
+  the render thread at 420 cakes. On the client and integrated server threads
+  the list is reused until the entries change or 250 ms pass (on the server,
+  potion immunity checks call it for every effect applied); every caller gets
+  its own copy.
+
+- New `indexVaultModifierTicks` (client, default on; singleplayer): Vault
+  walks every modifier entry three times each server tick to expire, apply and
+  count down entries, although only new and timed entries can change. At 600
+  cakes that was a fifth of the server thread. Permanent entries are now
+  skipped; the index is rebuilt when the list changes or a permanent entry is
+  written to, and any tick with something to apply or expire runs Vault's code.
+
+- New `prefetchCtmTextureMetadata` (client, default on; CTM 1.1.5+5): CTM's
+  texture stitch listener read every sprite's CTM metadata one at a time. The
+  same reads now run on VHA's workers first and fill CTM's own cache; failures
+  are left for CTM to read and report.
+- New `indexKubeJsPackFiles` (client, default on; KubeJS 1802.5.5): KubeJS's
+  resource pack checked the disk for every resource lookup. Its assets or data
+  folder is now listed once per open pack (each reload) and the checks are
+  answered from the listing, matching names as the platform does.
+  Together, Wolds warm: blocks atlas 4.1 -> 2.8 s, launch 47.3 -> 44.0 s,
+  identical atlas.
+
+- Mod resource index: listings with a leading slash (such as vhapi's
+  `/textures/gui/modifiers`) are answered from the index. Forge walked every
+  file of every mod's namespace for them and, since an absolute path never
+  prefixes a relative one, always returned nothing. vhapi makes six such
+  listings for the blocks atlas: Wolds blocks atlas 9.6 -> 4.1 s, launch to
+  menu 52.2 -> 47.3 s warm, identical atlas.
+
+- New `prefetchJoinRecipeFingerprint` (client, default on): the recipe
+  fingerprint that validates VHA's persistent JEI recipe index was computed on
+  the render thread when JEI registered vanilla recipes. It now starts in the
+  background as soon as the join's tags are applied, overlapping JEI's first
+  startup phases. Wolds, warm: JEI start 6.26 -> 5.21 s, JEI's vanilla plugin
+  1.42 -> 0.49 s, world join 9.4 -> 8.5 s.
+
+- New `repairEmptyBookPiles` (client, default on; Vault Hunters with
+  Supplementaries; singleplayer): Vault's library room templates store
+  Supplementaries book piles without books. Loading one sets the pile's book
+  count to 0, which Supplementaries rejects, so Vault placed its magenta
+  "Missing: supplementaries:book_pile" error block instead. A pile saved with
+  no books now loads with as many plain books as its block shows (at least
+  one); piles holding books load unchanged.
+
+- New `filterVaultCascadeByState` (client, default on; singleplayer): each
+  cascade modifier (the cake vault's chest and coin cascades) scans every
+  block entity of each generated chunk and built its full saved data before
+  checking whether it was the block it copies. Vault ores are block entities
+  and the cake vault's ore modifier stacks with each cake, so late mine rooms
+  hold tens of thousands: at 1,564 cakes one mine room took a 122 s server
+  tick and the room appeared only after it. The scan now receives only the
+  positions whose block the filter can accept (by id and properties), so the
+  ores cost one cached state check each; the result is the same.
+
+- New `snapshotVaultEventListeners` (client, default on): Vault's event system
+  copied every listener list on every post, and each modifier stack registers
+  its own listeners; the mob spawn event is posted for every mob's despawn
+  check each tick. Listeners now run from a snapshot taken when they change,
+  in the same order. Client render events are left to Vault Render
+  Optimization.
+
+- VHA's compat mixin preflight now treats `require = 0` injections as optional,
+  as Mixin does, so an optional target missing from an older build no longer
+  disables the other mixins of its package.
+
+- New `serializeAtlasStitchEvents` (client, default on; takes effect only with
+  `parallelAtlasStitching`): every atlas's `TextureStitchEvent.Pre` is fired
+  first, one at a time on the loading thread in vanilla's order, and the
+  atlases are then prepared in parallel from the texture sets those events
+  produced. Mod stitch listeners never run on several threads at once, which
+  was the reason `parallelAtlasStitching` is off by default. Awaiting in-game
+  A/B before `parallelAtlasStitching` is reconsidered.
+
+### Fixed
+
+- Options whose default was turned on in 1.1.0
+  (`deduplicateResourceLocationNamespaces`, `deferItemModelBaking`,
+  `deferBlockStateModelBaking`, `skipBlockStateGraphLoading`) stayed off for
+  anyone whose config file was written earlier, because Forge keeps existing
+  values. On the first launch of this version a value still at its old default
+  is moved to the new default once (recorded in
+  `config/vhaccelerator-defaults-revision.txt`); values changed afterwards are
+  kept. Wolds and Remastered test configs still had namespace deduplication
+  off: 166,849 separate copies of `everycomp`, 125,118 of `the_vault`.
+
+### Fixed
+
+- The persistent JEI recipe index is now reused across sessions in packs with
+  recipes whose displayed result is randomized on every reload (Wolds Vaults'
+  random crystals, augments and relics): its key ignores result NBT, and each
+  cached plan's output is still verified on restore, so only those recipes
+  are rebuilt. Wolds: 27,887 of 27,888 crafting plans restored in 171 ms
+  instead of rebuilding (about 730 ms) and rewriting a 27 MB file every join.
+  The reader also accepted too few items per ingredient group (a Wolds recipe
+  lists 16,645), which made every index file unreadable, and at most 8 index
+  files are kept instead of 64.
+- Item-tag fingerprints ignore duplicate members; Vault Hunters re-adds its
+  config tags' members on every reload.
+
+- Two chunk workers first reaching the same skipped block no longer fail to
+  bake one of its states ("needed unloaded model"). The block's state keys
+  entered the unbaked cache before its child models finished loading, so the
+  second worker skipped the graph load. A block now counts as loaded only once
+  its load has finished.
+
+- With CTM installed, CTM's render-layer refresh no longer bakes every
+  deferred block model and loads every skipped block graph at launch. In
+  Wolds this kept 27,700 skipped graphs unloaded: about 400 MB less at the
+  menu and about 6 s faster to it.
+
+- A warm world join no longer rewrites the whole JEI recipe index file (8.5 MB
+  here) because one cached recipe plan is rejected for a transient output
+  identity every time. The file is rewritten only for recipes missing from it
+  or removed; a used file's modified time is refreshed so it stays among the
+  files read ahead.
+
+- Parallel top-level baking no longer fails on a legitimately null baked model
+  (for example an empty variant). Previously the worker threw, the full
+  sequential retry threw again on the same concurrent cache, and loading could
+  fail.
+- A failed sequential JEI search-index fallback no longer leaves indexing
+  latched for the session; queued runtime ingredient changes and listeners
+  still run, and the original failure is still reported.
+- JER compatibility is rebuilt for every singleplayer session, where JER reads
+  that world's data-pack loot tables, instead of showing the first world's
+  drops in later worlds. JER's cached mob display entities are released on
+  logout so a disconnected world is no longer kept in memory.
+- Persistent login and client-asset caches now include CraftTweaker `scripts/`
+  and KubeJS script, asset, data and config folders, and the resource-pack scan
+  follows symbolic links, so script or linked-pack edits cannot serve stale
+  cached data.
+
+- A resource pack that ships `models/builtin/...` JSON can no longer replace
+  vanilla's generated-item or block-entity model markers.
+- The asynchronous JEI search index is no longer rejected and rebuilt on the
+  client thread at every login when an item has a blank display name. The
+  completeness check now counts ingredients the way JEI does.
+
+### Memory
+
+- The resource-pack path index kept for every mod jar is about 62% smaller:
+  240 to 92 bytes per indexed file, measured over the jars in `libs/`,
+  or roughly 50-70 MB on a 400-mod pack. Listing order is unchanged, and index
+  build, lookups and listings are as fast as before or slightly faster.
+- New `releaseCacheMemoryAfterUse` (default on): the restored model-material
+  map and memoized model materials are dropped once used. Per-server JEI and
+  fuel caches keep only the current server address in memory, so reconnects
+  and proxy backend switches never reread from disk. Cache files on disk are
+  never deleted.
+
+### Added
+
+- New `asyncChunkDiskReads` (common, default on, integrated and dedicated
+  server). In 1.18.2 `ChunkMap.scheduleChunkLoad` runs `IOWorker.load`, which
+  is `loadAsync(pos).join()`, on the server thread, so every chunk load
+  blocks the server thread on the region-file seek and inflate. The read now
+  starts on the chunk IO thread and the vanilla deserialization lambda runs
+  on the server thread once it has finished: `upgradeChunkTag`,
+  `ChunkSerializer.read` (Starlight light data, Forge's `ChunkDataEvent.Load`
+  and capabilities), POI updates, `markPosition` and every vanilla error path
+  are unchanged and keep their order. Two redirects, no overwrite; vanilla
+  1.19 made the same change. Not yet measured.
+
+- Vault Hunters' plain block-state and item models now defer (and warm-skip)
+  like any other; its dynamic gear models keep their eager, guarded path.
+
+- `deferItemModelBaking` now also covers EveryCompat item models and, while
+  VHA owns BuildScape's model loading, BuildScape's; it also runs with CTM
+  1.18.2-1.1.5+5 (CTM-textured items are baked for CTM and never skipped).
+  Still off by default.
+
+- With deferred baking active, the load-time selection sets and the per-key
+  skipped-graph set are released once models are installed and applied; the
+  deferred registry keeps its own keys. About 94 MB less at the Wolds menu.
+- Debug diagnostics log a census of the baked models still resident at launch
+  completion, by namespace and kind, with their distinct quads.
+
+- Deferred block-state baking and warm graph skipping now also run with CTM
+  1.18.2-1.1.5+5 installed: VHA's CTM bake pass bakes only the deferred models
+  CTM wraps, and blocks with CTM textures are never certified for skipping.
+
+- `takeOverBuildScapeModelLoading` (default on): with VHA installed, VHA's
+  model pipeline loads, defers and skips BuildScape's models, and BuildScape
+  skips its own parallel parse and bake through its existing LaunchFaster
+  interop check. BuildScape alone keeps its own optimizations.
+
+- Deferred block-state baking and warm graph skipping now cover EveryCompat's
+  generated block states (396 k more deferrable models in CMA Remastered).
+
+- `overrideModernFixDynamicResources` (default on): VHA claims ModernFix's
+  dynamic resources when a pack enables them, so VHA's parallel model
+  pipeline runs instead. Wolds 0.34.1 launches about 23 s faster to the menu.
+- Debug diagnostics log the block-state deferral scope: how many block-state
+  models deferred baking covers and what keeps the rest eager.
+
+- `responsiveModWorkQueue` (default on): port of ModernFix's current
+  ModWorkManager park fix. Forge's main thread notices finished mod-loading
+  work within 250 microseconds instead of up to 25 ms, while the loading
+  screen keeps redrawing. About 0.3 s faster to the menu in CMA Remastered.
+
+- The JEI recipe index cache no longer reads every cached recipe file
+  (up to 64, ~540 MB here) at launch and keeps them all in memory. It now
+  reads ahead only the two newest files, reads any other file only when its
+  exact key is needed, keeps only the files used this session, and shares
+  repeated strings and ingredient lists. In CMA Remastered this cut the heap
+  by ~1.36 GB at the menu and ~1.38 GB in the world.
+
+- `releaseBakeryLoadMaps` (default on): dynamic-model stage S2. After models
+  are applied, release the retained Forge bakery's top-level model map and,
+  when no deferred bake needs it, its intermediate baked cache.
+- Toggling a VH Accelerator option no longer invalidates the persistent model
+  caches: VHA's own config files are excluded from the client asset
+  fingerprint and from the login-state (JEI ingredient, Thermal and Iron
+  Furnaces fuel) cache fingerprints.
+
+- `skipBlockStateGraphLoading` (experimental, default off; requires
+  `deferBlockStateModelBaking`): dynamic-model stage S1. Warm launches skip
+  reading and parsing certified plain blocks' blockstate files and models;
+  textures are stitched from a compact certification, model groups restored,
+  and each block's graph loads on one background thread on first use.
+
+- `cacheLaunchVoxelShapes` (default on): while mods load, equal voxel-shape
+  boxes are shared and identical shape joins are reused. MrCrayfish's
+  Furniture and Macaw's mods build the same shapes for every block and wood
+  variant; a CMA Remastered profile put ~0.4 s of launch in that work. The
+  cache is released when mod loading completes.
+- `asyncCrashReportPreload` (default on): Minecraft's startup throwaway crash
+  report, which only preloads crash-reporting classes, is built on a
+  background thread after bootstrap instead of on the main thread before it
+  (~0.8 s measured in CMA Remastered).
+- Debug-only launch samplers attribute launch time to mods by phase, with
+  call paths, from the mixin plugin through mod construction, registries and
+  the resource reload.
+- `deduplicateResourceLocationNamespaces` (backport, default off): a
+  lock-free, bounded replacement for ModernFix's `deduplicate_location` that
+  shares one string per identifier namespace. It is a measured opt-in because
+  it adds about 5 ns per identifier construction; debug diagnostics report the
+  duplicates it removes, for A/B testing.
+
+### Changed
+
+- `parallelAtlasStitching` is default-off. Forge fires
+  `TextureStitchEvent.Pre` inside atlas preparation, so parallel preparation
+  ran mod listeners concurrently. Vault Hunters packs already used the
+  original path.
+- Third-party compatibility mixins are checked against the installed mod's
+  bytecode before applying. If Vault Hunters, JEI, CraftTweaker, Thermal or
+  another supported mod changes a targeted member, that compatibility group is
+  skipped with a warning instead of crashing startup.
+- `deferBlockStateModelBaking` is default-off again until in-vault heap,
+  frame-time and mod-compatibility measurements justify enabling it.
 ## [1.0.14] - 2026-09-20
 
 ### Recipe lookup groundwork

@@ -34,7 +34,14 @@ public final class VHAcceleratorConfig {
         public final ForgeConfigSpec.BooleanValue lazyBlockStateCache;
         public final ForgeConfigSpec.BooleanValue cacheResourceListing;
         public final ForgeConfigSpec.BooleanValue indexImmutableModResources;
+        public final ForgeConfigSpec.BooleanValue parallelKubeJsRecipeFilters;
+        public final ForgeConfigSpec.BooleanValue asyncChunkDiskReads;
+        public final ForgeConfigSpec.BooleanValue skipReturningPlayerSpawnSearch;
         public final ForgeConfigSpec.BooleanValue deferTargetDummyDispenserRegistration;
+        public final ForgeConfigSpec.BooleanValue trimDecocraftModels;
+        public final ForgeConfigSpec.BooleanValue compactFerriteCorePropertyMaps;
+        public final ForgeConfigSpec.BooleanValue releaseLevelPinningReferences;
+        public final ForgeConfigSpec.BooleanValue restoreSmoothBootThreadPriorities;
         public final Map<BackportFeature, ForgeConfigSpec.BooleanValue> backports;
 
         private Common(ForgeConfigSpec.Builder builder) {
@@ -45,6 +52,33 @@ public final class VHAcceleratorConfig {
                     "Restart required. Independent of Compare Mode: this is a startup correctness fix.",
                     "Other Target Dummy versions are not modified.")
                     .define("deferTargetDummyDispenserRegistration", true);
+            trimDecocraftModels = builder.comment(
+                    "Trims Decocraft 3.0.4's parsed Blockbench models: block variants of the same",
+                    "model file share one parse at registration, and the base64 images and file",
+                    "paths Decocraft never reads again are cleared. Decocraft keeps one parsed copy",
+                    "per block, so these took about 1 GB in Asgard. Models, textures and hit boxes",
+                    "are unchanged. Restart required. Other Decocraft versions are not modified.")
+                    .define("trimDecocraftModels", true);
+            compactFerriteCorePropertyMaps = builder.comment(
+                    "With FerriteCore 4.2.2's replacePropertyMap, drops the property-map object it",
+                    "keeps for every block and fluid state (32 bytes each; 1.5 M states in large packs)",
+                    "and answers property lookups from FerriteCore's shared FastMap directly.",
+                    "getValues() builds FerriteCore's view on demand. Restart required.")
+                    .define("compactFerriteCorePropertyMaps", true);
+            releaseLevelPinningReferences = builder.comment(
+                    "Stops references that keep a whole level in memory after leaving it: an item",
+                    "entity stored on the shared empty item stack, Forge's static block-entity",
+                    "model-data caches (cleared when the client clears its level), and Copycats+'s",
+                    "static server supplier (which kept the whole integrated server).",
+                    "Restart required.")
+                    .define("releaseLevelPinningReferences", true);
+            restoreSmoothBootThreadPriorities = builder.comment(
+                    "When Smooth Boot (Reloaded) is installed, raises the Bootstrap, Main, IO and",
+                    "modloading-worker threads it lowers (priority 1 by default) back to normal",
+                    "priority 5, so VH Accelerator's parallel work is not starved under CPU contention.",
+                    "Smooth Boot's thread counts are kept and priorities are only raised, never lowered.",
+                    "Restart required. Disabled by Compare Mode.")
+                    .define("restoreSmoothBootThreadPriorities", true);
             builder.pop();
             builder.push("diagnostics");
             compareMode = builder
@@ -134,6 +168,32 @@ public final class VHAcceleratorConfig {
                             "reuse the index. Folder packs, live generated packs, and failed",
                             "or suspicious scans always keep Forge's original path.")
                     .define("indexImmutableModResources", true);
+            parallelKubeJsRecipeFilters = builder
+                    .comment(
+                            "KubeJS 1802.5.5-build.569: evaluates a recipe script's remove / forEachRecipe",
+                            "filter across worker threads when it is built only from KubeJS's data-only",
+                            "filters and ingredients, then applies the matches in the original order.",
+                            "Script functions and custom predicates stay on the calling thread.",
+                            "Restart required.")
+                    .define("parallelKubeJsRecipeFilters", true);
+            asyncChunkDiskReads = builder
+                    .comment(
+                            "Reads chunk region data on the chunk IO thread before the server thread",
+                            "deserializes it, instead of blocking the server thread on the disk read and",
+                            "inflate for every loaded chunk (vanilla 1.19 made the same change).",
+                            "Deserialization, POI updates, Forge's ChunkDataEvent.Load and every error",
+                            "path still run on the server thread in the vanilla order.",
+                            "Integrated and dedicated server. Restart required.")
+                    .define("asyncChunkDiskReads", true);
+            skipReturningPlayerSpawnSearch = builder
+                    .comment(
+                            "Skips the ServerPlayer constructor's world-spawn search (chunk loads and",
+                            "collision probes around the shared spawn) when its result is discarded:",
+                            "on login when saved player data exists, and on respawn when a valid",
+                            "bed or anchor position was found. New players, players without a",
+                            "respawn point, fake players and mod-constructed players keep the",
+                            "vanilla search at its original point. Restart required.")
+                    .define("skipReturningPlayerSpawnSearch", true);
             builder.pop();
 
             builder.push("backports");
@@ -161,6 +221,18 @@ public final class VHAcceleratorConfig {
             }
             backports = Collections.unmodifiableMap(options);
             builder.pop();
+        }
+    }
+
+    /**
+     * Read during block registration; falls back to the default if the common
+     * config is not loaded yet.
+     */
+    public static boolean decocraftModelTrimmingEnabled() {
+        try {
+            return !compareModeEnabled() && COMMON.trimDecocraftModels.get();
+        } catch (IllegalStateException notLoaded) {
+            return !compareModeEnabled();
         }
     }
 

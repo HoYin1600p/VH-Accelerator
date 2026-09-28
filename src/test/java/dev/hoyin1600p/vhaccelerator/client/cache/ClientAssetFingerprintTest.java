@@ -23,6 +23,14 @@ class ClientAssetFingerprintTest {
     }
 
     @Test
+    void togglingVhaOptionsDoesNotInvalidateAssetCaches() {
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig("vhaccelerator-client.toml"));
+        assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig("vhaccelerator-common.toml"));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig("vault_render_optimization-client.toml"));
+        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig("vhaccelerator/other.json"));
+    }
+
+    @Test
     void excludesDownloadedMetadataAndServerScopeIdentityOnly() {
         assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
                 "essential-mod-partner/data.cache.json"
@@ -54,9 +62,6 @@ class ClientAssetFingerprintTest {
         ));
         assertTrue(AssetConfigPathPolicy.isVolatileNonAssetConfig(
                 "forgematica-update-notice-state.json"
-        ));
-        assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
-                "vhaccelerator-client.toml"
         ));
         assertFalse(AssetConfigPathPolicy.isVolatileNonAssetConfig(
                 "vault_render_optimization-client.toml"

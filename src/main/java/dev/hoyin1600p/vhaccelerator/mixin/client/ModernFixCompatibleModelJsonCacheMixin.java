@@ -74,7 +74,10 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
-        if ("buildscape".equals(location.getNamespace())) {
+        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(location)
+                || location.getPath().startsWith("builtin/")) {
+            // Vanilla resolves builtin markers first; a pack JSON at that
+            // path must never replace them.
             return;
         }
         Map<ResourceLocation, BlockModel> parsed =
@@ -89,8 +92,7 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
 
         PersistentModelJsonCache.Session session =
                 vhaccelerator$modelCacheSession;
-        if (session == null
-                || location.getPath().startsWith("builtin/")) {
+        if (session == null) {
             return;
         }
         Map<ResourceLocation, String> models = session.models();

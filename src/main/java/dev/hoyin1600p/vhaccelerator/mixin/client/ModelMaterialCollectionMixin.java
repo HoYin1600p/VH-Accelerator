@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredTopLevelManifest;
@@ -60,12 +62,26 @@ public abstract class ModelMaterialCollectionMixin
                 manifestMaterials = session.materialNode();
             }
         }
-        if (manifestMaterials == null) {
+        UnbakedModel blockMaterials = null;
+        if ((Object) this instanceof BlockGraphOwner owner
+                && (Object) this instanceof BlockGraphSkipSession.GroupSink groups) {
+            BlockGraphSkipSession session = owner.vhaccelerator$blockGraphSession();
+            if (session != null) {
+                // Closes skipping and restores skipped blocks' model groups.
+                blockMaterials = session.materialNode(groups);
+            }
+        }
+        if (manifestMaterials == null && blockMaterials == null) {
             return values;
         }
-        ArrayList<Object> extended = new ArrayList<>(values.size() + 1);
+        ArrayList<Object> extended = new ArrayList<>(values.size() + 2);
         extended.addAll(values);
-        extended.add(manifestMaterials);
+        if (manifestMaterials != null) {
+            extended.add(manifestMaterials);
+        }
+        if (blockMaterials != null) {
+            extended.add(blockMaterials);
+        }
         return extended;
     }
 

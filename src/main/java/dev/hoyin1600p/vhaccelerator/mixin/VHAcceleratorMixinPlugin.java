@@ -6,6 +6,8 @@ import dev.hoyin1600p.vhaccelerator.backport.ModernFixOwnership;
 import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
 import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
 import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
+import dev.hoyin1600p.vhaccelerator.compat.CompatMixinGroups;
+import dev.hoyin1600p.vhaccelerator.diagnostics.PreGameSampler;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.config.NightConfigWatcherCorrection;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.thread.BackgroundWorkerLimit;
 import java.lang.reflect.Field;
@@ -20,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.spongepowered.asm.service.MixinService;
 
 public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private static final Logger LOGGER = LogManager.getLogger("VH Accelerator");
@@ -71,23 +74,50 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
     private boolean extraStorageLoaded;
     private boolean refinedStorageLoaded;
     private boolean sophisticatedCoreLoaded;
+    private boolean supplementariesLoaded;
     private boolean ctmCompatible;
     private boolean ctmInstalled;
+    private boolean buildScapeInstalled;
     private boolean mekanismModelBakeCompatible;
     private boolean cableTiersModelBakeCompatible;
     private boolean cloudStorageModelBakeCompatible;
     private boolean megaCellsModelBakeCompatible;
     private boolean everyCompatDebugDumpCompatible;
     private boolean decocraftCompatible;
+    private boolean ferriteCorePropertyMaps;
+    private boolean renderOptimizationLoaded;
+    private boolean releaseLevelPinningReferences;
+    private boolean copycatsLoaded;
+    private boolean parallelKubeJsFilters;
+    private boolean asyncChunkDiskReads;
+    private boolean create051i;
+    private boolean geckoLib3057;
+    private boolean arsNouveauGeckoLib;
+    private boolean everyCompatPackCache;
+    private boolean vaultCascadeScan;
     private boolean xaeroMinimapCompatible;
     private boolean xaeroWorldMapCompatible;
+    private boolean farsightLoaded;
+    private boolean vroOwnsFarsightBound;
     private boolean physicalClient;
     private boolean targetDummySetupFix;
+    private boolean smoothBootPriorityRestore;
     private Boolean modernFixDynamicResourcesEnabled;
     private boolean reportedModernFixBakeDecision;
+    private boolean skipReturningPlayerSpawnSearch;
+    private CompatMixinGroups compatMixinGroups;
 
     @Override
     public void onLoad(String mixinPackage) {
+        if (FMLEnvironment.dist == Dist.CLIENT && BootstrapDebugDiagnostics.enabled()) {
+            // The earliest point VHA code runs; debug-only launch attribution.
+            PreGameSampler.start();
+        }
+        skipReturningPlayerSpawnSearch = !BootstrapCompareMode.enabled()
+                && dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+                        "optimizations", "enableCommonOptimizations", true)
+                && dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+                        "optimizations", "skipReturningPlayerSpawnSearch", true);
         try {
             Class.forName(
                     "optifine.OptiFineTransformationService",
@@ -112,11 +142,45 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     && dev.hoyin1600p.vhaccelerator.compat.targetdummy.TargetDummySetupFix.enabled();
             modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
             ctmInstalled = modList != null && modList.getModFileById("ctm") != null;
+            buildScapeInstalled = modList != null
+                    && modList.getModFileById("buildscape") != null;
+            smoothBootPriorityRestore = modList != null
+                    && modList.getModFileById("smoothboot") != null
+                    && !BootstrapCompareMode.enabled()
+                    && dev.hoyin1600p.vhaccelerator.compat.smoothboot.SmoothBootThreadPriorities.enabled();
             ferriteCoreLoaded = modList != null
                     && modList.getModFileById("ferritecore") != null;
             externalShapeOptimizerLoaded = modList != null
                     && (modList.getModFileById("canary") != null
                     || modList.getModFileById("lithium") != null);
+            // Both sides: Decocraft parses its Blockbench models at block registration.
+            decocraftCompatible = hasVersion(
+                    modList,
+                    "decocraft",
+                    "3.0.4-1.18.2"
+            );
+            copycatsLoaded = modList != null && modList.getModFileById("copycats") != null;
+            create051i = hasVersion(modList, "create", "0.5.1.i");
+            geckoLib3057 = hasVersion(modList, "geckolib3", "3.0.57");
+            arsNouveauGeckoLib = hasVersion(modList, "ars_nouveau", "2.9.0");
+            everyCompatPackCache = (hasVersion(modList, "selene", "1.18.2-1.17.14")
+                    || hasVersion(modList, "selene", "1.18.2-1.17.17"))
+                    && (hasVersion(modList, "everycomp", "1.18.2-1.5.18")
+                    || hasVersion(modList, "everycomp", "1.18.2-1.6.7"));
+            parallelKubeJsFilters = hasVersion(modList, "kubejs", "1802.5.5-build.569")
+                    && !BootstrapCompareMode.enabled()
+                    && dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+                            "optimizations", "parallelKubeJsRecipeFilters", true);
+            asyncChunkDiskReads = !BootstrapCompareMode.enabled()
+                    && dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+                            "optimizations", "asyncChunkDiskReads", true);
+            releaseLevelPinningReferences = dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+                    "compatibility", "releaseLevelPinningReferences", true);
+            renderOptimizationLoaded = modList != null
+                    && modList.getModFileById("vault_render_optimization") != null;
+            ferriteCorePropertyMaps = hasVersion(modList, "ferritecore", "4.2.2")
+                    && !BootstrapCompareMode.enabled()
+                    && dev.hoyin1600p.vhaccelerator.compat.ferritecore.FerriteCorePropertyMaps.enabled();
             if (physicalClient) {
                 jeiLoaded = modList != null && modList.getModFileById("jei") != null;
                 if (jeiLoaded
@@ -132,6 +196,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 }
                 vaultHuntersLoaded =
                         modList != null && modList.getModFileById("the_vault") != null;
+                vaultCascadeScan = vaultHuntersLoaded && vaultStillScansCascadeStacks(modList);
                 powahLoaded = modList != null && modList.getModFileById("powah") != null;
                 jeiTweakerLoaded =
                         modList != null && modList.getModFileById("jeitweaker") != null;
@@ -155,6 +220,8 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         && modList.getModFileById("refinedstorage") != null;
                 sophisticatedCoreLoaded = modList != null
                         && modList.getModFileById("sophisticatedcore") != null;
+                supplementariesLoaded = modList != null
+                        && modList.getModFileById("supplementaries") != null;
                 ctmCompatible = hasVersion(
                         modList,
                         "ctm",
@@ -189,11 +256,6 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "selene",
                         "1.18.2-1.17.14"
                 );
-                decocraftCompatible = hasVersion(
-                        modList,
-                        "decocraft",
-                        "3.0.4-1.18.2"
-                );
                 xaeroMinimapCompatible = hasVersion(
                         modList,
                         "xaerominimap",
@@ -204,11 +266,16 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                         "xaeroworldmap",
                         "1.39.12"
                 );
+                farsightLoaded = dev.hoyin1600p.vhaccelerator.compat.farsight.FarsightBoundOwner
+                        .farsightLoaded(modList);
+                vroOwnsFarsightBound = dev.hoyin1600p.vhaccelerator.compat.farsight.FarsightBoundOwner
+                        .vroOwnsBound(modList);
             }
         } catch (RuntimeException exception) {
             modDiscoveryFailed = true;
             modListKnown = false;
             targetDummySetupFix = false;
+            smoothBootPriorityRestore = false;
             modernFixLoaded = false;
             ferriteCoreLoaded = false;
             externalShapeOptimizerLoaded = false;
@@ -227,6 +294,7 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             extraStorageLoaded = false;
             refinedStorageLoaded = false;
             sophisticatedCoreLoaded = false;
+            supplementariesLoaded = false;
             ctmCompatible = false;
             ctmInstalled = false;
             mekanismModelBakeCompatible = false;
@@ -235,8 +303,11 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             megaCellsModelBakeCompatible = false;
             everyCompatDebugDumpCompatible = false;
             decocraftCompatible = false;
+            ferriteCorePropertyMaps = false;
+            renderOptimizationLoaded = true;
             xaeroMinimapCompatible = false;
             xaeroWorldMapCompatible = false;
+            farsightLoaded = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }
 
@@ -258,6 +329,17 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                 BackportFeature.TICKING_CHUNK_ALLOCATIONS,
                 "mixin.perf.ticking_chunk_alloc"
         );
+        // ModernFix's dynamic resources load models lazily on one thread and
+        // break Vault Hunters models; VHA's guarded pipeline (parallel
+        // loading, deferred baking, warm graph skipping) owns ModelBakery
+        // instead. Must run before any model mixin asks
+        // modernFixDynamicResourcesEnabled().
+        if (physicalClient) {
+            claimModernFixOption(
+                    BackportFeature.VHA_MODEL_LOADING,
+                    "mixin.perf.dynamic_resources"
+            );
+        }
         if (modernFixLoaded
                 && !BootstrapCompareMode.enabled()
                 && BootstrapBackportConfig.enabled(
@@ -308,6 +390,12 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (modernFixLoaded) {
             LOGGER.info("ModernFix detected; disabling overlapping VH Accelerator mixins");
         }
+        if (smoothBootPriorityRestore) {
+            LOGGER.info(
+                    "Smooth Boot detected; VH Accelerator will restore normal priority for the "
+                            + "Bootstrap, Main, IO and modloading-worker threads it lowers"
+            );
+        }
         if (jeiLoaded && jeiGeneration == 0) {
             LOGGER.warn(
                     "JEI was detected, but its internal generation is unsupported; "
@@ -347,6 +435,15 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     "Validated EveryCompat generated-resource compatibility"
             );
         }
+        if (farsightLoaded) {
+            LOGGER.info(
+                    vroOwnsFarsightBound
+                            ? "Farsight detected; leaving its chunk retention "
+                                    + "bound to Vault Render Optimization"
+                            : "Farsight detected; VH Accelerator will bound "
+                                    + "its retained client chunks"
+            );
+        }
     }
 
     @Override
@@ -356,13 +453,50 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (!shouldApplyMixinBase(targetClassName, mixinClassName)) {
+            return false;
+        }
+        if (compatMixinGroups == null) {
+            compatMixinGroups = new CompatMixinGroups(
+                    CompatMixinGroups.readConfiguredMixins(
+                            VHAcceleratorMixinPlugin.class.getClassLoader(),
+                            "vhaccelerator.mixins.json"
+                    ),
+                    this::shouldApplyMixinBase,
+                    VHAcceleratorMixinPlugin::findClassNode
+            );
+        }
+        return compatMixinGroups.allows(mixinClassName);
+    }
+
+    private static ClassNode findClassNode(String internalName) {
+        try {
+            return MixinService.getService()
+                    .getBytecodeProvider()
+                    .getClassNode(internalName);
+        } catch (ClassNotFoundException missing) {
+            return null;
+        } catch (Exception | LinkageError failure) {
+            LOGGER.debug("Unable to read {} for mixin preflight", internalName, failure);
+            return null;
+        }
+    }
+
+    private boolean shouldApplyMixinBase(String targetClassName, String mixinClassName) {
         if (mixinClassName.endsWith(".compat.targetdummy.TargetDummySetupMixin")) {
             // A correctness fix, intentionally independent of optimization Compare Mode.
             return targetDummySetupFix;
         }
+        if (mixinClassName.contains(".mixin.smoothboot.")) {
+            // Both physical sides: Smooth Boot lowers the server's pools too.
+            return smoothBootPriorityRestore;
+        }
         if (DEBUG_ONLY_MIXINS.contains(mixinClassName)
                 && !BootstrapDebugDiagnostics.enabled()) {
             return false;
+        }
+        if (mixinClassName.contains(".mixin.spawn.")) {
+            return skipReturningPlayerSpawnSearch;
         }
         if (mixinClassName.endsWith(
                 ".compat.placebo.ModelMapRegistryProfilerMixin"
@@ -382,6 +516,24 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
                     && modernFixOptionEnabled(
                             "feature.integrated_server_watchdog."
                                     + "IntegratedWatchdog"
+                    );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.client.entity."
+        )) {
+            // Vault Render Optimization ships this fix; it owns it when installed.
+            return physicalClient
+                    && !renderOptimizationLoaded
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature.ENTITY_MODEL_COMPACTION
+                    );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.load."
+        )) {
+            return physicalClient
+                    && BackportOwnershipRegistry.vhaOwns(
+                            BackportFeature.RESPONSIVE_MOD_WORK_QUEUE
                     );
         }
         if (mixinClassName.contains(
@@ -511,6 +663,13 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.structure.rings."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.STRONGHOLD_RING_EARLY_REJECTION
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.structure."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
@@ -547,11 +706,23 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.endsWith(
                 ".backport.modernfix.recipe.TagValueAccessor"
+        ) || mixinClassName.endsWith(
+                ".backport.modernfix.recipe.ReloadableServerResourcesMixin"
         )) {
+            // Shared by every ingredient shortcut that reads tags directly.
             return BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.FASTER_INGREDIENT_EXPANSION_CACHE
             ) || BackportOwnershipRegistry.vhaOwns(
                     BackportFeature.FASTER_INGREDIENT_TAG_LOOKUPS
+            ) || BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_INGREDIENT_EMPTINESS_CHECK
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.recipe.elements."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FASTER_INGREDIENT_EMPTINESS_CHECK
             );
         }
         if (mixinClassName.contains(
@@ -590,6 +761,27 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             );
         }
         if (mixinClassName.contains(
+                ".backport.modernfix.registry.freeze."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.FAST_REGISTRY_FREEZE_CHECK
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.registry.blockstateview."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.DEBUG_LEVEL_STATE_VIEW
+            );
+        }
+        if (mixinClassName.contains(
+                ".backport.modernfix.registry.location."
+        )) {
+            return BackportOwnershipRegistry.vhaOwns(
+                    BackportFeature.RESOURCE_LOCATION_NAMESPACE_DEDUPLICATION
+            );
+        }
+        if (mixinClassName.contains(
                 ".backport.modernfix.model.property."
         )) {
             return BackportOwnershipRegistry.vhaOwns(
@@ -618,6 +810,10 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.endsWith(".ServerMainMixin")) {
             return !physicalClient;
         }
+        if (mixinClassName.endsWith(".ShapesLaunchCacheMixin")
+                || mixinClassName.endsWith(".VoxelShapeLaunchCacheMixin")) {
+            return physicalClient && !externalShapeOptimizerLoaded;
+        }
         if (mixinClassName.endsWith(
                 ".ShapesCoordinateMergerMixin"
         )) {
@@ -628,29 +824,53 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         )) {
             return physicalClient && ferriteCoreLoaded;
         }
+        if (mixinClassName.endsWith(".compat.buildscape.LaunchFasterInteropMixin")) {
+            // Only while VHA's own pipeline owns ModelBakery; under ModernFix
+            // dynamic resources BuildScape keeps its launch optimizations.
+            boolean apply = physicalClient
+                    && buildScapeInstalled
+                    && modListKnown
+                    && !modDiscoveryFailed
+                    && (!modernFixLoaded || !modernFixDynamicResourcesEnabled());
+            if (apply) {
+                dev.hoyin1600p.vhaccelerator.client.compat.buildscape.LaunchFasterInteropState.markApplied();
+            }
+            return apply;
+        }
         if (mixinClassName.endsWith("DeferredItemMixin")) {
-            // Omit all deferred-item mixins for CTM, unknown mod discovery,
-            // a dedicated server, or ModernFix dynamic resources.
+            // Omit all deferred-item mixins for an unsupported CTM version,
+            // unknown mod discovery, a dedicated server, or ModernFix dynamic
+            // resources. The exact supported CTM is handled by VHA's CTM pass.
             Boolean modernFixDynamicResources = null;
             if (physicalClient
                     && !modDiscoveryFailed
                     && modListKnown
-                    && !ctmInstalled
+                    && (!ctmInstalled || ctmCompatible)
                     && modernFixLoaded) {
                 modernFixDynamicResources = modernFixDynamicResourcesEnabled();
             }
             return DeferredModelMixinPolicy.allowDeferredItemMixins(
                     physicalClient,
                     modListKnown && !modDiscoveryFailed,
-                    ctmInstalled,
+                    // VHA's exact-version CTM pass makes block-state deferral
+                    // safe; item deferral keeps its own runtime CTM refusal.
+                    ctmInstalled && !ctmCompatible,
                     modernFixLoaded,
                     modernFixDynamicResources
             );
+        }
+        if (mixinClassName.contains(".chunkio.")) {
+            // Server-side chunk IO: applies to the integrated and dedicated server alike.
+            return asyncChunkDiskReads;
         }
         if (mixinClassName.contains(".client.") || mixinClassName.contains(".compat.")) {
             if (!physicalClient) {
                 return false;
             }
+        }
+        if (mixinClassName.contains(".compat.farsight.")) {
+            // VRO takes this over once it declares its own bound; never weave both.
+            return farsightLoaded && !vroOwnsFarsightBound;
         }
         if (mixinClassName.contains(".compat.jei.v10.")) {
             return jeiLoaded && jeiGeneration == 10;
@@ -661,17 +881,53 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains(".compat.jei.")) {
             return false;
         }
+        if (mixinClassName.endsWith(".compat.vaulthunters.DecoratorCascadeRunMixin")) {
+            return vaultCascadeScan;
+        }
         if (mixinClassName.contains(".compat.vaulthunters.")) {
             return vaultHuntersLoaded;
+        }
+        if (mixinClassName.contains(".compat.supplementaries.")) {
+            return vaultHuntersLoaded && supplementariesLoaded;
         }
         if (mixinClassName.contains(".compat.sophisticated.")) {
             return vaultHuntersLoaded && sophisticatedCoreLoaded;
         }
         if (mixinClassName.contains(".compat.ctm.")) {
+            if (ctmCompatible) {
+                dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer.markMixinApplied();
+            }
             return ctmCompatible;
         }
         if (mixinClassName.contains(".compat.everycomp.")) {
             return everyCompatDebugDumpCompatible;
+        }
+        if (mixinClassName.contains(".client.compat.selene.")) {
+            return everyCompatPackCache;
+        }
+        if (mixinClassName.endsWith(".client.compat.geckolib.GeckoLibCacheLazyMixin")) {
+            return geckoLib3057;
+        }
+        if (mixinClassName.endsWith(".client.compat.geckolib.ArsNouveauGeckoLibCacheLazyMixin")) {
+            return arsNouveauGeckoLib;
+        }
+        if (mixinClassName.contains(".client.compat.create.")) {
+            return create051i;
+        }
+        if (mixinClassName.contains(".compat.kubejs.")) {
+            return parallelKubeJsFilters;
+        }
+        if (mixinClassName.contains(".compat.copycats.")) {
+            return releaseLevelPinningReferences && copycatsLoaded;
+        }
+        if (mixinClassName.contains(".compat.leaks.")) {
+            return releaseLevelPinningReferences;
+        }
+        if (mixinClassName.contains(".client.compat.ferritecore.")) {
+            return !renderOptimizationLoaded;
+        }
+        if (mixinClassName.contains(".compat.ferritecore.")) {
+            return ferriteCorePropertyMaps;
         }
         if (mixinClassName.contains(".compat.decocraft.")) {
             return decocraftCompatible;
@@ -792,6 +1048,22 @@ public final class VHAcceleratorMixinPlugin implements IMixinConfigPlugin {
             return !modernFixDynamicResourcesEnabled();
         }
         return !modernFixLoaded || !MODERNFIX_OVERLAPS.contains(mixinClassName);
+    }
+
+    /** Newer Vault builds group modifiers (Modifiers.getModifierGroup) and need no index. */
+    private static boolean vaultStillScansCascadeStacks(LoadingModList modList) {
+        try {
+            java.nio.file.Path modifiers = modList.getModFileById("the_vault").getFile()
+                    .findResource("iskallia/vault/core/vault/Modifiers.class");
+            if (modifiers == null || !java.nio.file.Files.exists(modifiers)) {
+                return false;
+            }
+            String bytes = new String(java.nio.file.Files.readAllBytes(modifiers),
+                    java.nio.charset.StandardCharsets.ISO_8859_1);
+            return !bytes.contains("getModifierGroup");
+        } catch (Exception failure) {
+            return false;
+        }
     }
 
     private static boolean hasVersion(

@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -68,6 +70,8 @@ public final class PersistentRecipeValidationCache {
             .resolve("vanilla-recipe-validation");
 
     private static volatile CompletableFuture<Map<String, CachedManifest>> preload;
+    private static boolean released;
+    private static String retainedServerKey;
     private static final Executor WRITER = SharedWorkers.io();
     private static PendingManifest pending;
     private static String reportedMissKey;
@@ -76,17 +80,71 @@ public final class PersistentRecipeValidationCache {
     }
 
     public static void prewarm() {
-        if (preload != null) {
-            return;
+        loaded();
+    }
+
+    private static CompletableFuture<Map<String, CachedManifest>> loaded() {
+        CompletableFuture<Map<String, CachedManifest>> current = preload;
+        if (current != null) {
+            return current;
         }
         synchronized (PersistentRecipeValidationCache.class) {
             if (preload == null) {
+                if (released && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                    VHAccelerator.LOGGER.info(
+                            "[debug] Rereading released {} files from disk",
+                            "PersistentRecipeValidationCache"
+                    );
+                }
+                released = false;
                 preload = CompletableFuture.supplyAsync(
                         PersistentRecipeValidationCache::loadAll,
                         SharedWorkers.io()
                 );
             }
+            return preload;
         }
+    }
+
+    /**
+     * Once the client has consumed this cache, keeps only
+     * {@code keepServerKey}'s entries in memory, so a reconnect or proxy
+     * backend switch to the same address never rereads them, and releases
+     * every other server's data. With no key, or before the preload has
+     * finished, everything is released. Cache files always stay on disk.
+     */
+    public static synchronized void releaseMemory(String keepServerKey) {
+        CompletableFuture<Map<String, CachedManifest>> current = preload;
+        pending = null;
+        if (current == null) {
+            return;
+        }
+        if (keepServerKey == null
+                || !current.isDone()
+                || current.isCompletedExceptionally()) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+            return;
+        }
+        preload = CompletableFuture.completedFuture(
+                ServerScopedCacheMemory.retain(current.join(), keepServerKey)
+        );
+        retainedServerKey = keepServerKey;
+    }
+
+    /**
+     * Starts reading the cache files for a new connection unless this
+     * server's entries are already held in memory.
+     */
+    public static synchronized void prewarmFor(String serverKey) {
+        if (retainedServerKey != null
+                && (serverKey == null || !retainedServerKey.equals(serverKey))) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+        }
+        prewarm();
     }
 
     public static synchronized void beginConnection() {
@@ -145,7 +203,7 @@ public final class PersistentRecipeValidationCache {
             return null;
         }
         prewarm();
-        CachedManifest manifest = preload.join().get(fingerprint.serverKey());
+        CachedManifest manifest = loaded().join().get(fingerprint.serverKey());
         if (manifest == null) {
             reportMiss(fingerprint, "no compatible cache exists for this server");
             return null;
@@ -283,7 +341,7 @@ public final class PersistentRecipeValidationCache {
         prewarm();
         // Publish the immutable snapshot before returning to JEI. Disk writes
         // are serialized so an older connection cannot overwrite a newer one.
-        preload.join().put(serverKey, manifest);
+        loaded().join().put(serverKey, manifest);
         CompletableFuture.runAsync(() -> write(serverKey, manifest), WRITER)
                 .exceptionally(failure -> {
                     VHAccelerator.LOGGER.warn(
@@ -411,7 +469,8 @@ public final class PersistentRecipeValidationCache {
                             input.readUTF(),
                             input.readUTF(),
                             input.readUTF(),
-                            input.readUTF()
+                            input.readUTF(),
+                            "" // The recipe index key; not part of this file.
                     );
             int categoryCount = input.readInt();
             if (categoryCount < 0 || categoryCount > MAX_CATEGORIES) {

@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiIndexCompleteness;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
 import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -241,12 +242,16 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
                 workerSafe.forEach(privateIndex::add);
             }
             int indexedCount = privateIndex.getAllIngredients().size();
-            if (indexedCount != workerSafe.size()) {
+            int expectedCount = JeiIndexCompleteness.expectedIndexed(
+                    IListElementInfo::getName,
+                    workerSafe
+            );
+            if (indexedCount != expectedCount) {
                 throw new IllegalStateException(
                         "JEI 9 private index contains "
                                 + indexedCount
                                 + " of "
-                                + workerSafe.size()
+                                + expectedCount
                                 + " worker-safe ingredients"
                 );
             }
@@ -282,6 +287,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             long runtimeGeneration
     ) {
         List<Runnable> deferredMutations;
+        RuntimeException sequentialFailure = null;
         synchronized (vhaccelerator$indexLock) {
             if (!vhaccelerator$indexing
                     || !ClientWorkSession.isCurrent(sessionGeneration)
@@ -293,50 +299,66 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
                 return;
             }
 
-            if (failure == null && privateIndex != null) {
-                dynamicPlayerHeads.forEach(privateIndex::add);
-                vhaccelerator$runtimeAdditions.forEach(privateIndex::add);
-                int indexedCount = privateIndex.getAllIngredients().size();
-                int expectedCount = initial.size()
-                        + vhaccelerator$runtimeAdditions.size();
-                if (indexedCount != expectedCount) {
-                    failure = new IllegalStateException(
-                            "JEI 9 completed index contains "
-                                    + indexedCount
-                                    + " of "
-                                    + expectedCount
-                                    + " ingredients"
-                    );
+            try {
+                if (failure == null && privateIndex != null) {
+                    try {
+                        dynamicPlayerHeads.forEach(privateIndex::add);
+                        vhaccelerator$runtimeAdditions.forEach(privateIndex::add);
+                        int indexedCount = privateIndex.getAllIngredients().size();
+                        int expectedCount = JeiIndexCompleteness.expectedIndexed(
+                                IListElementInfo::getName,
+                                initial,
+                                vhaccelerator$runtimeAdditions
+                        );
+                        if (indexedCount != expectedCount) {
+                            failure = new IllegalStateException(
+                                    "JEI 9 completed index contains "
+                                            + indexedCount
+                                            + " of "
+                                            + expectedCount
+                                            + " ingredients"
+                            );
+                        }
+                    } catch (RuntimeException completionFailure) {
+                        failure = completionFailure;
+                    }
                 }
-            }
 
-            if (failure == null && privateIndex != null) {
-                elementSearch = privateIndex;
-                VHAccelerator.LOGGER.info(
-                        "Published the complete JEI 9 search index with {} "
-                                + "client-thread player head(s) and {} runtime "
-                                + "addition(s)",
-                        dynamicPlayerHeads.size(),
-                        vhaccelerator$runtimeAdditions.size()
-                );
-            } else {
-                VHAccelerator.LOGGER.warn(
-                        "Isolated JEI 9 search indexing failed; rebuilding sequentially",
-                        failure
-                );
-                initial.forEach(elementSearch::add);
+                if (failure == null && privateIndex != null) {
+                    elementSearch = privateIndex;
+                    VHAccelerator.LOGGER.info(
+                            "Published the complete JEI 9 search index with {} "
+                                    + "client-thread player head(s) and {} runtime "
+                                    + "addition(s)",
+                            dynamicPlayerHeads.size(),
+                            vhaccelerator$runtimeAdditions.size()
+                    );
+                } else {
+                    VHAccelerator.LOGGER.warn(
+                            "Isolated JEI 9 search indexing failed; rebuilding sequentially",
+                            failure
+                    );
+                    initial.forEach(elementSearch::add);
+                }
+            } catch (RuntimeException fallbackFailure) {
+                // Surface it as JEI would, but never leave indexing latched:
+                // queued runtime changes and listeners must still run.
+                sequentialFailure = fallbackFailure;
+            } finally {
+                vhaccelerator$indexing = false;
+                vhaccelerator$runtimeAdditions.clear();
+                deferredMutations = List.copyOf(vhaccelerator$deferredMutations);
+                vhaccelerator$deferredMutations.clear();
             }
-
-            vhaccelerator$indexing = false;
-            vhaccelerator$runtimeAdditions.clear();
-            deferredMutations = List.copyOf(vhaccelerator$deferredMutations);
-            vhaccelerator$deferredMutations.clear();
         }
 
         vhaccelerator$replayMutations(deferredMutations);
         invalidateCache();
         listeners.forEach(IIngredientGridSource.SourceListChangedListener::onSourceListChanged);
         PostLoginWorkTimer.markWorkCompleted(workToken);
+        if (sequentialFailure != null) {
+            throw sequentialFailure;
+        }
     }
 
     @Unique

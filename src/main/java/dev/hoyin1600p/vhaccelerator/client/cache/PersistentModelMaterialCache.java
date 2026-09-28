@@ -93,6 +93,11 @@ public final class PersistentModelMaterialCache {
         CachedFile cached;
         synchronized (PersistentModelMaterialCache.class) {
             cached = preload == null ? null : preload.join();
+            if (VHAcceleratorClientConfig.launchValue(
+                    VHAcceleratorClientConfig.VALUES.releaseCacheMemoryAfterUse)) {
+                // Only the initial launch restores; keep the file, not the map.
+                preload = CompletableFuture.completedFuture(null);
+            }
         }
         boolean restored = cached != null
                 && cached.fingerprint.equals(fingerprint);

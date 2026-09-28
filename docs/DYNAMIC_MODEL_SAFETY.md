@@ -86,7 +86,9 @@ discards the arrays and runs Minecraft's original sequential cache rebuild.
 The persistent cache stores only the resolved raw `models/*.json` text. It
 never stores parsed Forge geometry, textures, baked models, or runtime model
 state. Its fingerprint includes Minecraft and mod versions, mod-file metadata,
-resource-pack contents, active pack classes/names, and pack order.
+resource-pack contents (following symbolic links), CraftTweaker `scripts/` and
+KubeJS script/asset/data/config folders, active pack classes/names, and pack
+order. A folder that cannot be read completely makes that launch rebuild.
 
 Configuration files remain content-hashed except for an explicit list of
 volatile map, voice, shader, and renderer UI files that are rewritten during

@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.ctm;
 
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -35,8 +36,43 @@ public final class CtmModelBakeOptimizer {
             "team.chisel.ctm.client.util.ResourceUtil";
 
     private static volatile Compatibility compatibility;
+    private static volatile boolean mixinApplied;
 
     private CtmModelBakeOptimizer() {
+    }
+
+    /** Called by the mixin plugin when it applies VHA's CTM bake-pass mixin. */
+    public static void markMixinApplied() {
+        mixinApplied = true;
+    }
+
+    /** Whether this pass replaces CTM's, so deferred block states stay safe. */
+    public static boolean handlesDeferredBlockStates() {
+        return mixinApplied
+                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.memoizeCtmModelBakeTraversal)
+                && compatibility() != null;
+    }
+
+    /** Whether CTM's bake pass would wrap a model using {@code texture}. */
+    public static boolean textureUsesCtm(ResourceLocation texture) {
+        if (!mixinApplied) {
+            return false;
+        }
+        Compatibility active = compatibility();
+        if (active == null) {
+            return false;
+        }
+        try {
+            return (Object) active.metadataLookup().invokeExact(absoluteTexture(texture)) != null;
+        } catch (IOException ignored) {
+            return false;
+        } catch (RuntimeException | Error failure) {
+            throw failure;
+        } catch (Throwable throwable) {
+            throw new IllegalStateException("Could not query CTM texture metadata", throwable);
+        }
     }
 
     public static boolean optimize(
@@ -56,6 +92,21 @@ public final class CtmModelBakeOptimizer {
         if (active == null) {
             return false;
         }
+        // CTM inspects concrete model types; it needs real models.
+        dev.hoyin1600p.vhaccelerator.client.model.BakeEventProxies.suspend();
+        try {
+            return optimizeWithRealModels(event, wrappedModels, wrapper, active);
+        } finally {
+            dev.hoyin1600p.vhaccelerator.client.model.BakeEventProxies.resume();
+        }
+    }
+
+    private static boolean optimizeWithRealModels(
+            ModelBakeEvent event,
+            Object2BooleanMap<ResourceLocation> wrappedModels,
+            ModelWrapper wrapper,
+            Compatibility active
+    ) {
 
         long started = System.nanoTime();
         ForgeModelBakery loader = event.getModelLoader();
@@ -81,15 +132,24 @@ public final class CtmModelBakeOptimizer {
         int repeatedPlain = 0;
         int repeatedCtm = 0;
         int wrappedKeys = 0;
+        int deferredLeft = 0;
+        int deferredBaked = 0;
 
         for (Map.Entry<ResourceLocation, BakedModel> entry
                 : modelRegistry.entrySet()) {
             ResourceLocation location = entry.getKey();
             UnbakedModel rootModel = stateModels.get(location);
-            BakedModel bakedModel = entry.getValue();
-            if (rootModel == null
-                    || active.ctmBakedModel().isInstance(bakedModel)
-                    || bakedModel.isCustomRenderer()) {
+            if (rootModel == null) {
+                // Includes warm-skipped blocks, which are certified CTM-free.
+                continue;
+            }
+            // A deferred model is baked here only if CTM wraps it; reading
+            // the value of any other would bake it for nothing.
+            boolean deferred = DeferredBlockStateBaking.isUnresolved(location)
+                    || dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.isUnresolved(location);
+            BakedModel bakedModel = deferred ? null : entry.getValue();
+            if (!deferred && (active.ctmBakedModel().isInstance(bakedModel)
+                    || bakedModel.isCustomRenderer())) {
                 continue;
             }
             candidates++;
@@ -119,7 +179,18 @@ public final class CtmModelBakeOptimizer {
             }
 
             if (!shouldWrap) {
+                if (deferred) {
+                    deferredLeft++;
+                }
                 continue;
+            }
+            if (deferred) {
+                bakedModel = entry.getValue();
+                deferredBaked++;
+                if (active.ctmBakedModel().isInstance(bakedModel)
+                        || bakedModel.isCustomRenderer()) {
+                    continue;
+                }
             }
             wrappedModels.put(location, true);
             try {
@@ -146,13 +217,15 @@ public final class CtmModelBakeOptimizer {
                 "Optimized CTM model-bake pass across {} candidate key(s) "
                         + "and {} unique unbaked model object(s); reused {} "
                         + "plain and {} CTM alias result(s), wrapped {} key(s) "
-                        + "in {} ms",
+                        + "in {} ms; {} deferred key(s) left deferred, {} baked for CTM",
                 candidates,
                 rootResults.size(),
                 repeatedPlain,
                 repeatedCtm,
                 wrappedKeys,
-                (System.nanoTime() - started) / 1_000_000L
+                (System.nanoTime() - started) / 1_000_000L,
+                deferredLeft,
+                deferredBaked
         );
         return true;
     }

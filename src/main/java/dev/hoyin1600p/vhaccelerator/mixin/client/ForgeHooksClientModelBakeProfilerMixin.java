@@ -15,8 +15,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(value = ForgeHooksClient.class, remap = false)
 public abstract class ForgeHooksClientModelBakeProfilerMixin {
+    // Optional: ModernFix dynamic resources redirects the same calls.
     @Redirect(
             method = "onModelBake",
+            require = 0,
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraftforge/fml/ModLoader;"
@@ -28,20 +30,41 @@ public abstract class ForgeHooksClientModelBakeProfilerMixin {
             ModLoader loader,
             Event event
     ) {
-        if (!ModelBakeEventProfiler.isActive()) {
-            loader.postEvent((ModelBakeEvent) event);
-            return;
-        }
-        long started = System.nanoTime();
+        boolean debug = dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled();
+        int blocksBefore = debug ? dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.bakedOnDemandNow() : 0;
+        int itemsBefore = debug ? dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.bakedOnDemandNow() : 0;
+        long dispatchStarted = System.nanoTime();
+        int proxies;
+        dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.beginBakeEventProxies();
         try {
-            loader.postEvent((ModelBakeEvent) event);
+            if (!ModelBakeEventProfiler.isActive()) {
+                loader.postEvent((ModelBakeEvent) event);
+            } else {
+                long started = System.nanoTime();
+                try {
+                    loader.postEvent((ModelBakeEvent) event);
+                } finally {
+                    ModelBakeEventProfiler.recordEventDispatch(started);
+                }
+            }
         } finally {
-            ModelBakeEventProfiler.recordEventDispatch(started);
+            proxies = dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.endBakeEventProxies();
+        }
+        if (debug) {
+            dev.hoyin1600p.vhaccelerator.VHAccelerator.LOGGER.info(
+                    "[debug] Model bake event: {} ms; {} lazy stand-ins; forced {} deferred block-state and {} deferred item bakes",
+                    (System.nanoTime() - dispatchStarted) / 1_000_000L,
+                    proxies,
+                    dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.bakedOnDemandNow() - blocksBefore,
+                    dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.bakedOnDemandNow() - itemsBefore
+            );
         }
     }
 
+    // Optional: ModernFix dynamic resources redirects the same calls.
     @Redirect(
             method = "onModelBake",
+            require = 0,
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraftforge/client/model/"

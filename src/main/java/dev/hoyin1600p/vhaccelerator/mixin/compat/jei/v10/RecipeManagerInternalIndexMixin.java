@@ -62,6 +62,46 @@ public abstract class RecipeManagerInternalIndexMixin {
     @Shadow
     private List<IRecipeCategory<?>> recipeCategoriesVisibleCache;
 
+    /** Debug: times JEI's live indexing of each recipe batch (the part a cache can skip). */
+    @Inject(
+            method = "addRecipes(Lmezz/jei/common/recipes/collect/"
+                    + "RecipeTypeData;Ljava/util/Collection;)V",
+            at = @At("HEAD")
+    )
+    private <T> void vhaccelerator$startLiveTimer(
+            RecipeTypeData<T> recipeTypeData,
+            Collection<T> recipes,
+            CallbackInfo callback
+    ) {
+        if (dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLiveIndexTimer.start();
+        }
+    }
+
+    @Inject(
+            method = "addRecipes(Lmezz/jei/common/recipes/collect/"
+                    + "RecipeTypeData;Ljava/util/Collection;)V",
+            at = @At("RETURN")
+    )
+    private <T> void vhaccelerator$logLiveTimer(
+            RecipeTypeData<T> recipeTypeData,
+            Collection<T> recipes,
+            CallbackInfo callback
+    ) {
+        long nanos = dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLiveIndexTimer.finish();
+        if (nanos < 0L) {
+            return;
+        }
+        long withIds = recipes.stream().filter(recipe -> recipe instanceof Recipe<?>).count();
+        VHAccelerator.LOGGER.info(
+                "[debug] JEI 10 live recipe indexing {}: {} recipes ({} with recipe ids) in {} ms",
+                recipeTypeData.getRecipeCategory().getRecipeType().getUid(),
+                recipes.size(),
+                withIds,
+                String.format(java.util.Locale.ROOT, "%.1f", nanos / 1_000_000.0)
+        );
+    }
+
     @Inject(
             method = "addRecipes(Lmezz/jei/common/recipes/collect/"
                     + "RecipeTypeData;Ljava/util/Collection;)V",
@@ -120,8 +160,12 @@ public abstract class RecipeManagerInternalIndexMixin {
                     recipeTypeData,
                     reconciled.plans()
             );
-            if (reconciled.rebuiltCount() > 0
+            // A cached plan rejected for a transient output identity is
+            // rejected again next time, so only plans missing from the cache
+            // or cached plans of removed recipes justify rewriting the file.
+            if (reconciled.uncachedRebuiltCount() > 0
                     || reconciled.cachedCount()
+                            + reconciled.rejectedCachedCount()
                             != restored.cachedRecipeCount()) {
                 PersistentJeiRecipeIndexCache.record(
                         fingerprint,
@@ -349,6 +393,8 @@ public abstract class RecipeManagerInternalIndexMixin {
                 new ArrayList<>(recipes.size());
         int cachedCount = 0;
         int rebuiltCount = 0;
+        int uncachedRebuiltCount = 0;
+        int rejectedCachedCount = 0;
         for (T recipe : recipes) {
             if (!category.isHandled(recipe)) {
                 continue;
@@ -380,11 +426,17 @@ public abstract class RecipeManagerInternalIndexMixin {
                 cachedCount++;
                 continue;
             }
+            if (cached != null) {
+                rejectedCachedCount++;
+            }
             PersistentJeiRecipeIndexCache.ActiveRecipe<T> rebuilt =
                     vhaccelerator$prepareRecipe(category, recipe);
             if (rebuilt != null) {
                 reconciled.add(rebuilt);
                 rebuiltCount++;
+                if (cached == null) {
+                    uncachedRebuiltCount++;
+                }
             }
             if (VHAcceleratorConfig.jeiRecipeAuditEnabled()) {
                 vhaccelerator$auditPlan(
@@ -401,7 +453,9 @@ public abstract class RecipeManagerInternalIndexMixin {
         return new PersistentJeiRecipeIndexCache.ReconciledPlans<>(
                 List.copyOf(reconciled),
                 cachedCount,
-                rebuiltCount
+                rebuiltCount,
+                uncachedRebuiltCount,
+                rejectedCachedCount
         );
     }
 

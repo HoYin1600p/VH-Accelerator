@@ -57,6 +57,32 @@ implemented only after phase timing identifies a real bottleneck.
 
 ## Avoid without strong evidence
 
+- Compacting the deferred block-state registry's key set (ObjectOpenHashSet
+  instead of a LinkedHashSet, about 1 M keys). Measured 2026-09-26 in Wolds:
+  43 MB less at the menu, but about 1.7 s slower to the menu (52.4/52.0 s
+  against 54.3/53.9/53.8 s), from key-equality probing on millions of
+  launch-time lookups. Launch time wins; a cached-hash compact set could
+  revisit it.
+
+- `ModelResourceLocation` string deduplication (namespace, path and variant
+  of the ~1.1 M model locations). Built and A/B tested on 2026-09-26: it
+  replaced 2.14 M duplicate strings, yet the live String count and heap did
+  not change, because FerriteCore already shares these strings in retained
+  model locations. Heap owner analyses that attribute a shared String to every
+  referencing object overstate this kind of target; confirm with live counts.
+
+- Parallel class prefetching (loading recorded launch classes early on
+  background threads). Built and tested on 2026-09-25: it deadlocked the
+  second launch in CMA Remastered. Mixin 0.8.5 transforms every class under
+  one global lock (`MixinLaunchPluginLegacy`/`MixinTransformationHandler`)
+  and, while holding it, sometimes loads other classes (MixinExtras sugar
+  handlers, ModLauncher frame computation), whereas Forge's
+  `ModuleClassLoader` holds a per-class lock while waiting for Mixin. Two
+  threads loading classes concurrently can therefore form a lock cycle.
+  This cannot be made safe from outside Mixin, and Mixin's global lock would
+  serialize the transformation share anyway. The class-loading measurement
+  (~6.3 s on the serial launch threads) remains available in debug mode.
+
 - Skipping registry or data-pack validation
 - Running arbitrary mod constructors or registry callbacks concurrently
 - Moving OpenGL texture upload off the render thread

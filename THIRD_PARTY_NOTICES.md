@@ -36,6 +36,48 @@ ModernFix credits Uncandango's AllTheLeaks as the original inspiration for its
 ingredient item-value deduplication. VH Accelerator's adaptation is derived
 from ModernFix's implementation and preserves that discovery credit.
 
+## FerriteCore
+
+- Project: [FerriteCore](https://github.com/malte0811/FerriteCore)
+- Author: [malte0811](https://github.com/malte0811)
+- Upstream license notice: `Copyright (c) 2020 malte0811`
+- License: MIT
+- License source:
+  [malte0811/FerriteCore LICENSE](https://github.com/malte0811/FerriteCore/blob/1.21.1/LICENSE)
+- Adapted source: `modelsides` (`ModelSidesImpl`, `SimpleBakedModelMixin`) from
+  branch `1.21.1`, commit `7baeea0bd337188114f889c581a28f02b74f3364`
+
+VH Accelerator backports FerriteCore's model face-list compaction to Minecraft
+1.18.2, where FerriteCore 4.2.2 has no equivalent option. Separately, VH
+Accelerator's `compactFerriteCorePropertyMaps` builds on FerriteCore 4.2.2 at
+runtime (compile-only; no FerriteCore code is bundled). These modifications
+are maintained by HoYin1600p and are not official FerriteCore releases. The
+MIT license text is reproduced here; the adapted files' headers reference it:
+
+```text
+MIT License
+
+Copyright (c) 2020 malte0811
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Other projects
 
 Projects used only for discovery, compatibility research, APIs, or testing are

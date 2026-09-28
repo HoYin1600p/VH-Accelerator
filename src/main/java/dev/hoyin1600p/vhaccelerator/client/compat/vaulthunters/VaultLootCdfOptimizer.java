@@ -21,6 +21,15 @@ public final class VaultLootCdfOptimizer {
     private VaultLootCdfOptimizer() {
     }
 
+    private static final java.util.concurrent.atomic.AtomicInteger FIRST_USE_LOGS =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    /** Debug only: the first eight on-demand computations are logged. */
+    public static boolean shouldLogFirstUse() {
+        return dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()
+                && FIRST_USE_LOGS.getAndIncrement() < 8;
+    }
+
     public static Long2DoubleMap compute(
             int samples,
             int dimensions,

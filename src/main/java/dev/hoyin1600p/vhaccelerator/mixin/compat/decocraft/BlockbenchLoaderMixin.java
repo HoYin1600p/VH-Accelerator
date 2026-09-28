@@ -6,6 +6,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.decocraft.DecocraftBbModelCach
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
         remap = false
 )
 public abstract class BlockbenchLoaderMixin {
+    @Shadow
+    private ResourceManager manager;
+
     @Inject(
             method = "read(Lcom/google/gson/JsonDeserializationContext;"
                     + "Lcom/google/gson/JsonObject;)Lcom/razz/decocraft/"
@@ -29,7 +33,7 @@ public abstract class BlockbenchLoaderMixin {
             JsonObject definition,
             CallbackInfoReturnable<Object> callback
     ) {
-        Object reused = DecocraftBbModelCache.beginAndReuse(definition);
+        Object reused = DecocraftBbModelCache.beginAndReuse(definition, manager);
         if (reused != null) {
             DecocraftBbModelCache.finish();
             callback.setReturnValue(reused);

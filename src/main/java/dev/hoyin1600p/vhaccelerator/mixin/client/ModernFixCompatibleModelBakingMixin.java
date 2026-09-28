@@ -4,6 +4,7 @@ import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
@@ -95,10 +96,11 @@ public abstract class ModernFixCompatibleModelBakingMixin {
         Map<Object, BakedModel> previousBakedCache =
                 (Map<Object, BakedModel>) (Map<?, ?>) bakedCache;
         Map<Object, BakedModel> replacementBakedCache =
-                new ConcurrentHashMap<>(
-                        Math.max(16, models.size())
+                // Vanilla caches null bakes; a plain concurrent map would throw.
+                DeferredBlockStateBaking.concurrentCopy(
+                        previousBakedCache,
+                        models.size()
                 );
-        replacementBakedCache.putAll(previousBakedCache);
         bakedCache = replacementBakedCache;
         List<ResourceLocation> locations =
                 new ArrayList<>(models.keySet());
@@ -173,7 +175,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
                 VHAcceleratorClientConfig.VALUES.protectDynamicModels
         );
         topLevelModels.forEach((location, model) -> {
-            if (BUILDSCAPE_NAMESPACE.equals(location.getNamespace())
+            if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeBakes(location)
                     || protectDynamic
                     && scanner.requiresSequentialBaking(model)) {
                 sequential.add(location);

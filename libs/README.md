@@ -7,6 +7,7 @@ files below in this directory before compiling:
 - `the_vault-1.18.2-20.0.3-remastered.base.jar`
 - `the_vault-1.18.2-20.0.3-remastered.6872.jar`
 - `the_vault-1.18.2-3.21.62.jar`
+- `the_vault-1.18.2-3.21.62.asgard.jar`
 - `the_vault-1.18.2-3.21.5.6882.jar`
 - `the_vault-1.18.2-3.21.6.6884.jar`
 - `the_vault-1.18.2-3.21.5.6573.jar`
@@ -23,6 +24,10 @@ files below in this directory before compiling:
 - `Xaeros_Minimap_25.2.10_Forge_1.18.2.jar`
 - `XaerosWorldMap_1.39.12_Forge_1.18.2.jar`
 - `sophisticatedcore-1.18.2-0.6.4.604.jar`
+- `ferritecore-4.2.2-forge.jar`
+- `kubejs-forge-1802.5.5-build.569.jar`
+- `rhino-forge-1802.2.1-build.255.jar`
+- `create-1.18.2-0.5.1.i.jar`
 
 The current Remastered Vault jar is CurseForge project `458203`, file
 `8508678`; its immediately previous Remastered release is file `8502584`.
@@ -30,7 +35,8 @@ The additional `20.0.3-remastered` compatibility profile uses a local
 `.base` suffix to keep it distinct from the two numbered Remastered baselines.
 The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
 previous standard release is file `8508674`. The 3.21.62 jar is the custom
-MVP target. Wold's Vaults 0.32.2 pins Vault file `7952001` and JEI file
+MVP target. The Asgard pack ships a different 3.21.62 build, kept under the
+local `.asgard` suffix. Wold's Vaults 0.32.2 pins Vault file `7952001` and JEI file
 `5068328`; Wolds Vaults 0.33.0 reuses official Vault file `8508967` with the
 same JEI file as a distinct build profile. These files are used only for
 compile-time compatibility checks and are not redistributed.

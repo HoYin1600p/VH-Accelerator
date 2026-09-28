@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.ctm;
 
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmMetadataPrefetch;
 import dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.io.IOException;
@@ -7,6 +9,7 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ModelBakeEvent;
+import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ForgeModelBakery;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,6 +48,18 @@ public abstract class TextureMetadataHandlerMixin {
                 this::wrap
         )) {
             callback.cancel();
+        }
+    }
+
+    @Inject(method = "onTextureStitch", at = @At("HEAD"), require = 0)
+    private void vhaccelerator$prefetchMetadata(
+            TextureStitchEvent.Pre event,
+            CallbackInfo callback
+    ) {
+        if (VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.prefetchCtmTextureMetadata, true)) {
+            CtmMetadataPrefetch.prefetch(event);
         }
     }
 }

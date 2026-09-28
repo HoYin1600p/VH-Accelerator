@@ -93,6 +93,16 @@ public final class IronFurnacesRecipeCache {
         return precompileStatus;
     }
 
+    /** Keeps only one server's persistent fuel data in memory. */
+    public static void releaseMemory(String keepServerKey) {
+        PersistentFuelCache.releaseMemory(keepServerKey);
+    }
+
+    /** Rereads persistent fuel data unless this server's is still held. */
+    public static void prewarmFor(String serverKey) {
+        PersistentFuelCache.prewarmFor(serverKey);
+    }
+
     public static void beginConnection() {
         regularRecipes = null;
         regularFingerprint = null;

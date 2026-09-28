@@ -138,9 +138,7 @@ public final class ParallelBlockStateJsonParser {
         AtomicInteger restoredStacks = new AtomicInteger();
 
         runBatched(locations, location -> {
-            if (BUILDSCAPE_NAMESPACE.equals(
-                    location.getNamespace()
-            )) {
+            if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(location)) {
                 buildscape.incrementAndGet();
                 return;
             }

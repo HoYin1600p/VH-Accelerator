@@ -15,6 +15,7 @@ import jeresources.registry.PlantRegistry;
 import jeresources.registry.VillagerRegistry;
 import jeresources.registry.WorldGenRegistry;
 import jeresources.config.ConfigValues;
+import jeresources.entry.MobEntry;
 import jeresources.util.LootTableHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.PackResources;
@@ -32,8 +33,16 @@ import net.minecraftforge.resource.ResourcePackLoader;
 
 public final class JerCompatibilityCache {
     private static final Field JER_LOOT_TABLES = findLootTablesField();
+    private static final Field MOB_ENTITY = findMobEntityField();
 
     private static boolean initialized;
+    /*
+     * JER reads loot tables from the integrated server when one exists, so
+     * registries built in a singleplayer world describe that world's data
+     * packs. Only registries built without an integrated server (JER's own
+     * mod-pack loot tables) are reusable by a later session.
+     */
+    private static boolean initializedWithIntegratedServer;
     private static boolean preloadAttempted;
     private static long preloadStartedNanos;
     private static long preloadElapsedMillis;
@@ -150,20 +159,25 @@ public final class JerCompatibilityCache {
             proxy.initCompatibility();
             return;
         }
-        if (initialized) {
+        Minecraft minecraft = Minecraft.getInstance();
+        boolean integratedServer = minecraft.hasSingleplayerServer();
+        if (initialized
+                && !integratedServer
+                && !initializedWithIntegratedServer) {
             logReuse();
             return;
         }
 
-        Minecraft minecraft = Minecraft.getInstance();
         if (!minecraft.isSameThread()) {
             throw new IllegalStateException("JER compatibility must be initialized on the client thread");
         }
 
         awaitMenuPreload(minecraft);
         long started = System.nanoTime();
+        initialized = false;
         proxy.initCompatibility();
         initialized = true;
+        initializedWithIntegratedServer = integratedServer;
         long elapsedMillis = (System.nanoTime() - started) / 1_000_000L;
         VHAccelerator.LOGGER.info(
                 "Cached JER compatibility in {} ms ({} mobs, {} dungeons, {} plants, "
@@ -222,6 +236,35 @@ public final class JerCompatibilityCache {
         );
     }
 
+    /**
+     * Drops the display entities JER lazily creates for mob entries. They are
+     * bound to the level that was loaded when first rendered, so a reused
+     * registry would otherwise keep a disconnected world reachable. JER
+     * recreates each entity from its supplier on the next render.
+     */
+    public static void releaseWorldReferences() {
+        if (!initialized) {
+            return;
+        }
+        if (initializedWithIntegratedServer || MOB_ENTITY == null) {
+            // Not reusable, or entities cannot be released: rebuild next time.
+            initialized = false;
+            return;
+        }
+        try {
+            for (MobEntry entry : MobRegistry.getInstance().getMobs()) {
+                MOB_ENTITY.set(entry, null);
+            }
+        } catch (RuntimeException | IllegalAccessException exception) {
+            initialized = false;
+            VHAccelerator.LOGGER.warn(
+                    "Unable to release JER mob display entities; JER "
+                            + "compatibility will be rebuilt on the next login",
+                    exception
+            );
+        }
+    }
+
     private static LootTables getPublishedLootTables() throws IllegalAccessException {
         return (LootTables) JER_LOOT_TABLES.get(null);
     }
@@ -233,6 +276,21 @@ public final class JerCompatibilityCache {
             return field;
         } catch (ReflectiveOperationException exception) {
             throw new ExceptionInInitializerError(exception);
+        }
+    }
+
+    private static Field findMobEntityField() {
+        try {
+            Field field = MobEntry.class.getDeclaredField("entity");
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            VHAccelerator.LOGGER.debug(
+                    "JER mob entity field is unavailable; cached JER "
+                            + "compatibility will not be reused across logins",
+                    exception
+            );
+            return null;
         }
     }
 

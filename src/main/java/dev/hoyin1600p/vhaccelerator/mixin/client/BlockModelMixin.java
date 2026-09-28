@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.model.MaterialMemoHolder;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -19,9 +20,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockModel.class)
-public abstract class BlockModelMixin {
+public abstract class BlockModelMixin implements MaterialMemoHolder {
     @Unique
     private volatile Collection<Material> vhaccelerator$cachedMaterials;
+
+    @Override
+    public void vhaccelerator$clearMaterialMemo() {
+        vhaccelerator$cachedMaterials = null;
+    }
 
     @Inject(method = "getMaterials", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$returnCachedMaterials(

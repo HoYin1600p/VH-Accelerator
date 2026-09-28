@@ -33,6 +33,12 @@ Collect:
 Do not diagnose only from the final exception line. Mixin failures and the
 first `Caused by` entry earlier in the log are usually more useful.
 
+After updating Vault Hunters, JEI, CraftTweaker, Thermal, or another supported
+mod, look for `Skipping VH Accelerator compatibility group` in
+`logs/latest.log`. It means VH Accelerator found that mod's code changed and
+left it unoptimized rather than crashing; report the listed members so the
+compatibility layer can be updated.
+
 ## Missing or broken models
 
 1. Turn on detailed diagnostics and restart.
@@ -85,6 +91,8 @@ include:
 
 - a config file rewritten with meaningful content changes;
 - a resource pack or pack-order change;
+- an edited CraftTweaker script (`scripts/`) or KubeJS script, asset, data, or
+  config file, which invalidates the model and login caches;
 - mod jars touched or replaced by a launcher;
 - switching server addresses;
 - changed synchronized tags, recipes, or Forge server config;

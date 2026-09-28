@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator;
 
+import dev.hoyin1600p.vhaccelerator.shape.LaunchShapeCache;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.registry.ResourceLocationNamespaces;
 import com.mojang.logging.LogUtils;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeInstanceTemplates;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.AttributeSupplierDeduplication;
@@ -32,6 +34,9 @@ public final class VHAccelerator {
         BootstrapCompareMode.capture();
         BootstrapDebugDiagnostics.capture();
         BootstrapBackportConfig.capture();
+        if (BootstrapDebugDiagnostics.enabled()) {
+            ResourceLocationNamespaces.enableStatistics();
+        }
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.COMMON,
                 VHAcceleratorConfig.COMMON_SPEC,
@@ -56,6 +61,9 @@ public final class VHAccelerator {
 
     private void onLoadComplete(FMLLoadCompleteEvent event) {
         AttributeSupplierDeduplication.closeStartupWindow();
+        LaunchShapeCache.close(VHAcceleratorConfig.debugDiagnosticsEnabled()
+                ? message -> LOGGER.info("[debug] {}", message)
+                : null);
         AttributeInstanceTemplates.Statistics statistics =
                 AttributeInstanceTemplates.statistics();
         if (statistics.requests() != 0) {

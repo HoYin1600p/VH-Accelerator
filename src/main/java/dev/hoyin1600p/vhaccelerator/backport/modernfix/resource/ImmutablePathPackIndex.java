@@ -18,10 +18,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -161,23 +161,31 @@ public final class ImmutablePathPackIndex {
                 || namespace == null
                 || namespace.isEmpty()
                 || prefix == null
-                || prefix.startsWith("/")
                 || prefix.indexOf('\\') >= 0) {
             return null;
-        }
-        if (maxDepth < 0) {
-            return new ArrayList<>();
         }
         Snapshot current = snapshot();
         if (current == null) {
             return null;
+        }
+        if (prefix.startsWith("/")) {
+            // Forge walks every file of the namespace and keeps the relative
+            // paths that start with the requested one. A leading slash makes
+            // the requested path absolute, which no relative path starts
+            // with, so the walk always returns nothing. vhapi lists six GUI
+            // texture folders this way on every blocks atlas stitch: 5.7 s of
+            // walking in Wolds for empty results.
+            return new ArrayList<>();
+        }
+        if (maxDepth < 0) {
+            return new ArrayList<>();
         }
 
         Node typeRoot = current.root(type);
         if (typeRoot == null) {
             return new ArrayList<>();
         }
-        Node namespaceRoot = typeRoot.children.get(namespace);
+        Node namespaceRoot = typeRoot.child(namespace);
         if (namespaceRoot == null) {
             return new ArrayList<>();
         }
@@ -319,19 +327,140 @@ public final class ImmutablePathPackIndex {
                 .toArray(String[]::new);
     }
 
+    /**
+     * One path component. Children are kept in insertion order, which is the
+     * order listings return, in parallel arrays. Directories with more than
+     * {@link #LINEAR_LIMIT} children add an open-addressed table of slot
+     * indices keyed by the name's cached hash, so lookups stay hash-speed
+     * without a map entry per child. Every plain file shares the immutable
+     * {@link #FILE} node, so a file costs one array slot and its name.
+     */
     private static final class Node {
-        private Map<String, Node> children = new LinkedHashMap<>();
+        private static final int LINEAR_LIMIT = 8;
+        private static final String[] NO_NAMES = new String[0];
+        private static final Node[] NO_NODES = new Node[0];
+        private static final Node FILE = new Node(true);
+        /** Directory names repeat across every pack; file names rarely do. */
+        private static final java.util.concurrent.ConcurrentHashMap<String, String>
+                DIRECTORY_NAMES = new java.util.concurrent.ConcurrentHashMap<>();
+
+        private String[] names = NO_NAMES;
+        private Node[] nodes = NO_NODES;
+        private int size;
+        /** Slot + 1 per bucket (0 = empty); present only for large nodes. */
+        private int[] table;
         private boolean file;
+
+        private Node() {
+        }
+
+        private Node(boolean file) {
+            this.file = file;
+        }
+
+        private static String directoryName(String name) {
+            String existing = DIRECTORY_NAMES.putIfAbsent(name, name);
+            return existing == null ? name : existing;
+        }
 
         private void insert(String[] components, int index) {
             if (index == components.length) {
                 this.file = true;
                 return;
             }
-            this.children.computeIfAbsent(
-                    components[index],
-                    ignored -> new Node()
-            ).insert(components, index + 1);
+            Node node = this;
+            for (int position = index; position < components.length; position++) {
+                boolean last = position == components.length - 1;
+                String name = last ? components[position] : directoryName(components[position]);
+                int slot = node.slot(name);
+                Node child;
+                if (slot < 0) {
+                    child = last ? FILE : new Node();
+                    node.add(name, child);
+                } else {
+                    child = node.nodes[slot];
+                    if (child == FILE && !last) {
+                        // Never mutate the shared leaf; split it into its own node.
+                        child = new Node(true);
+                        node.nodes[slot] = child;
+                    } else if (last && child != FILE) {
+                        child.file = true;
+                    }
+                }
+                node = child;
+            }
+        }
+
+        private int slot(String name) {
+            int[] buckets = this.table;
+            if (buckets != null) {
+                int mask = buckets.length - 1;
+                for (int bucket = spread(name.hashCode()) & mask; ; bucket = (bucket + 1) & mask) {
+                    int entry = buckets[bucket];
+                    if (entry == 0) {
+                        return -1;
+                    }
+                    if (this.names[entry - 1].equals(name)) {
+                        return entry - 1;
+                    }
+                }
+            }
+            for (int slot = 0; slot < this.size; slot++) {
+                if (this.names[slot].equals(name)) {
+                    return slot;
+                }
+            }
+            return -1;
+        }
+
+        private void add(String name, Node child) {
+            if (this.size == this.names.length) {
+                int capacity = Math.max(4, this.size * 2);
+                this.names = Arrays.copyOf(this.names, capacity);
+                this.nodes = Arrays.copyOf(this.nodes, capacity);
+            }
+            this.names[this.size] = name;
+            this.nodes[this.size] = child;
+            this.size++;
+            if (this.size <= LINEAR_LIMIT) {
+                return;
+            }
+            if (this.table == null || this.size * 2 > this.table.length) {
+                rebuildTable(this.size * 4);
+            } else {
+                place(this.table, this.size - 1);
+            }
+        }
+
+        private void rebuildTable(int minimumBuckets) {
+            int[] buckets = new int[Integer.highestOneBit(minimumBuckets - 1) << 1];
+            for (int slot = 0; slot < this.size; slot++) {
+                place(buckets, slot);
+            }
+            this.table = buckets;
+        }
+
+        private void place(int[] buckets, int slot) {
+            int mask = buckets.length - 1;
+            int bucket = spread(this.names[slot].hashCode()) & mask;
+            while (buckets[bucket] != 0) {
+                bucket = (bucket + 1) & mask;
+            }
+            buckets[bucket] = slot + 1;
+        }
+
+        private static int spread(int hash) {
+            return hash ^ (hash >>> 16);
+        }
+
+        @Nullable
+        private Node child(String name) {
+            int slot = slot(name);
+            return slot < 0 ? null : this.nodes[slot];
+        }
+
+        private boolean hasChildren() {
+            return this.size > 0;
         }
 
         @Nullable
@@ -341,7 +470,7 @@ public final class ImmutablePathPackIndex {
                 if (component.isEmpty()) {
                     continue;
                 }
-                node = node.children.get(component);
+                node = node.child(component);
                 if (node == null) {
                     return null;
                 }
@@ -378,11 +507,11 @@ public final class ImmutablePathPackIndex {
             if (depth >= maxDepth) {
                 return;
             }
-            for (Map.Entry<String, Node> child : this.children.entrySet()) {
+            for (int slot = 0; slot < this.size; slot++) {
                 String childPath = path.isEmpty()
-                        ? child.getKey()
-                        : path + "/" + child.getKey();
-                child.getValue().collect(
+                        ? this.names[slot]
+                        : path + "/" + this.names[slot];
+                this.nodes[slot].collect(
                         namespace,
                         childPath,
                         depth + 1,
@@ -394,12 +523,23 @@ public final class ImmutablePathPackIndex {
         }
 
         private void freeze() {
-            for (Node child : this.children.values()) {
-                child.freeze();
+            if (this == FILE) {
+                return;
             }
-            this.children = Collections.unmodifiableMap(
-                    new LinkedHashMap<>(this.children)
-            );
+            for (int slot = 0; slot < this.size; slot++) {
+                this.nodes[slot].freeze();
+            }
+            if (this.size == 0) {
+                this.names = NO_NAMES;
+                this.nodes = NO_NODES;
+            } else if (this.size < this.names.length) {
+                this.names = Arrays.copyOf(this.names, this.size);
+                this.nodes = Arrays.copyOf(this.nodes, this.size);
+            }
+            if (this.table != null && this.table.length > Integer.highestOneBit(this.size * 2 - 1) << 1) {
+                // Trim growth slack; keep the load factor at or below one half.
+                rebuildTable(this.size * 2);
+            }
         }
     }
 
@@ -425,9 +565,9 @@ public final class ImmutablePathPackIndex {
                 }
             }
             Set<String> namespaces = new LinkedHashSet<>();
-            for (Map.Entry<String, Node> entry : root.children.entrySet()) {
-                if (!entry.getValue().children.isEmpty()) {
-                    namespaces.add(entry.getKey());
+            for (int slot = 0; slot < root.size; slot++) {
+                if (root.nodes[slot].hasChildren()) {
+                    namespaces.add(root.names[slot]);
                 }
             }
             return Collections.unmodifiableSet(namespaces);

@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.client.LaunchStackSampler;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
@@ -39,6 +40,7 @@ public abstract class ModelBakeryPreparationProfilerMixin {
         vhaccelerator$stageNanos = new LinkedHashMap<>();
         vhaccelerator$currentStage = "startup-hooks";
         vhaccelerator$stageStarted = System.nanoTime();
+        LaunchStackSampler.start(vhaccelerator$currentStage);
     }
 
     @Inject(
@@ -205,6 +207,7 @@ public abstract class ModelBakeryPreparationProfilerMixin {
                 || vhaccelerator$stageNanos == null) {
             return;
         }
+        LaunchStackSampler.preparationFinished();
         vhaccelerator$finishCurrentStage();
         long total = vhaccelerator$stageNanos.values()
                 .stream()
@@ -255,6 +258,7 @@ public abstract class ModelBakeryPreparationProfilerMixin {
         vhaccelerator$currentStage =
                 vhaccelerator$displayName(nextStage);
         vhaccelerator$stageStarted = System.nanoTime();
+        LaunchStackSampler.phase(vhaccelerator$currentStage);
     }
 
     @Unique

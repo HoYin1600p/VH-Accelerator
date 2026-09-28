@@ -83,6 +83,26 @@ public enum BackportFeature {
                     + "fix_loop_spin_waiting.MinecraftServerMixin"
             )
     ),
+    VHA_MODEL_LOADING(
+            "vha_model_loading",
+            "overrideModernFixDynamicResources",
+            "VH Accelerator model loading instead of ModernFix dynamic resources",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of(),
+            List.of()
+    ),
+    RESPONSIVE_MOD_WORK_QUEUE(
+            "responsive_mod_work_queue",
+            "responsiveModWorkQueue",
+            "Responsive mod-loading work queue",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of(),
+            List.of()
+    ),
     MODERNFIX_INTEGRATED_WATCHDOG_CORRECTION(
             "modernfix_integrated_watchdog_correction",
             "modernFixIntegratedWatchdogCorrection",
@@ -144,6 +164,19 @@ public enum BackportFeature {
             true,
             List.of(),
             List.of()
+    ),
+    ENTITY_MODEL_COMPACTION(
+            "entity_model_compaction",
+            "compactEntityModels",
+            "Entity-model compaction",
+            BackportSide.CLIENT,
+            true,
+            true,
+            List.of("perf.compact_entity_models.CubeDefinitionMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "compact_entity_models.CubeDefinitionMixin"
+            )
     ),
     WORLDGEN_MATERIAL_RULE_ITERATION(
             "worldgen_material_rule_iteration",
@@ -402,6 +435,19 @@ public enum BackportFeature {
                             + "fast_registry_validation.ForgeRegistryMixin"
             )
     ),
+    RESOURCE_LOCATION_NAMESPACE_DEDUPLICATION(
+            "resource_location_namespace_deduplication",
+            "deduplicateResourceLocationNamespaces",
+            "ResourceLocation namespace deduplication",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.deduplicate_location.MixinResourceLocation"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "deduplicate_location.MixinResourceLocation"
+            )
+    ),
     BLOCK_PROPERTY_NAME_DEDUPLICATION(
             "block_property_name_deduplication",
             "blockPropertyNameDeduplication",
@@ -494,6 +540,58 @@ public enum BackportFeature {
             List.of(
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "mojang_registry_size.ResourceKeyMixin"
+            )
+    ),
+    FASTER_INGREDIENT_EMPTINESS_CHECK(
+            "faster_ingredient_emptiness_check",
+            "fasterIngredientEmptinessCheck",
+            "Allocation-free ingredient emptiness check",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.faster_ingredients.ForgeHooksMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_ingredients.ForgeHooksMixin"
+            )
+    ),
+    DEBUG_LEVEL_STATE_VIEW(
+            "debug_level_state_view",
+            "debugLevelSourceStateView",
+            "Debug-generator block-state list view",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.forge_registry_alloc.DebugLevelSourceMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "forge_registry_alloc.DebugLevelSourceMixin"
+            )
+    ),
+    FAST_REGISTRY_FREEZE_CHECK(
+            "fast_registry_freeze_check",
+            "fastRegistryFreezeCheck",
+            "Stream-free Forge registry freeze validation",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.fast_forge_dummies.NamespacedHolderHelperMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "fast_forge_dummies.NamespacedHolderHelperMixin"
+            )
+    ),
+    STRONGHOLD_RING_EARLY_REJECTION(
+            "stronghold_ring_early_rejection",
+            "strongholdRingEarlyRejection",
+            "Stronghold ring early rejection",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.cache_strongholds.ConcentricRingsStructurePlacementMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "cache_strongholds.ConcentricRingsStructurePlacementMixin"
             )
     );
 

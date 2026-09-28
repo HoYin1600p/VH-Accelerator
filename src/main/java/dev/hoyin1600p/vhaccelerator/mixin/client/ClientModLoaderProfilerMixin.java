@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
 import dev.hoyin1600p.vhaccelerator.client.LaunchEventProfiler;
+import dev.hoyin1600p.vhaccelerator.client.LaunchStackSampler;
 import java.util.concurrent.Executor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.ClientPackSource;
@@ -41,6 +43,10 @@ public abstract class ClientModLoaderProfilerMixin {
     ) {
         vhaccelerator$initializationStartedNanos =
                 LaunchEventProfiler.beginStage();
+        // Client config is not attached yet; use the early-read debug switch.
+        if (BootstrapDebugDiagnostics.enabled()) {
+            LaunchStackSampler.startLaunch();
+        }
     }
 
     @Inject(method = "begin", at = @At("RETURN"))
@@ -56,6 +62,7 @@ public abstract class ClientModLoaderProfilerMixin {
                 vhaccelerator$initializationStartedNanos
         );
         vhaccelerator$initializationStartedNanos = 0L;
+        LaunchStackSampler.renderPhase("before-resource-reload");
     }
 
     @Inject(method = "startModLoading", at = @At("HEAD"))
@@ -66,6 +73,7 @@ public abstract class ClientModLoaderProfilerMixin {
     ) {
         vhaccelerator$loadStartedNanos =
                 LaunchEventProfiler.beginStage();
+        LaunchStackSampler.renderPhase("resource-reload");
     }
 
     @Inject(method = "startModLoading", at = @At("RETURN"))

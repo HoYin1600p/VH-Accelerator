@@ -6,11 +6,18 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class BackportFeatureMetadataTest {
+    /**
+     * Implemented features that add work to the launch path and ship as a
+     * measured opt-in until in-pack A/B results justify enabling them.
+     */
+    private static final java.util.Set<BackportFeature> MEASURED_OPT_IN =
+            java.util.Set.of();
+
     @Test
     void implementedFeaturesDefaultOnAndUnavailableFeaturesDefaultOff() {
         for (BackportFeature feature : BackportFeature.values()) {
             assertEquals(
-                    feature.implemented(),
+                    feature.implemented() && !MEASURED_OPT_IN.contains(feature),
                     feature.defaultEnabled(),
                     feature.id()
             );

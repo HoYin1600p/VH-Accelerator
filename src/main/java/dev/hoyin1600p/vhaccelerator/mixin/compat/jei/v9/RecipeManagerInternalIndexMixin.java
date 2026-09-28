@@ -115,8 +115,12 @@ public abstract class RecipeManagerInternalIndexMixin {
                     recipeTypeData,
                     reconciled.plans()
             );
-            if (reconciled.rebuiltCount() > 0
+            // A cached plan rejected for a transient output identity is
+            // rejected again next time, so only plans missing from the cache
+            // or cached plans of removed recipes justify rewriting the file.
+            if (reconciled.uncachedRebuiltCount() > 0
                     || reconciled.cachedCount()
+                            + reconciled.rejectedCachedCount()
                             != restored.cachedRecipeCount()) {
                 PersistentJeiRecipeIndexCache.record(
                         fingerprint,
@@ -343,6 +347,8 @@ public abstract class RecipeManagerInternalIndexMixin {
                 new ArrayList<>(recipes.size());
         int cachedCount = 0;
         int rebuiltCount = 0;
+        int uncachedRebuiltCount = 0;
+        int rejectedCachedCount = 0;
         for (T recipe : recipes) {
             if (!category.isHandled(recipe)) {
                 continue;
@@ -374,11 +380,17 @@ public abstract class RecipeManagerInternalIndexMixin {
                 cachedCount++;
                 continue;
             }
+            if (cached != null) {
+                rejectedCachedCount++;
+            }
             PersistentJeiRecipeIndexCache.ActiveRecipe<T> rebuilt =
                     vhaccelerator$prepareRecipe(category, recipe);
             if (rebuilt != null) {
                 reconciled.add(rebuilt);
                 rebuiltCount++;
+                if (cached == null) {
+                    uncachedRebuiltCount++;
+                }
             }
             if (VHAcceleratorConfig.jeiRecipeAuditEnabled()) {
                 vhaccelerator$auditPlan(
@@ -395,7 +407,9 @@ public abstract class RecipeManagerInternalIndexMixin {
         return new PersistentJeiRecipeIndexCache.ReconciledPlans<>(
                 List.copyOf(reconciled),
                 cachedCount,
-                rebuiltCount
+                rebuiltCount,
+                uncachedRebuiltCount,
+                rejectedCachedCount
         );
     }
 

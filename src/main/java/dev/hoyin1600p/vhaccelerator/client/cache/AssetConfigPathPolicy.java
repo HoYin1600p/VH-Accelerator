@@ -18,6 +18,12 @@ final class AssetConfigPathPolicy {
                 || normalized.equals("temporal_index-update-notice-state.json")
                 || normalized.equals("vault_render_optimization-update-notice-state.json")
                 || normalized.equals("vhaccelerator-update-notice-state.json")
+                // VHA's own options never change the raw JSON, blockstate bytes,
+                // material identifiers or block certifications these caches
+                // hold; where an option matters (the dynamic-model guard) it is
+                // rechecked live on every restore. Toggling one must not force
+                // a cold launch.
+                || normalized.startsWith("vhaccelerator-") && normalized.endsWith(".toml")
                 || normalized.equals("oculus.properties")
                 || normalized.equals("powah.json5")
                 || normalized.equals("reforgium-renderer.properties")

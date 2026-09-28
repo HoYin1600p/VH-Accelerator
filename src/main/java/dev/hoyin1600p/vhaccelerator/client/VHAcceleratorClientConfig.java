@@ -115,12 +115,18 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue parallelModelLoading;
         public final ForgeConfigSpec.BooleanValue parallelBlockStateLoading;
         public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
+        public final ForgeConfigSpec.BooleanValue serializeAtlasStitchEvents;
         public final ForgeConfigSpec.BooleanValue parallelModelBaking;
         public final ForgeConfigSpec.BooleanValue optimizeVoxelShapeMerging;
+        public final ForgeConfigSpec.BooleanValue cacheLaunchVoxelShapes;
+        public final ForgeConfigSpec.BooleanValue asyncCrashReportPreload;
         public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
         public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
         public final ForgeConfigSpec.BooleanValue separateModelPrewarmIo;
         public final ForgeConfigSpec.BooleanValue optimizeMaterialCacheSession;
+        public final ForgeConfigSpec.BooleanValue releaseCacheMemoryAfterUse;
+        public final ForgeConfigSpec.BooleanValue releaseBakeryLoadMaps;
+        public final ForgeConfigSpec.BooleanValue takeOverBuildScapeModelLoading;
         public final ForgeConfigSpec.BooleanValue isolateBackgroundNetworkWork;
         public final ForgeConfigSpec.BooleanValue persistentBlockStateJsonCache;
         public final ForgeConfigSpec.BooleanValue preSizeModelCaches;
@@ -133,10 +139,29 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.BooleanValue persistentModelMaterialCache;
         public final ForgeConfigSpec.BooleanValue deduplicateModelMaterialCollection;
         public final ForgeConfigSpec.BooleanValue cacheBlockStateModelLocations;
+        public final ForgeConfigSpec.BooleanValue compactModelFaceLists;
+        public final ForgeConfigSpec.BooleanValue lazyBakeEventModels;
+        public final ForgeConfigSpec.BooleanValue parallelCraftTweakerRecipeRemoval;
+        public final ForgeConfigSpec.BooleanValue indexCreateBlockCuttingRecipes;
+        public final ForgeConfigSpec.BooleanValue lazyGeckoLibResources;
+        public final ForgeConfigSpec.BooleanValue persistentEveryCompatPack;
+        public final ForgeConfigSpec.BooleanValue suspendIntegratedServerDuringJoin;
+        public final ForgeConfigSpec.BooleanValue deduplicateModelLocationPaths;
+        public final ForgeConfigSpec.BooleanValue indexVaultSmeltingJeiRecipes;
+        public final ForgeConfigSpec.BooleanValue indexVaultCascadeModifiers;
+        public final ForgeConfigSpec.BooleanValue cacheVaultModifierViews;
+        public final ForgeConfigSpec.BooleanValue indexVaultModifierTicks;
+        public final ForgeConfigSpec.BooleanValue snapshotVaultEventListeners;
+        public final ForgeConfigSpec.BooleanValue filterVaultCascadeByState;
+        public final ForgeConfigSpec.BooleanValue repairEmptyBookPiles;
+        public final ForgeConfigSpec.BooleanValue prefetchJoinRecipeFingerprint;
+        public final ForgeConfigSpec.BooleanValue prefetchCtmTextureMetadata;
+        public final ForgeConfigSpec.BooleanValue indexKubeJsPackFiles;
         public final ForgeConfigSpec.BooleanValue parallelBlockStateModelLocations;
         public final ForgeConfigSpec.BooleanValue parallelBlockModelCache;
         public final ForgeConfigSpec.BooleanValue deferItemModelBaking;
         public final ForgeConfigSpec.BooleanValue deferBlockStateModelBaking;
+        public final ForgeConfigSpec.BooleanValue skipBlockStateGraphLoading;
         public final ForgeConfigSpec.BooleanValue
                 recordBlockStateMaterialManifest;
         public final ForgeConfigSpec.BooleanValue protectDynamicModels;
@@ -151,6 +176,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue jeiTweakerParallelThreshold;
         public final ForgeConfigSpec.BooleanValue stagedVaultGroupLoading;
         public final ForgeConfigSpec.BooleanValue optimizeVaultLootCdf;
+        public final ForgeConfigSpec.BooleanValue lazyVaultLootCdf;
         public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
         public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
         public final ForgeConfigSpec.BooleanValue parallelJeiSearchPrefixes;
@@ -169,6 +195,7 @@ public final class VHAcceleratorClientConfig {
         public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
         public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
         public final ForgeConfigSpec.BooleanValue deferXaeroOnlineChecks;
+        public final ForgeConfigSpec.BooleanValue boundFarsightChunkRetention;
         public final ForgeConfigSpec.BooleanValue deferVaultAtlasUploads;
         public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
         public final ForgeConfigSpec.BooleanValue optimizeVaultAtlasValidation;
@@ -206,8 +233,16 @@ public final class VHAcceleratorClientConfig {
                             "used by newer Minecraft versions.")
                     .define("parallelBlockStateLoading", true);
             parallelAtlasStitching = builder
-                    .comment("Prepares independent texture atlases concurrently.")
-                    .define("parallelAtlasStitching", true);
+                    .comment("Prepares independent texture atlases concurrently. Off by default:",
+                            "Forge fires TextureStitchEvent.Pre inside each preparation, so mod",
+                            "listeners would run on several threads at once. Restart required.")
+                    .define("parallelAtlasStitching", false);
+            serializeAtlasStitchEvents = builder
+                    .comment("With parallelAtlasStitching: fires every atlas's TextureStitchEvent.Pre",
+                            "first, one at a time on the loading thread in vanilla order, and prepares",
+                            "the atlases in parallel afterwards, so mod stitch listeners never run on",
+                            "several threads at once. Restart required.")
+                    .define("serializeAtlasStitchEvents", true);
             parallelModelBaking = builder
                     .comment("Bakes top-level models in batches on Minecraft's background executor.")
                     .define("parallelModelBaking", true);
@@ -218,6 +253,22 @@ public final class VHAcceleratorClientConfig {
                             "can reduce block-registration time in decoration-heavy packs.",
                             "VH Accelerator yields this patch when Canary or Lithium is present.")
                     .define("optimizeVoxelShapeMerging", true);
+            cacheLaunchVoxelShapes = builder
+                    .comment(
+                            "While mods load, shares equal voxel-shape boxes and reuses identical",
+                            "shape joins, so decoration mods that build the same shapes for every",
+                            "block and wood variant stop recomputing them. Shapes are immutable.",
+                            "The cache is released when mod loading completes. Yields to Canary or",
+                            "Lithium. Restart required.")
+                    .define("cacheLaunchVoxelShapes", true);
+            asyncCrashReportPreload = builder
+                    .comment(
+                            "Builds Minecraft's startup throwaway crash report (which only preloads",
+                            "crash-reporting classes) on a background thread started after",
+                            "bootstrap, instead of on the main thread before bootstrap. The",
+                            "emergency memory reservation stays synchronous. Read before Forge",
+                            "config loads. Restart required.")
+                    .define("asyncCrashReportPreload", true);
             persistentModelJsonCache = builder
                     .comment(
                             "Persists the resolved initial model JSON resource view as one",
@@ -245,6 +296,23 @@ public final class VHAcceleratorClientConfig {
                             "Every restore still runs the existing dynamic-model and parent-binding guards.",
                             "All lookup state is discarded with the material collection session.")
                     .define("optimizeMaterialCacheSession", true);
+            releaseCacheMemoryAfterUse = builder
+                    .comment("Drops in-memory copies of persistent cache data once it has been used,",
+                            "so it is not held during gameplay. Cache files on disk are never deleted",
+                            "and are read again when next needed. Restart required.")
+                    .define("releaseCacheMemoryAfterUse", true);
+            releaseBakeryLoadMaps = builder
+                    .comment("Forge keeps the last model bakery alive for the whole session. After",
+                            "models are applied, release its top-level model map, and its intermediate",
+                            "baked cache when no deferred bake needs it. The unbaked cache and the",
+                            "baked model registry are kept. Restart required.")
+                    .define("releaseBakeryLoadMaps", true);
+            takeOverBuildScapeModelLoading = builder
+                    .comment("With BuildScape installed, VHA's model pipeline loads and bakes BuildScape's",
+                            "models like any other (parsed with the rest, deferred or skipped when plain),",
+                            "and BuildScape skips its own parallel parse and bake. Without VHA, or with this",
+                            "off, BuildScape keeps its own launch optimizations. Restart required.")
+                    .define("takeOverBuildScapeModelLoading", true);
             isolateBackgroundNetworkWork = builder
                     .comment("Runs optional blocking online checks outside model compute and disk-cache workers.",
                             "Uses at most two lazy, idle-expiring network workers (one on a single-CPU JVM).",
@@ -316,6 +384,129 @@ public final class VHAcceleratorClientConfig {
                             "during model discovery and again for the render lookup cache.",
                             "The cached key is attached to the immutable block-state instance.")
                     .define("cacheBlockStateModelLocations", true);
+            compactModelFaceLists = builder
+                    .comment(
+                            "Stores each simple baked model's face lists as exact-size immutable lists",
+                            "and shares one empty side map (FerriteCore's modelSides, which its 1.18.2",
+                            "release lacks). Skipped when Vault Render Optimization, which does the",
+                            "same, is installed. Restart required.")
+                    .define("compactModelFaceLists", true);
+            lazyBakeEventModels = builder
+                    .comment(
+                            "Requires deferBlockStateModelBaking. While mods' model-bake-event handlers",
+                            "run, a deferred block-state model they read is a stand-in that bakes on",
+                            "first use, so handlers that only wrap models (Create, Mekanism, Refined",
+                            "Storage and others) no longer force those bakes at launch. CTM's pass and",
+                            "FramedBlocks keys get real models. Restart required.")
+                    .define("lazyBakeEventModels", true);
+            parallelCraftTweakerRecipeRemoval = builder
+                    .comment(
+                            "Evaluates CraftTweaker's own recipe-removal matchers (by output, input,",
+                            "mod) across worker threads, then removes the matches on the calling",
+                            "thread. Script-defined predicates keep the original loop. Restart required.")
+                    .define("parallelCraftTweakerRecipeRemoval", true);
+            indexCreateBlockCuttingRecipes = builder
+                    .comment(
+                            "Create 0.5.1.i: groups stonecutting recipes for its JEI block-cutting",
+                            "category through a map keyed by ingredient items instead of comparing",
+                            "each recipe with every group. Same groups, order and outputs.")
+                    .define("indexCreateBlockCuttingRecipes", true);
+            indexVaultSmeltingJeiRecipes = builder
+                    .comment(
+                            "Vault Hunters' JEI tool-smelting category: answers its per-item smelting",
+                            "lookups from one index built in the recipe manager's order instead of",
+                            "scanning every smelting recipe for each of about 39,000 items.")
+                    .define("indexVaultSmeltingJeiRecipes", true);
+            indexVaultCascadeModifiers = builder
+                    .comment(
+                            "Vault Hunters (builds without grouped modifiers, e.g. 3.21.6 and 20.0.3):",
+                            "cascade modifiers (cake vault chest/coin/ore cascades) look up their stack",
+                            "count from an index rebuilt when the modifier list changes, instead of every",
+                            "stack scanning every modifier entry on every generated chunk. Same result;",
+                            "long cake vaults no longer slow down with each cake. Singleplayer only.")
+                    .define("indexVaultCascadeModifiers", true);
+            cacheVaultModifierViews = builder
+                    .comment(
+                            "Vault Hunters: on the client and integrated server threads, the vault",
+                            "modifier list (getDisplayGroup/getModifiers, used by the HUD each frame and",
+                            "by potion and trinket checks each tick) is reused until the modifier",
+                            "entries change or 250 ms pass, instead of being rebuilt from every entry.",
+                            "Long cake vaults add about 15 entries per cake. Callers get copies.")
+                    .define("cacheVaultModifierViews", true);
+            indexVaultModifierTicks = builder
+                    .comment(
+                            "Vault Hunters: the per-tick modifier update visits only entries that are",
+                            "new or timed, instead of walking every entry three times each tick; any",
+                            "tick that has something to apply or expire runs Vault's own code.",
+                            "Long cake vaults hold thousands of permanent entries. Singleplayer only.")
+                    .define("indexVaultModifierTicks", true);
+            snapshotVaultEventListeners = builder
+                    .comment(
+                            "Vault Hunters: its own event system runs listeners from a snapshot taken",
+                            "when listeners change, instead of copying every listener list on every",
+                            "event (spawn and despawn checks post one per mob per tick). Same order.",
+                            "Client render events are left to Vault Render Optimization.")
+                    .define("snapshotVaultEventListeners", true);
+            filterVaultCascadeByState = builder
+                    .comment(
+                            "Vault Hunters: cascade modifiers (cake vault chest/coin cascades) skip",
+                            "building the saved data of block entities whose block already fails their",
+                            "filter, such as the thousands of ores in a late cake vault's mine rooms.",
+                            "Same result. Singleplayer only.")
+                    .define("filterVaultCascadeByState", true);
+            repairEmptyBookPiles = builder
+                    .comment(
+                            "Vault Hunters + Supplementaries: library room templates store book piles",
+                            "without books, which fail to load and show as magenta \"Missing:",
+                            "supplementaries:book_pile\" error blocks. Such piles now load with as many",
+                            "plain books as their block shows (at least one). Singleplayer only.")
+                    .define("repairEmptyBookPiles", true);
+            prefetchJoinRecipeFingerprint = builder
+                    .comment(
+                            "On a world join, starts the recipe fingerprint that validates VHA's",
+                            "persistent JEI recipe index in the background as soon as the server's",
+                            "tags are applied, instead of on the render thread when JEI registers",
+                            "vanilla recipes. Same fingerprint; overlaps JEI's first startup phases.")
+                    .define("prefetchJoinRecipeFingerprint", true);
+            prefetchCtmTextureMetadata = builder
+                    .comment(
+                            "CTM 1.1.5+5: reads every sprite's CTM texture metadata in parallel before",
+                            "CTM's texture stitch listener, which then finds each one in its own cache",
+                            "instead of reading them one at a time. Same metadata; failures are left",
+                            "for CTM to read and report itself.")
+                    .define("prefetchCtmTextureMetadata", true);
+            indexKubeJsPackFiles = builder
+                    .comment(
+                            "KubeJS 1802.5.5: its resource pack checks the disk for every resource",
+                            "lookup. The pack's kubejs/assets or kubejs/data folder is listed once per",
+                            "open pack (each resource reload) and the checks are answered from that",
+                            "listing, matching file names the way the platform does.")
+                    .define("indexKubeJsPackFiles", true);
+            lazyGeckoLibResources = builder
+                    .comment(
+                            "GeckoLib 3.0.57 (and Ars Nouveau 2.9.0's copy): lists animation and geo",
+                            "model files during a resource reload and loads each one the first time",
+                            "it is rendered, instead of parsing and keeping every file of every mod.")
+                    .define("lazyGeckoLibResources", true);
+            persistentEveryCompatPack = builder
+                    .comment(
+                            "Every Compat (with Selene 1.17.14 or 1.17.17): stores its generated client",
+                            "pack on disk, keyed by the mod files, registered blocks and items, Every",
+                            "Compat's and Selene's configs, resource packs, KubeJS assets and pack order,",
+                            "and restores it on the next launch instead of generating it again.")
+                    .define("persistentEveryCompatPack", true);
+            suspendIntegratedServerDuringJoin = builder
+                    .comment(
+                            "Singleplayer join: the integrated server holds its world ticks until the",
+                            "client has processed the join data (recipes, tags, JEI start), at most",
+                            "60 s. Chunk loading continues. Never affects LAN guests or proxy servers.")
+                    .define("suspendIntegratedServerDuringJoin", true);
+            deduplicateModelLocationPaths = builder
+                    .comment(
+                            "Shares one copy of each block or item path among its model locations",
+                            "(one location per block state, about 1.3 M in large packs). Strings are",
+                            "immutable, so only memory changes. Restart required.")
+                    .define("deduplicateModelLocationPaths", true);
             parallelBlockStateModelLocations = builder
                     .comment(
                             "Precomputes uncached canonical block-state model keys",
@@ -332,30 +523,39 @@ public final class VHAcceleratorClientConfig {
                     .define("parallelBlockModelCache", true);
             deferItemModelBaking = builder
                     .comment(
-                            "Experimental. Defers baking of ordinary inventory item models",
-                            "whose complete JSON graph is already loaded. Loading and atlas",
-                            "texture collection stay eager. Each deferred model bakes only on",
-                            "its first real use, which can cause a brief hitch in a world;",
-                            "nothing is baked at the menu or on world join. Generated, custom,",
-                            "Vault gear, EveryCompat, Sophisticated, and BuildScape models stay",
-                            "eager. Inactive with CTM or ModernFix dynamic resources, and during",
-                            "in-world reloads. Debug diagnostics log unresolved/baked counts.")
-                    .define("deferItemModelBaking", false);
+                            "Defers baking of ordinary inventory item models until their first",
+                            "real use (usually their first render), including EveryCompat,",
+                            "Vault Hunters and, while VHA owns BuildScape's model loading,",
+                            "BuildScape items. Later launches with the same assets also skip",
+                            "loading those items' model graphs. Generated, custom-geometry,",
+                            "Vault gear and Sophisticated models stay eager. With CTM",
+                            "1.18.2-1.1.5+5, CTM-textured items are baked for CTM and never",
+                            "skipped. Inactive under ModernFix dynamic resources, in Compare",
+                            "Mode and during in-world reloads. Restart required.")
+                    .define("deferItemModelBaking", true);
             deferBlockStateModelBaking = builder
                     .comment(
-                            "Experimental, independent of deferItemModelBaking. Defers only",
-                            "the baking of block-state models whose complete graph is plain",
+                            "Defers baking of block-state models whose whole graph is plain",
                             "vanilla JSON (MultiVariant/MultiPart over ordinary BlockModels)",
-                            "already loaded and parent-bound. Loading and atlas texture",
-                            "collection stay eager. Each deferred model bakes on its first real",
-                            "lookup, usually on a chunk-compile worker, which can cause a brief",
-                            "hitch; initial chunks may bake before the first playable frame.",
-                            "No eager warmup runs at the menu or on world join. Vault,",
-                            "EveryCompat, Sophisticated, BuildScape, CTM, and custom or dynamic",
-                            "models stay eager. Inactive in Compare Mode, with CTM or",
-                            "ModernFix dynamic resources,",
-                            "and during in-world reloads.")
+                            "until their first lookup, usually on a chunk-compile worker. Covers",
+                            "EveryCompat, Vault Hunters and, while VHA owns BuildScape's model",
+                            "loading, BuildScape block states. Custom, dynamic and Sophisticated",
+                            "models stay eager. With CTM 1.18.2-1.1.5+5, VHA's CTM bake pass bakes",
+                            "only the deferred models CTM wraps. Inactive under ModernFix dynamic",
+                            "resources, in Compare Mode and during in-world reloads.",
+                            "Restart required.")
                     .define("deferBlockStateModelBaking", true);
+            skipBlockStateGraphLoading = builder
+                    .comment(
+                            "Requires deferBlockStateModelBaking. The first launch certifies",
+                            "blocks whose every state is a plain vanilla JSON model graph (never",
+                            "CTM-textured ones). Later launches with the same assets skip reading",
+                            "and parsing those blocks' blockstate files and models: their",
+                            "textures are stitched from the certification, their model groups",
+                            "restored, and each block's graph loads on one background thread the",
+                            "first time it is needed. Inactive under ModernFix dynamic resources,",
+                            "in Compare Mode and on later reloads. Restart required.")
+                    .define("skipBlockStateGraphLoading", true);
             recordBlockStateMaterialManifest = builder
                     .comment(
                             "Experimental research capture only; it records for later",
@@ -455,6 +655,13 @@ public final class VHAcceleratorClientConfig {
                             "The same permutations, heuristic ordering, probabilities,",
                             "packed keys, and cumulative values are retained.")
                     .define("optimizeVaultLootCdf", true);
+            lazyVaultLootCdf = builder
+                    .comment(
+                            "Computes each Vault Hunters tiered-loot distribution the first time",
+                            "loot generation needs it instead of on every config load. Vault",
+                            "builds 53 per supported loot table (about 110 MB in Asgard); a",
+                            "multiplayer client never reads them, and each takes about 2 ms.")
+                    .define("lazyVaultLootCdf", true);
             vaultGroupTickBudgetMillis = builder
                     .comment("Maximum main-thread time used by staged Vault group loading per client tick.")
                     .defineInRange("vaultGroupTickBudgetMillis", 4, 1, 25);
@@ -585,6 +792,17 @@ public final class VHAcceleratorClientConfig {
                             "Update metadata is still applied on Minecraft's client thread.",
                             "Currently enabled only for the explicitly validated Xaero versions.")
                     .define("deferXaeroOnlineChecks", true);
+            boundFarsightChunkRetention = builder
+                    .comment(
+                            "Forgets client chunks that Farsight keeps beyond",
+                            "max(server view distance, render distance) + 1 chunks",
+                            "from the player, once per second. Each forget runs the",
+                            "vanilla chunk drop, light-engine release, and Embeddium",
+                            "render-section removal that Farsight's cancelled packet",
+                            "handler skips. Chunks within render distance stay loaded.",
+                            "Only used when Farsight is installed and Vault Render",
+                            "Optimization, which owns this behavior when present, is not.")
+                    .define("boundFarsightChunkRetention", true);
             deferVaultAtlasUploads = builder
                     .comment(
                             "Moves the initial Vault GUI texture-atlas uploads out of the",

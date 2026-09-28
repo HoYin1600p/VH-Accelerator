@@ -15,8 +15,9 @@ The same jar contains guarded support for:
 | Official previous | `3.21.5.6882` | `9.7.2.1001` |
 | Official current baseline | `3.21.6.6884` | `9.7.2.1001` |
 | Wolds Vaults 0.32.2 | `3.21.5.6573` | `10.2.1.1006` |
-| Wolds Vaults 0.33.0 | `3.21.6.6884` | `10.2.1.1006` |
+| Wolds Vaults 0.33.0 and 0.34.1 | `3.21.6.6884` | `10.2.1.1006` |
 | Custom MVP | `3.21.62` | `9.7.2.1001` |
+| Asgard | `3.21.62` (Asgard build) | `9.7.2.1001` |
 
 The entries above are compile and test baselines, not hard dependencies.
 Unsupported Vault or JEI layouts leave their optional integration disabled

@@ -113,6 +113,10 @@ dependencies {
     compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
     compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
     compileOnly files(localCompileDependency('sophisticatedcore-1.18.2-0.6.4.604.jar'))
+    compileOnly files(localCompileDependency('ferritecore-4.2.2-forge.jar'))
+    compileOnly files(localCompileDependency('kubejs-forge-1802.5.5-build.569.jar'))
+    compileOnly files(localCompileDependency('rhino-forge-1802.2.1-build.255.jar'))
+    compileOnly files(localCompileDependency('create-1.18.2-0.5.1.i.jar'))
 }
 
 tasks.named('test') {
@@ -137,6 +141,11 @@ def compatibilityProfiles = [
         ],
         mvp       : [
                 vault  : 'the_vault-1.18.2-3.21.62.jar',
+                jei    : 'jei-1.18.2-9.7.2.1001.jar',
+                exclude: '**/compat/jei/v10/**'
+        ],
+        asgard    : [
+                vault  : 'the_vault-1.18.2-3.21.62.asgard.jar',
                 jei    : 'jei-1.18.2-9.7.2.1001.jar',
                 exclude: '**/compat/jei/v10/**'
         ],

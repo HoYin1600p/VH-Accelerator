@@ -11,10 +11,11 @@ Git-ignored copies of:
 | The Vault Remastered | `20.0.3-remastered` | Additional compatibility baseline | `95B8BA4932B11B02BD8E7CE5A201F8D561F95041F7431685BCB2E146D8005C9B` |
 | The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |
 | The Vault custom MVP | `3.21.62` | Adjacent testing-pack repository | `DBB00F7E0FCA832F42E7E5390E66F3EDBF854A7806703283462F6359C8120590` |
+| The Vault (Asgard) | `3.21.62` (Asgard build) | CMA Asgard instance | `898AD64C859B2533CAFCC6105D1B6B179CE04A12A7D01319D0DE8B4426B38C5C` |
 | The Vault official | `3.21.5.6882` | CurseForge project `458203`, file `8508674` | `D0B330CA60D8193574B9C419F96C4BA7C444EFB606DF20973B5B0823D9586A10` |
 | The Vault official | `3.21.6.6884` | CurseForge project `458203`, file `8508967` | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
 | The Vault (Wold's Vaults 0.32.2) | `3.21.5.6573` | CurseForge project `458203`, file `7952001` | `58672F06C4B3564A3DAF4020A1492B05245F0CA13604CFC3519CAF3327F81EA3` |
-| The Vault (Wolds Vaults 0.33.0) | `3.21.6.6884` | Shared official current baseline | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
+| The Vault (Wolds Vaults 0.33.0 and 0.34.1) | `3.21.6.6884` | Shared official current baseline | `E4B1E896558D69403D5A36CAF9049611642E459F295C964CE24A6BE06D67EE38` |
 | JEI 10 | `10.2.1.1009` | Remastered compatibility instance | `7DEFCA594A436A0333B1F2B86C27B897E782939488BE1AEF801145C21AF911C9` |
 | JEI 10 | `10.2.1.1006` | CurseForge project `238222`, file `5068328` | `3ECA7BA0911C733E1CE9B32EBFEEF6A66D1DECD6FE44618398B20901EFB608FE` |
 | JEI 9 | `9.7.2.1001` | Custom MVP compatibility instance | `B647023956683079A80DD31D3C42BDB4348A927B0441D507E24931501B8CCA9E` |
@@ -24,6 +25,22 @@ Git-ignored copies of:
 
 The binary files are not redistributed. See `libs/README.md` for the expected
 local filenames.
+
+### Runtime target preflight
+
+Third-party compatibility mixins (`mixin/compat/*`) are checked against the
+installed mod's bytecode before they apply. Every unremapped injection
+method, `INVOKE`/`FIELD` injection point, shadow, accessor, and invoker must
+still exist. Mixins in one compatibility package are applied all-or-nothing,
+because they share state (for example the JEI search-index mixins); each
+model-bake mixin is its own group. A group whose target mod changed is skipped
+with one `Skipping VH Accelerator compatibility group ...` warning that lists
+the missing members, and that mod keeps its original behavior instead of
+startup failing on a required injector. The preflight cannot detect a member
+that still exists but changed meaning, so version pins remain in place where
+they already exist. `ShippedCompatMixinPreflightTest` runs the same check
+against every Vault Hunters and JEI build above and requires each group's
+targets to be all present or all absent in every profile.
 
 ## Additional Remastered comparison
 

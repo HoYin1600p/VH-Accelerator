@@ -68,8 +68,9 @@ mod behavior remain on their established threads.
 | Environment | Client; dedicated-server testing is not yet complete |
 | Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wolds Vaults | Packs `0.32.2` and `0.33.0`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
+| Wolds Vaults | Packs `0.32.2`, `0.33.0` and `0.34.1`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
 | Custom MVP | `3.21.62` baseline |
+| Asgard | Its own `3.21.62` build baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
 VH Accelerator is currently released and tested as a client mod. It does not

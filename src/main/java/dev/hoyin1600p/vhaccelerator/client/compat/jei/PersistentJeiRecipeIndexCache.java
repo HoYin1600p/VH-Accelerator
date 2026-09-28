@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -44,16 +46,23 @@ import net.minecraftforge.fml.loading.FMLPaths;
 public final class PersistentJeiRecipeIndexCache {
     private static final int MAGIC = 0x56484A49;
     private static final int FORMAT_VERSION = 4;
-    private static final int MAX_FILES = 64;
+    // Each index file is tens of MB in large packs; keep only recent ones.
+    private static final int MAX_FILES = 8;
+    /** Newest files read ahead of a connection; others are read on demand. */
+    private static final int PRELOAD_FILES = 2;
     private static final int MAX_CATEGORIES = 128;
     private static final int MAX_BATCHES_PER_CATEGORY = 64;
     private static final int MAX_TOTAL_BATCHES = 512;
     private static final int MAX_RECIPES_PER_CATEGORY = 250_000;
     private static final int MAX_TOTAL_RECIPES = 500_000;
     private static final int MAX_TOTAL_UIDS = 10_000_000;
-    private static final int MAX_ROLES_PER_RECIPE = 16;
-    private static final int MAX_GROUPS_PER_ROLE = 64;
-    private static final int MAX_UIDS_PER_GROUP = 16_384;
+    // Per-recipe read limits only reject clearly corrupt files; the writer
+    // does not bound plans, and MAX_TOTAL_UIDS caps the whole file. Wolds has
+    // a recipe whose one ingredient group lists 16,645 items, which the former
+    // 16,384 limit rejected, so the index was rebuilt and rewritten every join.
+    private static final int MAX_ROLES_PER_RECIPE = 256;
+    private static final int MAX_GROUPS_PER_ROLE = 4_096;
+    private static final int MAX_UIDS_PER_GROUP = 1 << 20;
     private static final Path DIRECTORY = FMLPaths.GAMEDIR.get()
             .resolve("cache")
             .resolve("vhaccelerator")
@@ -61,29 +70,125 @@ public final class PersistentJeiRecipeIndexCache {
     private static final Executor WRITER =
             SharedWorkers.io();
 
-    private static volatile CompletableFuture<Map<String, Manifest>>
-            preload;
+    /**
+     * Manifests in memory, keyed by cache key. Only the newest files are read
+     * ahead; any other key is read from its own file on first use.
+     */
+    private static final Map<String, Manifest> MEMORY =
+            new ConcurrentHashMap<>();
+    /** Keys with no usable file during the current connection. */
+    private static final Set<String> ABSENT =
+            ConcurrentHashMap.newKeySet();
+    /** Keys hit or recorded this session; the only ones kept after use. */
+    private static final Set<String> USED = ConcurrentHashMap.newKeySet();
+    private static volatile CompletableFuture<Void> preload;
+    private static boolean released;
+    private static String retainedServerKey;
     private static String reportedMissKey;
 
     private PersistentJeiRecipeIndexCache() {
     }
 
     public static void prewarm() {
-        if (preload != null) {
-            return;
+        loaded();
+    }
+
+    private static CompletableFuture<Void> loaded() {
+        CompletableFuture<Void> current = preload;
+        if (current != null) {
+            return current;
         }
         synchronized (PersistentJeiRecipeIndexCache.class) {
             if (preload == null) {
-                preload = CompletableFuture.supplyAsync(
-                        PersistentJeiRecipeIndexCache::loadAll,
+                if (released && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                    VHAccelerator.LOGGER.info(
+                            "[debug] Rereading released {} files from disk",
+                            "PersistentJeiRecipeIndexCache"
+                    );
+                }
+                released = false;
+                preload = CompletableFuture.runAsync(
+                        PersistentJeiRecipeIndexCache::loadNewest,
                         SharedWorkers.io()
                 );
             }
+            return preload;
         }
+    }
+
+    /**
+     * Once the client has consumed this cache, keeps in memory only the
+     * manifests this session used for {@code keepServerKey}, so a reconnect
+     * or proxy backend switch to a backend already visited never rereads
+     * them, and releases everything else. With no key, or before the preload
+     * has finished, everything is released. Cache files always stay on disk.
+     */
+    public static synchronized void releaseMemory(String keepServerKey) {
+        CompletableFuture<Void> current = preload;
+        if (current == null) {
+            return;
+        }
+        if (keepServerKey == null
+                || !current.isDone()
+                || current.isCompletedExceptionally()) {
+            released = true;
+            retainedServerKey = null;
+            MEMORY.clear();
+            USED.clear();
+            preload = null;
+            return;
+        }
+        USED.removeIf(key -> !ServerScopedCacheMemory.belongsTo(key, keepServerKey));
+        MEMORY.keySet().retainAll(USED);
+        retainedServerKey = keepServerKey;
+    }
+
+    /**
+     * Starts reading the newest cache files for a new connection unless this
+     * server's entries are already held in memory.
+     */
+    public static synchronized void prewarmFor(String serverKey) {
+        if (retainedServerKey != null
+                && (serverKey == null || !retainedServerKey.equals(serverKey))) {
+            released = true;
+            retainedServerKey = null;
+            MEMORY.clear();
+            USED.clear();
+            preload = null;
+        }
+        prewarm();
     }
 
     public static synchronized void beginConnection() {
         reportedMissKey = null;
+        ABSENT.clear();
+    }
+
+    /**
+     * The manifest stored under {@code cacheKey}: from memory, or else read
+     * from that key's own file. The file name is the cache key, so no other
+     * file is ever read for a lookup.
+     */
+    private static Manifest manifest(String cacheKey) {
+        loaded().join();
+        Manifest manifest = MEMORY.get(cacheKey);
+        if (manifest != null || ABSENT.contains(cacheKey)) {
+            return manifest;
+        }
+        synchronized (PersistentJeiRecipeIndexCache.class) {
+            manifest = MEMORY.get(cacheKey);
+            if (manifest != null || ABSENT.contains(cacheKey)) {
+                return manifest;
+            }
+            Path path = DIRECTORY.resolve(cacheKey + ".bin");
+            manifest = Files.isRegularFile(path) ? read(path) : null;
+            if (manifest == null || !manifest.cacheKey.equals(cacheKey)) {
+                ABSENT.add(cacheKey);
+                return null;
+            }
+            MEMORY.put(cacheKey, manifest);
+            return manifest;
+        }
     }
 
     public static <T> RestoreResult<T> restore(
@@ -188,17 +293,16 @@ public final class PersistentJeiRecipeIndexCache {
         String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
                 jeiGeneration,
-                fingerprint.recipes().value()
+                fingerprint.recipes().indexValue()
         );
         Manifest next;
         synchronized (PersistentJeiRecipeIndexCache.class) {
-            Map<String, Manifest> loaded = preload.join();
-            Manifest current = loaded.get(cacheKey);
+            Manifest current = manifest(cacheKey);
             Map<String, CategoryBatches> categories =
                     new LinkedHashMap<>();
             if (current != null
                     && current.fingerprint.equals(
-                            fingerprint.recipes().value()
+                            fingerprint.recipes().indexValue()
                     )) {
                 categories.putAll(current.categories);
             }
@@ -228,10 +332,12 @@ public final class PersistentJeiRecipeIndexCache {
             }
             next = new Manifest(
                     cacheKey,
-                    fingerprint.recipes().value(),
+                    fingerprint.recipes().indexValue(),
                     Map.copyOf(categories)
             );
-            loaded.put(cacheKey, next);
+            MEMORY.put(cacheKey, next);
+            ABSENT.remove(cacheKey);
+            USED.add(cacheKey);
         }
         CompletableFuture.runAsync(() -> write(next), WRITER);
     }
@@ -254,9 +360,9 @@ public final class PersistentJeiRecipeIndexCache {
         String cacheKey = JeiRecipeIndexIdentity.cacheKey(
                 fingerprint.serverKey(),
                 jeiGeneration,
-                fingerprint.recipes().value()
+                fingerprint.recipes().indexValue()
         );
-        Manifest manifest = preload.join().get(cacheKey);
+        Manifest manifest = manifest(cacheKey);
         if (manifest == null) {
             reportMiss(
                     cacheKey,
@@ -265,13 +371,30 @@ public final class PersistentJeiRecipeIndexCache {
             return null;
         }
         if (!manifest.fingerprint.equals(
-                fingerprint.recipes().value()
+                fingerprint.recipes().indexValue()
         )) {
             reportMiss(
                     cacheKey,
                     "recipes, tags, configs, mods, or cache schema changed"
             );
             return null;
+        }
+        if (USED.add(cacheKey)) {
+            // Keep a used file among the newest, which are the ones read
+            // ahead, even when nothing in it needs rewriting.
+            Path path = DIRECTORY.resolve(cacheKey + ".bin");
+            CompletableFuture.runAsync(() -> {
+                try {
+                    Files.setLastModifiedTime(
+                            path,
+                            java.nio.file.attribute.FileTime.fromMillis(
+                                    System.currentTimeMillis()
+                            )
+                    );
+                } catch (IOException ignored) {
+                    // Recency only guides read-ahead; a stale time is harmless.
+                }
+            }, WRITER);
         }
         return manifest;
     }
@@ -321,11 +444,13 @@ public final class PersistentJeiRecipeIndexCache {
         return Map.copyOf(frozen);
     }
 
-    private static Map<String, Manifest> loadAll() {
-        Map<String, Manifest> loaded =
-                new ConcurrentHashMap<>();
+    /**
+     * Reads the most recently written files, which the next connection most
+     * likely needs. Every other file is read only when its key is looked up.
+     */
+    private static void loadNewest() {
         if (!Files.isDirectory(DIRECTORY)) {
-            return loaded;
+            return;
         }
         try (Stream<Path> paths = Files.list(DIRECTORY)) {
             paths.filter(Files::isRegularFile)
@@ -338,11 +463,11 @@ public final class PersistentJeiRecipeIndexCache {
                                             ::lastModifiedMillis
                             )
                             .reversed())
-                    .limit(MAX_FILES)
+                    .limit(PRELOAD_FILES)
                     .forEach(path -> {
                         Manifest manifest = read(path);
                         if (manifest != null) {
-                            loaded.put(
+                            MEMORY.putIfAbsent(
                                     manifest.cacheKey,
                                     manifest
                             );
@@ -354,7 +479,6 @@ public final class PersistentJeiRecipeIndexCache {
                     exception
             );
         }
-        return loaded;
     }
 
     private static Manifest read(Path path) {
@@ -367,6 +491,10 @@ public final class PersistentJeiRecipeIndexCache {
             }
             String cacheKey = input.readUTF();
             String fingerprint = input.readUTF();
+            // Recipes repeat the same roles, UIDs and ingredient groups many
+            // times; share one instance of each instead of one per occurrence.
+            Map<String, String> strings = new HashMap<>();
+            Map<List<String>, List<String>> sharedGroups = new HashMap<>();
             int categoryCount = bounded(
                     input.readInt(),
                     MAX_CATEGORIES,
@@ -429,7 +557,10 @@ public final class PersistentJeiRecipeIndexCache {
                         for (int roleIndex = 0;
                              roleIndex < roleCount;
                              roleIndex++) {
-                            String role = input.readUTF();
+                            String role = strings.computeIfAbsent(
+                                    input.readUTF(),
+                                    value -> value
+                            );
                             int groupCount = bounded(
                                     input.readInt(),
                                     MAX_GROUPS_PER_ROLE,
@@ -457,9 +588,15 @@ public final class PersistentJeiRecipeIndexCache {
                                 for (int uidIndex = 0;
                                      uidIndex < uidCount;
                                      uidIndex++) {
-                                    uids.add(input.readUTF());
+                                    uids.add(strings.computeIfAbsent(
+                                            input.readUTF(),
+                                            value -> value
+                                    ));
                                 }
-                                groups.add(List.copyOf(uids));
+                                groups.add(sharedGroups.computeIfAbsent(
+                                        List.copyOf(uids),
+                                        group -> group
+                                ));
                             }
                             roles.put(role, List.copyOf(groups));
                         }
@@ -761,7 +898,9 @@ public final class PersistentJeiRecipeIndexCache {
     public record ReconciledPlans<T>(
             List<ActiveRecipe<T>> plans,
             int cachedCount,
-            int rebuiltCount
+            int rebuiltCount,
+            int uncachedRebuiltCount,
+            int rejectedCachedCount
     ) {
     }
 

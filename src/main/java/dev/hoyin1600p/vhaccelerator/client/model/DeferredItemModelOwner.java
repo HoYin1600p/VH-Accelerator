@@ -9,6 +9,9 @@ public interface DeferredItemModelOwner {
     /** Selects once per bakery; empty whenever deferral is inactive. */
     Set<ResourceLocation> vhaccelerator$deferredItemModels();
 
+    /** Drops the load-time selection sets once the model manager has applied. */
+    void vhaccelerator$releaseSelections();
+
     static Set<ResourceLocation> deferredFor(Object bakery) {
         return bakery instanceof DeferredItemModelOwner owner
                 ? owner.vhaccelerator$deferredItemModels()

@@ -8,6 +8,7 @@ import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientConfigReloadObserver;
 import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
+import dev.hoyin1600p.vhaccelerator.client.compat.farsight.FarsightChunkBound;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
 import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
@@ -17,6 +18,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
@@ -78,6 +80,7 @@ public final class VHAcceleratorClient {
                 .getModEventBus()
                 .addListener(ClientConfigReloadObserver::onLoadComplete);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenOpened);
+        MinecraftForge.EVENT_BUS.addListener(SingleplayerLevelPruner::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedOut);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onLevelRendered);
@@ -85,28 +88,37 @@ public final class VHAcceleratorClient {
         MinecraftForge.EVENT_BUS.addListener(
                 VHAcceleratorClient::onRegisterClientCommands
         );
+        // Ahead of JEI, which starts from this event on a join.
+        MinecraftForge.EVENT_BUS.addListener(
+                net.minecraftforge.eventbus.api.EventPriority.HIGHEST,
+                false,
+                net.minecraftforge.event.TagsUpdatedEvent.class,
+                VHAcceleratorClient::onTagsUpdated
+        );
         ironFurnacesLoaded = ModList.get().isLoaded("ironfurnaces");
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");
         ferriteCoreLoaded = ModList.get().isLoaded("ferritecore");
+        dev.hoyin1600p.vhaccelerator.client.model.ModelLocationPaths.configure(
+                VHAcceleratorClientConfig.optimizationsEnabled()
+                        && VHAcceleratorClientConfig.launchValue(
+                                VHAcceleratorClientConfig.VALUES.deduplicateModelLocationPaths, true));
+        if (dev.hoyin1600p.vhaccelerator.compat.farsight.FarsightBoundOwner.vhaOwnsBound(
+                net.minecraftforge.fml.loading.LoadingModList.get())) {
+            // Same gate as the mixin plugin: VRO owns this once it declares it.
+            MinecraftForge.EVENT_BUS.addListener(FarsightChunkBound::onClientTick);
+        }
         if (VHAcceleratorClientConfig.optimizationsEnabled()) {
+            // Every persistent login cache is consumed during JEI start.
+            JeiRuntimeEpoch.setAfterStart(VHAcceleratorClient::releaseLoginCacheMemory);
             AdaptiveJeiWorkScheduler.initialize();
             PersistentModelJsonCache.prewarm();
             PersistentModelMaterialCache.prewarm();
             PersistentBlockStateJsonCache.prewarm();
-            PersistentVanillaIngredientCache.prewarm();
-            if (VHAcceleratorClientConfig.VALUES
-                    .persistentVanillaRecipeValidationCache
-                    .get()) {
-                PersistentRecipeValidationCache.prewarm();
-            }
-            PersistentJeiRecipeIndexCache.prewarm();
+            prewarmLoginCaches();
             ClientAssetFingerprint.prewarm();
             if (ferriteCoreLoaded) {
                 FerriteCoreQuadCacheCapacity.prewarm();
-            }
-            if (thermalLoaded) {
-                PersistentStirlingFuelCache.prewarm();
             }
         } else if (VHAcceleratorConfig.compareModeEnabled()) {
             VHAccelerator.LOGGER.info(
@@ -116,6 +128,17 @@ public final class VHAcceleratorClient {
         }
     }
 
+
+    private static void onTagsUpdated(net.minecraftforge.event.TagsUpdatedEvent event) {
+        if (event.getUpdateCause()
+                == net.minecraftforge.event.TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED
+                && Minecraft.getInstance().isSameThread()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.prefetchJoinRecipeFingerprint, true)) {
+            LoginStateFingerprint.prefetchRecipeFingerprint();
+        }
+    }
     private static void onRegisterClientCommands(
             RegisterClientCommandsEvent event
     ) {
@@ -171,6 +194,7 @@ public final class VHAcceleratorClient {
     }
 
     private static void onScreenOpened(ScreenOpenEvent event) {
+        SingleplayerLevelPruner.onScreenOpened(event.getScreen());
         if (event.getScreen() instanceof ConnectScreen) {
             if (VHAcceleratorClientConfig.optimizationsEnabled()) {
                 AdaptiveJeiWorkScheduler.markLoading();
@@ -225,6 +249,61 @@ public final class VHAcceleratorClient {
         PersistentVanillaIngredientCache.beginConnection();
         PersistentRecipeValidationCache.beginConnection();
         PersistentJeiRecipeIndexCache.beginConnection();
+        // A same-address reconnect or proxy switch keeps its entries in
+        // memory; another server's cache files are read in the background.
+        String serverKey = LoginStateFingerprint.currentServerKey();
+        PersistentVanillaIngredientCache.prewarmFor(serverKey);
+        if (VHAcceleratorClientConfig.VALUES
+                .persistentVanillaRecipeValidationCache
+                .get()) {
+            PersistentRecipeValidationCache.prewarmFor(serverKey);
+        }
+        PersistentJeiRecipeIndexCache.prewarmFor(serverKey);
+        if (thermalLoaded) {
+            PersistentStirlingFuelCache.prewarmFor(serverKey);
+        }
+        if (ironFurnacesLoaded) {
+            IronFurnacesRecipeCache.prewarmFor(serverKey);
+        }
+    }
+
+    private static void prewarmLoginCaches() {
+        PersistentVanillaIngredientCache.prewarm();
+        if (VHAcceleratorClientConfig.VALUES
+                .persistentVanillaRecipeValidationCache
+                .get()) {
+            PersistentRecipeValidationCache.prewarm();
+        }
+        PersistentJeiRecipeIndexCache.prewarm();
+        if (thermalLoaded) {
+            PersistentStirlingFuelCache.prewarm();
+        }
+    }
+
+    /**
+     * After a JEI runtime has finished starting, which is when the per-server
+     * login caches are consumed, keeps only the current server's entries in
+     * memory and releases every other server's. Reconnects and proxy backend
+     * switches to the same address therefore never reread from disk. The
+     * files stay on disk.
+     */
+    public static void releaseLoginCacheMemory() {
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.releaseCacheMemoryAfterUse
+                )) {
+            return;
+        }
+        String serverKey = LoginStateFingerprint.currentServerKey();
+        PersistentVanillaIngredientCache.releaseMemory(serverKey);
+        PersistentRecipeValidationCache.releaseMemory(serverKey);
+        PersistentJeiRecipeIndexCache.releaseMemory(serverKey);
+        if (thermalLoaded) {
+            PersistentStirlingFuelCache.releaseMemory(serverKey);
+        }
+        if (ironFurnacesLoaded) {
+            IronFurnacesRecipeCache.releaseMemory(serverKey);
+        }
     }
 
     private static void onScreenDrawn(ScreenEvent.DrawScreenEvent.Post event) {
@@ -338,6 +417,10 @@ public final class VHAcceleratorClient {
 
     private static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggedOutEvent event) {
         DeferredBlockStateBaking.worldExited();
+        if (jerLoaded
+                && VHAcceleratorClientConfig.VALUES.cacheJerCompatibility.get()) {
+            JerCompatibilityCache.releaseWorldReferences();
+        }
         if (closeConnection(event.getConnection(), "Forge player logout")) {
             ServerLoginTimer.cancelActiveAttempt();
             ServerTransferTimer.cancelActiveAttempt();

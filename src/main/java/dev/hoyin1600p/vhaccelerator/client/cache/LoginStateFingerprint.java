@@ -53,6 +53,8 @@ public final class LoginStateFingerprint {
     private static final Map<String, String> SERVER_CONFIGS =
             new ConcurrentHashMap<>();
 
+    /** Set with the recipe fingerprint: the same digest ignoring result NBT. */
+    private static volatile String structuralRecipePayload;
     private static final TagDependentFingerprint RECIPE_FINGERPRINT =
             new TagDependentFingerprint();
     private static volatile CompletableFuture<String> tagPayloadHash;
@@ -65,6 +67,7 @@ public final class LoginStateFingerprint {
 
     public static void beginConnection() {
         RECIPE_FINGERPRINT.clear();
+        structuralRecipePayload = null;
         tagPayloadHash = null;
         SERVER_CONFIGS.clear();
         refreshLocalConfigs();
@@ -110,46 +113,36 @@ public final class LoginStateFingerprint {
         tagPayloadHash = null;
     }
 
+    /**
+     * Starts the synchronized recipe fingerprint in the background once the
+     * join's tags are applied, so JEI's recipe registration (which needs it
+     * to validate the persistent recipe index) does not compute it on the
+     * render thread.
+     */
+    public static void prefetchRecipeFingerprint() {
+        RECIPE_FINGERPRINT.prefetch();
+    }
+
     private static String canonicalRecipePayload(
             ClientboundUpdateRecipesPacket packet
     ) {
+        long fingerprintStarted = System.nanoTime();
         try {
+            // Recipes are independent; entries keep packet order either way.
             List<CanonicalRecipeSemantics.Entry> semanticEntries =
-                    new ArrayList<>();
-            for (Recipe<?> recipe : packet.getRecipes()) {
-                ResourceLocation serializerId =
-                        Registry.RECIPE_SERIALIZER.getKey(
-                                recipe.getSerializer()
-                        );
-                if (serializerId == null) {
-                    throw new IllegalStateException(
-                            "Recipe serializer is not registered: "
-                                    + recipe.getId()
-                    );
-                }
-                List<List<String>> ingredients = new ArrayList<>();
-                for (Ingredient ingredient : recipe.getIngredients()) {
-                    if (ingredient == null) {
-                        ingredients.add(List.of("null"));
-                        continue;
-                    }
-                    ingredients.add(java.util.Arrays.stream(
-                                    ingredient.getItems()
-                            )
-                            .map(LoginStateFingerprint::stackSemantics)
-                            .toList());
-                }
-                semanticEntries.add(new CanonicalRecipeSemantics.Entry(
-                        recipe.getId().toString(),
-                        serializerId.toString(),
-                        recipe.getClass().getName(),
-                        recipe.isSpecial(),
-                        recipe.getGroup() == null ? "" : recipe.getGroup(),
-                        stackSemantics(recipe.getResultItem()),
-                        ingredients
-                ));
+                    packet.getRecipes().parallelStream()
+                            .map(LoginStateFingerprint::semanticEntry)
+                            .toList();
+            String[] digests = CanonicalRecipeSemantics.digestPair(semanticEntries);
+            structuralRecipePayload = digests[1];
+            if (dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                VHAccelerator.LOGGER.info(
+                        "[debug] Synchronized recipe fingerprint over {} recipes in {} ms",
+                        semanticEntries.size(),
+                        (System.nanoTime() - fingerprintStarted) / 1_000_000L
+                );
             }
-            return CanonicalRecipeSemantics.digest(semanticEntries);
+            return digests[0];
         } catch (RuntimeException | LinkageError failure) {
             VHAccelerator.LOGGER.warn(
                     "Could not build the canonical synchronized recipe "
@@ -158,6 +151,34 @@ public final class LoginStateFingerprint {
             );
             return null;
         }
+    }
+
+    private static CanonicalRecipeSemantics.Entry semanticEntry(Recipe<?> recipe) {
+        ResourceLocation serializerId = Registry.RECIPE_SERIALIZER.getKey(recipe.getSerializer());
+        if (serializerId == null) {
+            throw new IllegalStateException(
+                    "Recipe serializer is not registered: " + recipe.getId()
+            );
+        }
+        List<List<String>> ingredients = new ArrayList<>();
+        for (Ingredient ingredient : recipe.getIngredients()) {
+            if (ingredient == null) {
+                ingredients.add(List.of("null"));
+                continue;
+            }
+            ingredients.add(java.util.Arrays.stream(ingredient.getItems())
+                    .map(LoginStateFingerprint::stackSemantics)
+                    .toList());
+        }
+        return new CanonicalRecipeSemantics.Entry(
+                recipe.getId().toString(),
+                serializerId.toString(),
+                recipe.getClass().getName(),
+                recipe.isSpecial(),
+                recipe.getGroup() == null ? "" : recipe.getGroup(),
+                stackSemantics(recipe.getResultItem()),
+                ingredients
+        );
     }
 
     private static String stackSemantics(ItemStack stack) {
@@ -225,7 +246,12 @@ public final class LoginStateFingerprint {
                             .filter(java.util.Objects::nonNull)
                             .map(Registry.ITEM::getKey)
                             .filter(java.util.Objects::nonNull)
-                            .sorted(Comparator.comparing(Object::toString))
+                            .map(Object::toString)
+                            // A tag is a set; Vault Hunters re-adds its config
+                            // tags' members on every reload, so the synced
+                            // lists gain duplicates from one join to the next.
+                            .distinct()
+                            .sorted()
                             .map(itemId -> "member=" + itemId)
                             .forEach(canonicalInputs::add);
                 });
@@ -301,6 +327,15 @@ public final class LoginStateFingerprint {
                 "tags=" + tags,
                 "server-configs=" + serverConfigs
         );
+        String structural = structuralRecipePayload;
+        List<String> recipeIndexInputs = List.of(
+                "recipe-index-schema=" + RECIPE_SCHEMA_VERSION,
+                "local-code=" + localCode,
+                "local-configs=" + localConfigs,
+                "recipes-without-result-nbt=" + (structural == null ? recipes : structural),
+                "tags=" + tags,
+                "server-configs=" + serverConfigs
+        );
         List<String> recipeInputs = List.of(
                 "recipe-schema=" + RECIPE_SCHEMA_VERSION,
                 "local-code=" + localCode,
@@ -336,9 +371,18 @@ public final class LoginStateFingerprint {
                         localCode,
                         recipes,
                         tags,
-                        serverConfigs
+                        serverConfigs,
+                        digestStrings(recipeIndexInputs)
                 )
         );
+    }
+
+    /** The server key of the current connection, or null if unknown. */
+    public static String currentServerKey() {
+        String serverIdentity = serverIdentity();
+        return serverIdentity == null
+                ? null
+                : digestBytes(serverIdentity.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String serverIdentity() {
@@ -427,6 +471,12 @@ public final class LoginStateFingerprint {
         );
         Path configDirectory = FMLPaths.CONFIGDIR.get();
         for (ModConfig config : configs) {
+            if (VHAccelerator.MOD_ID.equals(config.getModId())) {
+                // VHA's options never change what these caches hold (each cache
+                // is bypassed live when its own option is off), so toggling one
+                // must not force a slow first join.
+                continue;
+            }
             Path path = configDirectory.resolve(config.getFileName()).normalize();
             if (!path.startsWith(configDirectory)
                     || !Files.isRegularFile(path)) {
@@ -457,6 +507,14 @@ public final class LoginStateFingerprint {
                             + contentHash
             );
         }
+        List<String> scripts = LocalScriptInputs.collect(FMLPaths.GAMEDIR.get());
+        if (scripts == null) {
+            VHAccelerator.LOGGER.warn(
+                    "Cannot validate local pack scripts; bypassing persistent login caches"
+            );
+            return null;
+        }
+        inputs.addAll(scripts);
         return digestStrings(inputs);
     }
 
@@ -537,12 +595,17 @@ public final class LoginStateFingerprint {
     ) {
     }
 
+    /**
+     * {@code indexValue} ignores recipe result NBT; only the JEI recipe index
+     * uses it, whose restore re-verifies each cached plan's output.
+     */
     public record RecipeDependencies(
             String value,
             String localCodeHash,
             String recipePayloadHash,
             String tagPayloadHash,
-            String serverConfigHash
+            String serverConfigHash,
+            String indexValue
     ) {
     }
 }

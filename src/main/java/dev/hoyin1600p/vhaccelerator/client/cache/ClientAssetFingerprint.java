@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -214,6 +215,13 @@ public final class ClientAssetFingerprint {
                 resourceFiles,
                 gameDirectory.resolve("resourcepacks")
         );
+        List<String> scripts = LocalScriptInputs.collect(gameDirectory);
+        if (scripts == null) {
+            // Never reuse caches against script resources that were not read.
+            resourceFiles.add("script-inputs-unavailable=" + java.util.UUID.randomUUID());
+        } else {
+            resourceFiles.addAll(scripts);
+        }
         BaseFingerprint fingerprint = new BaseFingerprint(
                 digestStrings(installation),
                 digestStrings(stableConfigs.fingerprintInputs),
@@ -1063,7 +1071,10 @@ public final class ClientAssetFingerprint {
             inputs.add("resourcepack-directory-missing");
             return;
         }
-        try (Stream<Path> paths = Files.walk(directory)) {
+        try (Stream<Path> paths = Files.walk(
+                directory,
+                FileVisitOption.FOLLOW_LINKS
+        )) {
             paths.filter(Files::isRegularFile)
                     .sorted(Comparator.comparing(path ->
                             normalizeRelative(directory, path)))
@@ -1073,8 +1084,10 @@ public final class ClientAssetFingerprint {
                             path,
                             "resourcepack"
                     ));
-        } catch (IOException exception) {
-            inputs.add("resourcepack-directory-read-failed");
+        } catch (IOException | java.io.UncheckedIOException exception) {
+            // Never reuse caches against resource packs that were not read.
+            inputs.add("resourcepack-directory-read-failed="
+                    + java.util.UUID.randomUUID());
         }
     }
 

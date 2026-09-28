@@ -2,10 +2,16 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredTopLevelManifest;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateCacheMissGuard;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.ModelGraphLoader;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.List;
+import net.minecraft.world.level.block.state.BlockState;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -45,7 +51,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(ModelBakery.class)
 public abstract class ModelBakeryDeferredItemMixin
-        implements DeferredItemModelOwner, DeferredItemModelBaking.TopLevelOwner {
+        implements DeferredItemModelOwner, DeferredItemModelBaking.TopLevelOwner,
+        BlockGraphOwner, BlockGraphSkipSession.GroupSink {
     @Shadow
     @Final
     @Mutable
@@ -90,6 +97,53 @@ public abstract class ModelBakeryDeferredItemMixin
     @Unique
     private DeferredItemModelBaking.TopLevelSession vhaccelerator$topLevel;
 
+    /** Warm block-state graph skipping; null when inactive. */
+    @Unique
+    private BlockGraphSkipSession vhaccelerator$blockGraphs;
+
+    /** Set once skipped block graphs may load on first use from any thread. */
+    @Unique
+    private volatile boolean vhaccelerator$serializeLoads;
+
+    @Shadow
+    @Final
+    private Object2IntMap<BlockState> modelGroups;
+
+    @Shadow
+    private void registerModelGroup(Iterable<BlockState> states) {
+        throw new AssertionError("Mixin shadow was not transformed");
+    }
+
+    /**
+     * Skipped blocks' model groups are restored before atlas stitching, and
+     * the model manager shares this map with render-thread chunk checks, so a
+     * post-launch graph load must not re-register (and possibly resize) it.
+     */
+    @Inject(method = "registerModelGroup", at = @At("HEAD"), cancellable = true)
+    private void vhaccelerator$keepRestoredModelGroups(
+            Iterable<BlockState> states,
+            CallbackInfo callback
+    ) {
+        if (vhaccelerator$serializeLoads) {
+            callback.cancel();
+        }
+    }
+
+    @Override
+    public BlockGraphSkipSession vhaccelerator$blockGraphSession() {
+        return vhaccelerator$blockGraphs;
+    }
+
+    @Override
+    public void vhaccelerator$setModelGroup(BlockState state, int group) {
+        modelGroups.put(state, group);
+    }
+
+    @Override
+    public void vhaccelerator$registerModelGroup(List<BlockState> states) {
+        registerModelGroup(states);
+    }
+
     @Override
     public DeferredItemModelBaking.TopLevelSession
             vhaccelerator$topLevelSession() {
@@ -118,6 +172,15 @@ public abstract class ModelBakeryDeferredItemMixin
                     failure
             );
         }
+        vhaccelerator$blockGraphs = null;
+        try {
+            vhaccelerator$blockGraphs = BlockGraphSkipSession.begin(resourceManager);
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not start warm block-state graph skipping; loading every block eagerly",
+                    failure
+            );
+        }
     }
 
     /** Skips only certified inventory keys on a validated warm launch. */
@@ -131,6 +194,31 @@ public abstract class ModelBakeryDeferredItemMixin
         if (session != null
                 && session.skip(location, topLevelModels, unbakedCache)) {
             callback.cancel();
+            return;
+        }
+        BlockGraphSkipSession blocks = vhaccelerator$blockGraphs;
+        if (blocks != null && blocks.skip(location, topLevelModels, unbakedCache)) {
+            callback.cancel();
+        }
+    }
+
+    @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
+    private void vhaccelerator$recordBlockGraphs(
+            ProfilerFiller profiler,
+            int mipLevel,
+            CallbackInfo callback
+    ) {
+        BlockGraphSkipSession blocks = vhaccelerator$blockGraphs;
+        if (blocks == null) {
+            return;
+        }
+        try {
+            blocks.recordIfCold(topLevelModels, unbakedCache, this::getModel, modelGroups);
+        } catch (RuntimeException | LinkageError failure) {
+            VHAccelerator.LOGGER.warn(
+                    "Could not certify block-state graphs; the next launch loads them eagerly",
+                    failure
+            );
         }
     }
 
@@ -184,13 +272,22 @@ public abstract class ModelBakeryDeferredItemMixin
     @Inject(
             method = "getModel(Lnet/minecraft/resources/ResourceLocation;)"
                     + "Lnet/minecraft/client/resources/model/UnbakedModel;",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void vhaccelerator$guardDeferredCacheMiss(
             ResourceLocation location,
             CallbackInfoReturnable<UnbakedModel> callback
     ) {
         DeferredBlockStateCacheMissGuard.check(this, unbakedCache, location);
+        if (vhaccelerator$serializeLoads
+                && location != null
+                && !unbakedCache.containsKey(location)
+                && !ModelGraphLoader.isLoaderThread()) {
+            // Post-launch loads mutate unsynchronized bakery state; run them
+            // one at a time on the loader thread. Cache hits stay lock-free.
+            callback.setReturnValue(ModelGraphLoader.call(() -> getModel(location)));
+        }
     }
 
     @Override
@@ -201,14 +298,20 @@ public abstract class ModelBakeryDeferredItemMixin
         }
         Set<ResourceLocation> items = vhaccelerator$selectDeferredItems();
         Set<ResourceLocation> blocks = Collections.emptySet();
+        BlockGraphSkipSession graphs = vhaccelerator$blockGraphs;
         try {
             if (DeferredBlockStateBaking.activeForThisBake()) {
-                blocks = Collections.unmodifiableSet(
-                        DeferredBlockStateBaking.select(
+                Set<ResourceLocation> selected = new LinkedHashSet<>(
+                        DeferredBlockStateBaking.selectForDeferral(
                                 topLevelModels,
                                 unbakedCache
                         )
                 );
+                if (graphs != null && graphs.materialsAdded()) {
+                    // Skipped keys stay present as deferred registry keys.
+                    selected.addAll(graphs.skippedKeys());
+                }
+                blocks = Collections.unmodifiableSet(selected);
             }
         } catch (RuntimeException | LinkageError failure) {
             blocks = Collections.emptySet();
@@ -217,6 +320,12 @@ public abstract class ModelBakeryDeferredItemMixin
                             + "them eagerly",
                     failure
             );
+        }
+        if (graphs != null && !graphs.skippedKeys().isEmpty()
+                && (blocks.isEmpty() || !graphs.materialsAdded())) {
+            // Never leave a skipped key absent: load it for the eager bake.
+            graphs.restoreEagerly(topLevelModels, this::getModel);
+            blocks = Collections.emptySet();
         }
         vhaccelerator$deferredBlockStates = blocks;
         if (blocks.isEmpty()) {
@@ -230,6 +339,15 @@ public abstract class ModelBakeryDeferredItemMixin
         }
         vhaccelerator$deferredAll = all;
         return all;
+    }
+
+    @Override
+    public void vhaccelerator$releaseSelections() {
+        // The installed registries hold their own key sets. Non-null empties
+        // keep vhaccelerator$deferredItemModels() from selecting again.
+        vhaccelerator$deferredAll = Collections.emptySet();
+        vhaccelerator$deferredBlockStates = Collections.emptySet();
+        vhaccelerator$deferredItems = Collections.emptySet();
     }
 
     @Unique
@@ -248,7 +366,7 @@ public abstract class ModelBakeryDeferredItemMixin
             if ((skipped.isEmpty() || session.materialsAdded())
                     && DeferredItemModelBaking.activeForThisBake()) {
                 Set<ResourceLocation> combined = new LinkedHashSet<>(
-                        DeferredItemModelBaking.select(
+                        DeferredItemModelBaking.selectForDeferral(
                                 topLevelModels,
                                 unbakedCache
                         )
@@ -300,15 +418,33 @@ public abstract class ModelBakeryDeferredItemMixin
             bakedCache = DeferredBlockStateBaking.concurrentCopy(bakedCache);
             unbakedCache = DeferredBlockStateBaking.concurrentCopy(unbakedCache);
             DeferredBlockStateBaking.recordCacheCopy(System.nanoTime() - copyStarted);
+            BlockGraphSkipSession graphs = vhaccelerator$blockGraphs;
+            boolean skippedGraphs = graphs != null && !graphs.skippedKeys().isEmpty();
             bakedTopLevelModels = DeferredBlockStateBaking.install(
                     bakedTopLevelModels,
                     blocks,
-                    location -> DeferredBlockStateCacheMissGuard.bake(
-                            this,
-                            location,
-                            key -> bake(key, BlockModelRotation.X0_Y0)
-                    )
+                    location -> skippedGraphs && graphs.needsGraph(location)
+                            ? graphs.loadAndBake(
+                                    location,
+                                    this::getModel,
+                                    unbakedCache,
+                                    key -> DeferredBlockStateCacheMissGuard.bake(
+                                            this,
+                                            key,
+                                            guarded -> bake(guarded, BlockModelRotation.X0_Y0)
+                                    )
+                            )
+                            : DeferredBlockStateCacheMissGuard.bake(
+                                    this,
+                                    location,
+                                    key -> bake(key, BlockModelRotation.X0_Y0)
+                            )
             );
+            vhaccelerator$serializeLoads = skippedGraphs;
+            if (skippedGraphs) {
+                graphs.activate();
+                graphs.releaseSkippedKeys();
+            }
         }
         Set<ResourceLocation> deferred = vhaccelerator$deferredItems;
         if (deferred == null || deferred.isEmpty()) {

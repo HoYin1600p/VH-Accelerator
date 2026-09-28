@@ -43,8 +43,8 @@ public final class ParallelModelJsonParser {
 
         runBatched(entries, entry -> {
             ResourceLocation resourceLocation = entry.getKey();
-            if (BUILDSCAPE_NAMESPACE.equals(
-                    resourceLocation.getNamespace()
+            if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(
+                    resourceLocation
             )) {
                 buildscapeModels.incrementAndGet();
                 return;

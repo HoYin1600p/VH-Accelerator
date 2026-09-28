@@ -49,6 +49,11 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
         void baked(K key, long nanos, boolean failed, Throwable failure);
     }
 
+    /** Creates a stand-in for a deferred key that resolves through {@code resolver}. */
+    public interface ProxyFactory<K, V> {
+        V create(K key, java.util.function.Supplier<V> resolver);
+    }
+
     private final ReentrantReadWriteLock structure = new ReentrantReadWriteLock();
     private final Lock readLock = structure.readLock();
     private final Lock writeLock = structure.writeLock();
@@ -70,6 +75,10 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
     private final AtomicInteger failedBakes = new AtomicInteger();
     private final AtomicInteger retiredLookups = new AtomicInteger();
     private final AtomicInteger sharedWaits = new AtomicInteger();
+    /** Stand-ins handed out while {@link #proxyFactory} is set; see beginProxies. */
+    private final ConcurrentHashMap<K, V> proxies = new ConcurrentHashMap<>();
+    private volatile ProxyFactory<K, V> proxyFactory;
+    private volatile java.util.function.Predicate<Object> proxyAllowed;
 
     public ConcurrentDeferredModelRegistry(
             Map<K, V> eager,
@@ -152,7 +161,94 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
             // Reentrant lookup while this thread bakes it: absent, as vanilla.
             return absent;
         }
+        if (proxying(key)) {
+            return proxyFor((K) key);
+        }
         return bakeShared((K) key);
+    }
+
+    /**
+     * While set, lookups of unbaked deferred keys that {@code allowed} accepts
+     * return a stand-in instead of baking, puts record the new value and
+     * return the stand-in as the previous one, and removes return it. Used
+     * only while mods' model-bake-event handlers run, most of which just wrap
+     * the model they read.
+     */
+    public void beginProxies(ProxyFactory<K, V> factory, java.util.function.Predicate<Object> allowed) {
+        proxyAllowed = allowed;
+        proxyFactory = factory;
+    }
+
+    /** Stops handing out stand-ins; returns how many were created. */
+    public int endProxies() {
+        proxyFactory = null;
+        int created = proxies.size();
+        proxies.clear();
+        return created;
+    }
+
+    private boolean proxying(Object key) {
+        java.util.function.Predicate<Object> allowed = proxyAllowed;
+        return proxyFactory != null && allowed != null && allowed.test(key);
+    }
+
+    private V proxyFor(K key) {
+        ProxyFactory<K, V> factory = proxyFactory;
+        V existing = proxies.get(key);
+        if (existing != null || factory == null) {
+            return existing != null ? existing : bakeShared(key);
+        }
+        return proxies.computeIfAbsent(key, k -> factory.create(k, () -> resolveProxy(k)));
+    }
+
+    /**
+     * A stand-in's model: the shared, published bake while the key is still
+     * plain deferred, otherwise (a handler replaced it) a private bake of the
+     * key's own model that never overwrites the handler's value.
+     */
+    private V resolveProxy(K key) {
+        readLock.lock();
+        boolean shared;
+        try {
+            shared = deferred.contains(key) && !resolved.containsKey(key) && !eager.containsKey(key);
+        } finally {
+            readLock.unlock();
+        }
+        return shared ? bakeShared(key) : bakeUnpublished(key);
+    }
+
+    private V bakeUnpublished(K key) {
+        gate.readLock().lock();
+        try {
+            Function<? super K, ? extends V> activeBaker = baker;
+            if (activeBaker == null) {
+                retiredLookups.incrementAndGet();
+                return fallback;
+            }
+            Set<Object> here = bakingHere.get();
+            here.add(key);
+            Throwable failure = null;
+            long started = System.nanoTime();
+            V value = null;
+            try {
+                value = activeBaker.apply(key);
+            } catch (RuntimeException | LinkageError bakeFailure) {
+                failure = bakeFailure;
+            } finally {
+                here.remove(key);
+            }
+            boolean failed = value == null;
+            if (failed) {
+                failedBakes.incrementAndGet();
+                value = fallback;
+            } else {
+                bakedOnDemand.incrementAndGet();
+            }
+            listener.baked(key, System.nanoTime() - started, failed, failure);
+            return value;
+        } finally {
+            gate.readLock().unlock();
+        }
     }
 
     /** Bakes {@code key} once; other threads asking for it wait. */
@@ -267,6 +363,22 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
 
     @Override
     public V put(K key, V value) {
+        if (proxying(key)) {
+            writeLock.lock();
+            try {
+                if (needsBake(key)) {
+                    V proxy = proxies.get(key);
+                    if (proxy != null && value == proxy) {
+                        // Putting the stand-in back keeps the key deferred.
+                        return proxy;
+                    }
+                    resolved.put(key, value);
+                    return proxy != null ? proxy : proxyFor(key);
+                }
+            } finally {
+                writeLock.unlock();
+            }
+        }
         while (true) {
             writeLock.lock();
             try {
@@ -305,7 +417,20 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public V remove(Object key) {
+        if (proxying(key)) {
+            writeLock.lock();
+            try {
+                if (needsBake(key) && !bakingHere.get().contains(key)) {
+                    V previous = proxyFor((K) key);
+                    removeDeferred(key);
+                    return previous;
+                }
+            } finally {
+                writeLock.unlock();
+            }
+        }
         while (true) {
             writeLock.lock();
             try {

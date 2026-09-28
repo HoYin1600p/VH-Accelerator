@@ -56,14 +56,23 @@ import net.minecraftforge.client.ItemModelMesherForge;
  * {@code ModelManager#apply}, before the atlases it bakes against close.
  */
 public final class DeferredItemModelBaking {
+    // EveryCompat's generated item models are plain JSON like any other;
+    // BuildScape's are eligible only while VHA bakes them
+    // (BuildScapeModelOwnership).
+    // Vault Hunters reads only its gear items' inventory models during the
+    // bake event (ModDynamicModels wraps them); its block states and other
+    // items are plain and read only by renderers, so they defer like any other.
     private static final Set<String> EAGER_NAMESPACES = Set.of(
-            "the_vault",
-            "everycomp",
-            "buildscape",
             "ctm"
     );
 
     private static volatile DeferredModelRegistry<ResourceLocation, BakedModel> current;
+
+    /** Debug: on-demand bakes so far in the live registry, or -1 without one. */
+    public static int bakedOnDemandNow() {
+        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        return registry == null ? -1 : registry.bakedOnDemand();
+    }
     /** Debug diagnostics for {@link #current}; null whenever debug is off. */
     private static volatile DeferredItemModelDiagnostics diagnostics;
     /** Warm stage of {@link #current}; null when every graph loaded. */
@@ -77,6 +86,12 @@ public final class DeferredItemModelBaking {
     private static Field modelsField;
     private static boolean itemCacheReflectionFailed;
 
+    /** Whether {@code location} is a deferred item model not yet baked. */
+    public static boolean isUnresolved(ResourceLocation location) {
+        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        return registry != null && registry.isUnresolvedDeferred(location);
+    }
+
     private DeferredItemModelBaking() {
     }
 
@@ -88,8 +103,9 @@ public final class DeferredItemModelBaking {
                 )) {
             return false;
         }
-        if (!DeferredModelCompatibility.allowsDeferral()) {
-            // CTM reads every registry value during the bake event.
+        if (!DeferredModelCompatibility.allowsBlockStateDeferral()) {
+            // CTM reads every registry value during the bake event unless
+            // VHA's exact-version CTM pass replaces it.
             return false;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -119,6 +135,25 @@ public final class DeferredItemModelBaking {
             Map<ResourceLocation, UnbakedModel> topLevelModels,
             Map<ResourceLocation, UnbakedModel> unbakedCache
     ) {
+        return select(topLevelModels, unbakedCache, false);
+    }
+
+    /** As {@link #select}, also deferring verified custom geometry (see DeferrableGeometry). */
+    public static Set<ResourceLocation> selectForDeferral(
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache
+    ) {
+        return select(topLevelModels, unbakedCache, true);
+    }
+
+    private static final ResourceLocation GENERATED_MARKER =
+            new ResourceLocation("minecraft", "builtin/generated");
+
+    private static Set<ResourceLocation> select(
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache,
+            boolean allowDeferrableGeometry
+    ) {
         UnbakedModel missing =
                 unbakedCache.get(ModelBakery.MISSING_MODEL_LOCATION);
         return DeferredItemModelSelector.select(
@@ -127,10 +162,16 @@ public final class DeferredItemModelBaking {
                 new DeferredItemModelSelector.Graph<ResourceLocation, UnbakedModel>() {
                     @Override
                     public UnbakedModel cached(ResourceLocation location) {
-                        // Builtin generated/entity markers stay eager.
-                        return location.getPath().startsWith("builtin/")
-                                ? null
-                                : unbakedCache.get(location);
+                        // Block-entity markers stay eager. Sprite-generated
+                        // items defer their bake (never graph skipping): the
+                        // bakery generates their quads from the stitched
+                        // sprites, which the atlas keeps until the next reload.
+                        if (location.getPath().startsWith("builtin/")) {
+                            return allowDeferrableGeometry && GENERATED_MARKER.equals(location)
+                                    ? unbakedCache.get(location)
+                                    : null;
+                        }
+                        return unbakedCache.get(location);
                     }
 
                     @Override
@@ -142,10 +183,12 @@ public final class DeferredItemModelBaking {
 
                     @Override
                     public boolean isPlain(UnbakedModel node) {
-                        return node != missing
-                                && node.getClass() == BlockModel.class
-                                && !((BlockModel) node).customData
-                                        .hasCustomGeometry();
+                        if (node == missing || node.getClass() != BlockModel.class) {
+                            return false;
+                        }
+                        BlockModel model = (BlockModel) node;
+                        return !model.customData.hasCustomGeometry()
+                                || allowDeferrableGeometry && DeferrableGeometry.allows(model);
                     }
                 }
         );
@@ -157,6 +200,10 @@ public final class DeferredItemModelBaking {
             return false;
         }
         String namespace = location.getNamespace();
+        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.NAMESPACE.equals(namespace)
+                && !dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.vhaBakes()) {
+            return false;
+        }
         return !EAGER_NAMESPACES.contains(namespace)
                 && !namespace.startsWith("sophisticated");
     }
@@ -761,6 +808,11 @@ public final class DeferredItemModelBaking {
                 try {
                     for (Material material : topLevelModels.get(location)
                             .getMaterials(getter, new HashSet<>())) {
+                        if (dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer.textureUsesCtm(material.texture())) {
+                            // CTM wraps it in the bake event, which needs its graph.
+                            ids = null;
+                            break;
+                        }
                         ids.add(new PersistentDeferredTopLevelManifest
                                 .MaterialId(
                                         material.atlasLocation().toString(),

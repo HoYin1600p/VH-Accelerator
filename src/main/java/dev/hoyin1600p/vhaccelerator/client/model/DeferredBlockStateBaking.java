@@ -59,10 +59,15 @@ import net.minecraft.world.level.block.state.BlockState;
  * start of the next {@code ModelManager#apply}, before its atlases close.
  */
 public final class DeferredBlockStateBaking {
+    // EveryCompat's generated block-state models are plain JSON once its
+    // runtime pack is loaded, and its inputs (mod jars, configs) are covered by
+    // the client asset fingerprint, so they defer and skip like any other.
+    // BuildScape's are eligible only while VHA, not BuildScape's own launch
+    // optimizations, bakes them (BuildScapeModelOwnership).
+    // Vault Hunters reads only its gear items' inventory models during the
+    // bake event (ModDynamicModels wraps them); its block states and other
+    // items are plain and read only by renderers, so they defer like any other.
     private static final Set<String> EAGER_NAMESPACES = Set.of(
-            "the_vault",
-            "everycomp",
-            "buildscape",
             "ctm"
     );
     private static final int MAX_FIRST_USE_LOGS = 32;
@@ -93,6 +98,43 @@ public final class DeferredBlockStateBaking {
     }
 
     /** Evaluated on the client thread inside {@code uploadTextures}. */
+    /**
+     * Before mods' model-bake-event handlers run: deferred block-state keys
+     * they read become stand-ins that bake on first use. FramedBlocks' model
+     * wrapper inspects the concrete model type, so its keys stay real.
+     */
+    public static void beginBakeEventProxies() {
+        ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        if (registry == null
+                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.optimizationsEnabled()
+                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.launchValue(
+                        dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.VALUES.lazyBakeEventModels)) {
+            return;
+        }
+        BakeEventProxies.setDispatching(true);
+        registry.beginProxies(
+                (key, resolver) -> new DeferredBakedModelProxy(resolver),
+                key -> BakeEventProxies.enabled()
+                        && key instanceof ResourceLocation location
+                        && !PROXY_EXCLUDED_NAMESPACES.contains(location.getNamespace())
+        );
+    }
+
+    /** Returns how many stand-ins handlers received, or -1 if none were offered. */
+    public static int endBakeEventProxies() {
+        BakeEventProxies.setDispatching(false);
+        ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        return registry == null ? -1 : registry.endProxies();
+    }
+
+    private static final Set<String> PROXY_EXCLUDED_NAMESPACES = Set.of("framedblocks");
+
+    /** Debug: on-demand bakes so far in the live registry, or -1 without one. */
+    public static int bakedOnDemandNow() {
+        ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        return registry == null ? -1 : registry.bakedOnDemand();
+    }
+
     public static boolean activeForThisBake() {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || VHAcceleratorConfig.compareModeEnabled()
@@ -101,7 +143,7 @@ public final class DeferredBlockStateBaking {
                 )) {
             return false;
         }
-        if (!DeferredModelCompatibility.allowsDeferral()) {
+        if (!DeferredModelCompatibility.allowsBlockStateDeferral()) {
             // CTM reads every value in the bake event. The mixin plugin
             // separately excludes this bakery path when ModernFix's own
             // dynamic-resource provider is active or cannot be verified off.
@@ -111,30 +153,54 @@ public final class DeferredBlockStateBaking {
         return minecraft != null && minecraft.level == null;
     }
 
+    /** Whether {@code location} is a deferred block-state model not yet baked. */
+    public static boolean isUnresolved(ResourceLocation location) {
+        ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        return registry != null && !registry.isRetired() && registry.isUnresolvedDeferred(location);
+    }
+
     static boolean eligibleKey(ResourceLocation location) {
         if (!(location instanceof ModelResourceLocation model)
                 || "inventory".equals(model.getVariant())) {
             return false;
         }
         String namespace = location.getNamespace();
+        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.NAMESPACE.equals(namespace)
+                && !dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.vhaBakes()) {
+            return false;
+        }
         return !EAGER_NAMESPACES.contains(namespace)
                 && !namespace.startsWith("sophisticated");
     }
 
     /** Certified plain block-state keys; cache-only, never loads a model. */
+    /** As {@link #select}, also deferring verified custom geometry (see DeferrableGeometry). */
+    public static Set<ResourceLocation> selectForDeferral(
+            Map<ResourceLocation, UnbakedModel> topLevelModels,
+            Map<ResourceLocation, UnbakedModel> unbakedCache
+    ) {
+        long started = System.nanoTime();
+        try {
+            return selectCertified(true, topLevelModels, unbakedCache);
+        } finally {
+            selectNanos = System.nanoTime() - started;
+        }
+    }
+
     public static Set<ResourceLocation> select(
             Map<ResourceLocation, UnbakedModel> topLevelModels,
             Map<ResourceLocation, UnbakedModel> unbakedCache
     ) {
         long started = System.nanoTime();
         try {
-            return selectCertified(topLevelModels, unbakedCache);
+            return selectCertified(false, topLevelModels, unbakedCache);
         } finally {
             selectNanos = System.nanoTime() - started;
         }
     }
 
     private static Set<ResourceLocation> selectCertified(
+            boolean allowDeferrableGeometry,
             Map<ResourceLocation, UnbakedModel> topLevelModels,
             Map<ResourceLocation, UnbakedModel> unbakedCache
     ) {
@@ -161,7 +227,7 @@ public final class DeferredBlockStateBaking {
 
                     @Override
                     public boolean isPlain(UnbakedModel node) {
-                        return plainNode(node, missing);
+                        return plainNode(node, missing, allowDeferrableGeometry);
                     }
                 }
         );
@@ -190,7 +256,7 @@ public final class DeferredBlockStateBaking {
                         ),
                         VHAcceleratorClientConfig::optimizationsEnabled,
                         VHAcceleratorConfig::compareModeEnabled,
-                        DeferredModelCompatibility::allowsDeferral
+                        DeferredModelCompatibility::allowsBlockStateDeferral
                 )
                 || resourceManager == null
                 || bakery == null
@@ -269,7 +335,7 @@ public final class DeferredBlockStateBaking {
     ) {
         List<ResourceLocation> keys = new ArrayList<>();
         for (ResourceLocation location
-                : selectCertified(topLevelModels, unbakedCache)) {
+                : selectCertified(false, topLevelModels, unbakedCache)) {
             if ("minecraft".equals(location.getNamespace())) {
                 keys.add(location);
             }
@@ -351,6 +417,15 @@ public final class DeferredBlockStateBaking {
     }
 
     static boolean plainNode(UnbakedModel node, UnbakedModel missing) {
+        return plainNode(node, missing, false);
+    }
+
+    /**
+     * {@code allowDeferrableGeometry} also accepts custom geometry verified in
+     * {@link DeferrableGeometry}; only bake deferral may pass true, never graph
+     * skipping or manifest certification.
+     */
+    static boolean plainNode(UnbakedModel node, UnbakedModel missing, boolean allowDeferrableGeometry) {
         if (node == null || node == missing) {
             return false;
         }
@@ -363,7 +438,8 @@ public final class DeferredBlockStateBaking {
         }
         BlockModel model = (BlockModel) node;
         // An unbound parent would be resolved, mutating the graph, during bake.
-        return !model.customData.hasCustomGeometry()
+        return (!model.customData.hasCustomGeometry()
+                        || allowDeferrableGeometry && DeferrableGeometry.allows(model))
                 && (model.getParentLocation() == null || model.parent != null);
     }
 
@@ -372,11 +448,24 @@ public final class DeferredBlockStateBaking {
      * null-key probes; a null value removes the key.
      */
     public static <K, V> Map<K, V> concurrentCopy(Map<K, V> source) {
+        return concurrentCopy(source, source.size());
+    }
+
+    /**
+     * As {@link #concurrentCopy(Map)}, pre-sized for at least
+     * {@code expectedSize} entries.
+     */
+    public static <K, V> Map<K, V> concurrentCopy(
+            Map<K, V> source,
+            int expectedSize
+    ) {
         if (source instanceof NullTolerantConcurrentMap<K, V> already) {
             return already;
         }
         NullTolerantConcurrentMap<K, V> copy =
-                new NullTolerantConcurrentMap<>(Math.max(16, source.size()));
+                new NullTolerantConcurrentMap<>(
+                        Math.max(16, Math.max(expectedSize, source.size()))
+                );
         source.forEach((key, value) -> {
             if (key != null && value != null) {
                 copy.put(key, value);
@@ -628,6 +717,20 @@ public final class DeferredBlockStateBaking {
         @Override
         public V remove(Object key) {
             return key == null ? null : super.remove(key);
+        }
+
+        @Override
+        public V putIfAbsent(K key, V value) {
+            if (key == null) {
+                return null;
+            }
+            return value == null ? super.get(key) : super.putIfAbsent(key, value);
+        }
+
+        @Override
+        public void putAll(Map<? extends K, ? extends V> source) {
+            // ConcurrentHashMap#putAll bypasses put and rejects nulls.
+            source.forEach(this::put);
         }
     }
 }

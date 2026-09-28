@@ -8,10 +8,12 @@ import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
 import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
+import dev.hoyin1600p.vhaccelerator.client.model.MaterialMemoHolder;
 import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -69,6 +71,11 @@ public abstract class ModelBakeryMixin {
     @Shadow
     @Final
     private Map<ResourceLocation, UnbakedModel> topLevelModels;
+
+    @Shadow
+    @Final
+    @Mutable
+    private Map<ResourceLocation, UnbakedModel> unbakedCache;
 
     @Shadow
     public abstract UnbakedModel getModel(ResourceLocation location);
@@ -156,7 +163,10 @@ public abstract class ModelBakeryMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
-        if ("buildscape".equals(location.getNamespace())) {
+        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(location)
+                || location.getPath().startsWith("builtin/")) {
+            // Vanilla resolves builtin markers first; a pack JSON at that
+            // path must never replace them.
             return;
         }
         Map<ResourceLocation, BlockModel> parsed =
@@ -170,7 +180,7 @@ public abstract class ModelBakeryMixin {
         }
 
         Map<ResourceLocation, String> cache = vhaccelerator$modelJsonCache;
-        if (cache == null || location.getPath().startsWith("builtin/")) {
+        if (cache == null) {
             return;
         }
 
@@ -215,6 +225,7 @@ public abstract class ModelBakeryMixin {
         vhaccelerator$persistentModelCacheSession = null;
         vhaccelerator$modelJsonCache = null;
         vhaccelerator$parsedModelCache = null;
+        MaterialMemoHolder.releaseAll(unbakedCache);
     }
 
     @Unique
@@ -279,14 +290,42 @@ public abstract class ModelBakeryMixin {
                 new ConcurrentHashMap<>();
         List<Map.Entry<?, ?>> entries = new ArrayList<>(groupedMaterials.entrySet());
 
+        // Mods' TextureStitchEvent.Pre listeners expect one thread: fire every
+        // event here first, in vanilla's order, and prepare in parallel after.
+        boolean serializeEvents = VHAcceleratorClientConfig.launchValue(
+                VHAcceleratorClientConfig.VALUES.serializeAtlasStitchEvents, true);
+        Map<ResourceLocation, TextureAtlas> atlases = new java.util.HashMap<>();
+        Map<ResourceLocation, java.util.Set<ResourceLocation>> textureSets = new java.util.HashMap<>();
+        if (serializeEvents) {
+            for (Map.Entry<?, ?> rawEntry : entries) {
+                ResourceLocation atlasLocation = (ResourceLocation) rawEntry.getKey();
+                @SuppressWarnings("unchecked")
+                List<Material> materials = (List<Material>) rawEntry.getValue();
+                TextureAtlas atlas = new TextureAtlas(atlasLocation);
+                java.util.Set<ResourceLocation> textures = new java.util.HashSet<>();
+                for (Material material : materials) {
+                    textures.add(java.util.Objects.requireNonNull(
+                            material.texture(), "Location cannot be null!"));
+                }
+                net.minecraftforge.client.ForgeHooksClient.onTextureStitchedPre(atlas, textures);
+                dev.hoyin1600p.vhaccelerator.client.model.AtlasStitchEvents.markPrefired(atlas);
+                atlases.put(atlasLocation, atlas);
+                textureSets.put(atlasLocation, textures);
+            }
+        }
+
         vhaccelerator$runBatched(entries, rawEntry -> {
             ResourceLocation atlasLocation = (ResourceLocation) rawEntry.getKey();
             @SuppressWarnings("unchecked")
             List<Material> materials = (List<Material>) rawEntry.getValue();
-            TextureAtlas atlas = new TextureAtlas(atlasLocation);
+            TextureAtlas atlas = serializeEvents
+                    ? atlases.get(atlasLocation)
+                    : new TextureAtlas(atlasLocation);
             TextureAtlas.Preparations preparations = atlas.prepareToStitch(
                     resourceManager,
-                    materials.stream().map(Material::texture),
+                    serializeEvents
+                            ? textureSets.get(atlasLocation).stream()
+                            : materials.stream().map(Material::texture),
                     InactiveProfiler.INSTANCE,
                     vhaccelerator$currentMipLevel
             );
@@ -328,10 +367,11 @@ public abstract class ModelBakeryMixin {
         Map<Object, BakedModel> previousBakedCache =
                 (Map<Object, BakedModel>) (Map<?, ?>) bakedCache;
         Map<Object, BakedModel> replacementBakedCache =
-                new ConcurrentHashMap<>(
-                        Math.max(16, models.size())
+                // Vanilla caches null bakes; a plain concurrent map would throw.
+                DeferredBlockStateBaking.concurrentCopy(
+                        previousBakedCache,
+                        models.size()
                 );
-        replacementBakedCache.putAll(previousBakedCache);
         bakedCache = replacementBakedCache;
         List<ResourceLocation> locations = new ArrayList<>(models.keySet());
         locations.removeAll(vhaccelerator$sequentialModels);

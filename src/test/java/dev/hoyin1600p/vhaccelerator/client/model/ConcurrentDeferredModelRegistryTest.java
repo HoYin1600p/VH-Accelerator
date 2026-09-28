@@ -416,10 +416,13 @@ class ConcurrentDeferredModelRegistryTest {
     @Test void onlyUnprotectedBlockStateKeysAreEligible() {
         assertTrue(DeferredBlockStateBaking.eligibleKey(mrl("minecraft", "stone", "")));
         assertTrue(DeferredBlockStateBaking.eligibleKey(mrl("create", "shaft", "axis=y")));
+        assertTrue(DeferredBlockStateBaking.eligibleKey(
+                mrl("everycomp", "cfm/buildscape/poplar_table", "")));
         assertFalse(DeferredBlockStateBaking.eligibleKey(mrl("minecraft", "stone", "inventory")));
         assertFalse(DeferredBlockStateBaking.eligibleKey(
                 new net.minecraft.resources.ResourceLocation("minecraft", "block/stone")));
-        for (String namespace : List.of("the_vault", "everycomp", "buildscape", "ctm",
+        assertTrue(DeferredBlockStateBaking.eligibleKey(mrl("the_vault", "vault_stone", "")));
+        for (String namespace : List.of("buildscape", "ctm",
                 "sophisticatedbackpacks", "sophisticatedstorage")) {
             assertFalse(DeferredBlockStateBaking.eligibleKey(mrl(namespace, "thing", "")), namespace);
         }
@@ -442,5 +445,24 @@ class ConcurrentDeferredModelRegistryTest {
         assertFalse(copy.containsKey("b"));
         assertNull(copy.put("c", null));
         assertSame(copy, DeferredBlockStateBaking.concurrentCopy(copy));
+    }
+
+    @Test
+    void concurrentCopyAcceptsNullBakesFromParallelWorkers() {
+        Map<String, String> source = new HashMap<>();
+        source.put("empty-variant", null);
+        source.put("a", "1");
+        Map<String, String> copy = DeferredBlockStateBaking.concurrentCopy(source, 64);
+        // Vanilla ModelBakery#bake stores a null model for empty variants.
+        assertDoesNotThrow(() -> copy.put("b", null));
+        assertNull(copy.putIfAbsent("c", null));
+        assertFalse(copy.containsKey("c"));
+        Map<String, String> batch = new HashMap<>();
+        batch.put("d", null);
+        batch.put("e", "5");
+        assertDoesNotThrow(() -> copy.putAll(batch));
+        assertEquals("5", copy.get("e"));
+        assertEquals("1", copy.get("a"));
+        assertEquals("1", copy.putIfAbsent("a", "2"));
     }
 }

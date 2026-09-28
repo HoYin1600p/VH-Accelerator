@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces;
 
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -36,22 +38,77 @@ final class PersistentFuelCache {
             .resolve("iron-furnaces-fuels");
 
     private static volatile CompletableFuture<Map<String, CachedFuelList>> preload;
+    private static boolean released;
+    private static String retainedServerKey;
 
     private PersistentFuelCache() {
     }
 
     static void prewarm() {
-        if (preload != null) {
-            return;
+        loaded();
+    }
+
+    private static CompletableFuture<Map<String, CachedFuelList>> loaded() {
+        CompletableFuture<Map<String, CachedFuelList>> current = preload;
+        if (current != null) {
+            return current;
         }
         synchronized (PersistentFuelCache.class) {
             if (preload == null) {
+                if (released && VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                    VHAccelerator.LOGGER.info(
+                            "[debug] Rereading released {} files from disk",
+                            "PersistentFuelCache"
+                    );
+                }
+                released = false;
                 preload = CompletableFuture.supplyAsync(
                         PersistentFuelCache::loadAll,
                         SharedWorkers.io()
                 );
             }
+            return preload;
         }
+    }
+
+    /**
+     * Once the client has consumed this cache, keeps only
+     * {@code keepServerKey}'s entries in memory, so a reconnect or proxy
+     * backend switch to the same address never rereads them, and releases
+     * every other server's data. With no key, or before the preload has
+     * finished, everything is released. Cache files always stay on disk.
+     */
+    public static synchronized void releaseMemory(String keepServerKey) {
+        CompletableFuture<Map<String, CachedFuelList>> current = preload;
+        if (current == null) {
+            return;
+        }
+        if (keepServerKey == null
+                || !current.isDone()
+                || current.isCompletedExceptionally()) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+            return;
+        }
+        preload = CompletableFuture.completedFuture(
+                ServerScopedCacheMemory.retain(current.join(), keepServerKey)
+        );
+        retainedServerKey = keepServerKey;
+    }
+
+    /**
+     * Starts reading the cache files for a new connection unless this
+     * server's entries are already held in memory.
+     */
+    public static synchronized void prewarmFor(String serverKey) {
+        if (retainedServerKey != null
+                && (serverKey == null || !retainedServerKey.equals(serverKey))) {
+            released = true;
+            retainedServerKey = null;
+            preload = null;
+        }
+        prewarm();
     }
 
     static LookupResult find(
@@ -59,7 +116,7 @@ final class PersistentFuelCache {
             LoginStateFingerprint.FuelDependencies current
     ) {
         prewarm();
-        CachedFuelList cached = preload.join().get(serverKey);
+        CachedFuelList cached = loaded().join().get(serverKey);
         if (cached == null) {
             return LookupResult.miss("no compatible cache exists for this server");
         }
@@ -133,7 +190,7 @@ final class PersistentFuelCache {
                         StandardCopyOption.REPLACE_EXISTING
                 );
             }
-            preload.join().put(serverKey, cached);
+            loaded().join().put(serverKey, cached);
             VHAccelerator.LOGGER.info(
                     "Persisted {} Iron Furnaces fuel entries for future logins",
                     entries.size()
