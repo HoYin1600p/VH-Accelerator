@@ -34,7 +34,7 @@ runtime testing.
 4. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize.
 5. Copy `VH-Accelerator-1.0.12.jar` into the instance's `mods` directory.
 6. Start the client and allow the first launch to build its caches.
-7. Confirm the Mods screen reports version `1.0.12`.
+7. Confirm the Mods screen reports version `1.1.0`.
 
 VH Accelerator works client-side when connecting to a server that does not
 have the mod. This is the expected deployment for public or otherwise
@@ -42,10 +42,11 @@ uncontrolled servers.
 
 ## Dedicated-server status
 
-The public release is currently supported as a client mod. Dedicated-server
-testing has not yet been completed, so server installation is not part of the
-published support list. A separate server pass and deployment guide will be
-published after that work is verified.
+VH Accelerator is intended for client and dedicated-server use. Client
+behavior has been tested; dedicated-server installation and behavior have not
+yet been tested. If evaluating it on a dedicated server, use a non-production
+test server and keep a rollback path. A separate server pass and deployment
+guide will follow testing.
 
 ## Overlap with other performance mods
 

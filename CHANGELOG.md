@@ -5,7 +5,7 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - pending release
 
 ### Changed
 
@@ -294,8 +294,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   kept. Wolds and Remastered test configs still had namespace deduplication
   off: 166,849 separate copies of `everycomp`, 125,118 of `the_vault`.
 
-### Fixed
-
 - The persistent JEI recipe index is now reused across sessions in packs with
   recipes whose displayed result is randomized on every reload (Wolds Vaults'
   random crystals, augments and relics): its key ignores result NBT, and each
@@ -378,7 +376,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - `deferItemModelBaking` now also covers EveryCompat item models and, while
   VHA owns BuildScape's model loading, BuildScape's; it also runs with CTM
   1.18.2-1.1.5+5 (CTM-textured items are baked for CTM and never skipped).
-  Still off by default.
+  Enabled by default after the Remastered, Wolds and Asgard compatibility runs.
 
 - With deferred baking active, the load-time selection sets and the per-key
   skipped-graph set are released once models are installed and applied; the
@@ -424,7 +422,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   fingerprint and from the login-state (JEI ingredient, Thermal and Iron
   Furnaces fuel) cache fingerprints.
 
-- `skipBlockStateGraphLoading` (experimental, default off; requires
+- `skipBlockStateGraphLoading` (experimental, default on; requires
   `deferBlockStateModelBaking`): dynamic-model stage S1. Warm launches skip
   reading and parsing certified plain blocks' blockstate files and models;
   textures are stitched from a compact certification, model groups restored,
@@ -442,11 +440,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Debug-only launch samplers attribute launch time to mods by phase, with
   call paths, from the mixin plugin through mod construction, registries and
   the resource reload.
-- `deduplicateResourceLocationNamespaces` (backport, default off): a
+- `deduplicateResourceLocationNamespaces` (backport, default on): a
   lock-free, bounded replacement for ModernFix's `deduplicate_location` that
-  shares one string per identifier namespace. It is a measured opt-in because
-  it adds about 5 ns per identifier construction; debug diagnostics report the
-  duplicates it removes, for A/B testing.
+  shares one string per identifier namespace. Debug diagnostics report the
+  duplicates it removes for A/B testing.
 
 ### Changed
 
@@ -458,8 +455,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   bytecode before applying. If Vault Hunters, JEI, CraftTweaker, Thermal or
   another supported mod changes a targeted member, that compatibility group is
   skipped with a warning instead of crashing startup.
-- `deferBlockStateModelBaking` is default-off again until in-vault heap,
-  frame-time and mod-compatibility measurements justify enabling it.
+- `deferBlockStateModelBaking` is enabled by default after in-game validation
+  in the Remastered, Wolds and Asgard test packs. Custom and dynamic model
+  families retain their guarded eager path.
+
 ## [1.0.14] - 2026-09-20
 
 ### Recipe lookup groundwork

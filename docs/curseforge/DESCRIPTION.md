@@ -3,15 +3,16 @@
 **Spend less time waiting for a large Vault Hunters client to start and become
 playable.**
 
-VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. It reduces
-work on the client-launch and multiplayer-login critical paths, with a focus on
-large Vault Hunters Third Edition and Remastered packs.
+VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. Its tested
+client paths reduce launch and multiplayer-login work in large Vault Hunters
+Third Edition and Remastered packs. Dedicated-server use is intended but has
+not yet been tested.
 
-The current 1.0.14 release supports Wolds Vaults 0.32.2 and 0.33.0 and adds a
-broad launch, memory, allocation, and correctness pass adapted from newer
-ModernFix work. It also includes the compatibility, startup-reliability,
-texture-safety, JEI recovery, and JEI recipe-cache correctness work added since
-the original 1.0.0 release.
+The current 1.1.0 release adds guarded deferred model loading, lower menu
+memory use, faster warm launches and world joins, and targeted fixes for JEI
+and model compatibility. It has been exercised with Remastered, Asgard and
+Wolds Vaults 0.34.1. It also includes the compatibility, startup-reliability,
+texture-safety and JEI recovery work added since the original 1.0.0 release.
 
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
@@ -42,6 +43,9 @@ thread. Dynamic models and other unsafe work stay on their normal path.
   only from JEI's visible lists.
 - Large-pack model loading through guarded CTM, generated-model,
   voxel-shape, Vault loot, and optional FerriteCore improvements.
+- Deferred baking for eligible plain models and validated warm graph skipping;
+  custom and dynamic models retain their guarded loading path.
+- Reduced menu memory from compact JEI indexes and version-gated model caches.
 
 The mod includes targeted compatibility for Vault Hunters, Wolds Vaults, JEI, JEITweaker,
 CraftTweaker, JER, Powah, Thermal, Iron Furnaces, Industrial Foregoing, Xaero's
@@ -51,7 +55,7 @@ activate only when the matching mod and supported class layout are present.
 ## Improvements since 1.0.0
 
 - Expanded the universal jar to newer official and Remastered Vault versions,
-  both supported JEI generations, and Wolds Vaults 0.32.2 and 0.33.0.
+  both supported JEI generations, and Wolds Vaults 0.32.2, 0.33.0 and 0.34.1.
 - Hardened dynamic model and texture handling for Vault gear, Sophisticated
   Storage placeholders, Vault workstations, Curios, Comforts, and generated
   Every Compat content.
@@ -82,10 +86,10 @@ activate only when the matching mod and supported class layout are present.
 
 - **Minecraft:** 1.18.2
 - **Mod loader:** Forge 40.3.11 or newer in the Forge 40.x line
-- **Environment:** Client
+- **Environment:** Client tested; dedicated server intended but not yet tested
 - **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, and `.6883`;
   official `3.21.5.6882` and
-  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`) and 0.33.0
+  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`), 0.33.0 and 0.34.1
   (`3.21.6.6884`);
   custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
@@ -94,8 +98,10 @@ The Vault and JEI versions above are tested compatibility baselines, not hard
 dependencies. One VH Accelerator jar contains guarded support for both JEI
 generations and all listed Vault layouts.
 
-VH Accelerator is currently published and tested as a **client mod**. The
-remote server does not need to have it installed.
+VH Accelerator is intended for **clients and dedicated servers**, but
+dedicated-server behavior has not yet been tested. Clients can use it without
+installing it on the remote server; test carefully before deploying it to a
+production server.
 
 ## Installation
 
@@ -103,12 +109,13 @@ remote server does not need to have it installed.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.0.14.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.1.0.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
-ModernFix is optional. If it is installed, VH Accelerator detects the features
-ModernFix already owns and avoids applying overlapping work.
+ModernFix is optional. If it is installed, VH Accelerator detects overlapping
+features and selects one owner. Its guarded model pipeline can take ownership
+of ModernFix dynamic resources when that option is enabled.
 
 ## Timers and commands
 

@@ -2,10 +2,11 @@
   "homepage": "https://www.curseforge.com/minecraft/mc-mods/vh-accelerator",
   "1.18.2": {
     "1.0.13": "Update Notice Preferences",
-    "1.0.14": "Launch and Runtime Improvements"
+    "1.0.14": "Launch and Runtime Improvements",
+    "1.1.0": "[CRITICAL] Important model-loading and recipe-cache fixes"
   },
   "promos": {
-    "1.18.2-latest": "1.0.14",
-    "1.18.2-recommended": "1.0.14"
+    "1.18.2-latest": "1.1.0",
+    "1.18.2-recommended": "1.1.0"
   }
 }

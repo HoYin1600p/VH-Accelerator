@@ -101,7 +101,7 @@ Optimization, which now owns their implementation and provenance records.
 
 ## Independently implemented, ModernFix-informed features
 
-Deferred inventory item-model baking (`deferItemModelBaking`, off by default,
+Deferred inventory item-model baking (`deferItemModelBaking`, on by default,
 client) was designed after studying ModernFix's dynamic-resources behavior. No
 ModernFix source was copied, so it carries no upstream provenance header. It
 intentionally differs from the ModernFix 1.18 provider:
@@ -120,12 +120,12 @@ intentionally differs from the ModernFix 1.18 provider:
 - The registry is retired before `ModelManager#apply` closes the previous atlases.
   Unbaked keys in a retired registry resolve to the missing model and never bake
   against a closed atlas. Reloads that start while a world is loaded bake eagerly.
-- Upstream issues considered: CTM wraps every registry value during the bake
-  event (embeddedt/ModernFix#112), so the feature is inactive with CTM.
-  Backpack model variants (#475) are covered by keeping Sophisticated namespaces
-  eager. Null model keys (#495) are never deferred and never bake. Mod bake-event
-  interactions (#563) see consistent keys and lazily baked values, and a
-  replacement through `put` wins over the deferred bake.
+- Upstream issues considered: CTM wraps registry values during the bake event
+  (embeddedt/ModernFix#112). VHA handles CTM-wrapped models explicitly and
+  retains an eager path for CTM-textured items. Backpack model variants (#475)
+  remain guarded. Null model keys (#495) are never deferred and never bake.
+  Mod bake-event interactions (#563) see consistent keys and lazily baked
+  values, and a replacement through `put` wins over the deferred bake.
 - VHA never runs this feature beside ModernFix's own dynamic-resources provider.
   If that option's state cannot be verified, the feature stays off (fail closed).
 - Warm top-level stage (stage one of on-demand resource loading, inventory
@@ -150,24 +150,25 @@ intentionally differs from the ModernFix 1.18 provider:
   CMA Remastered testing on 2026-09-22 skipped 6,766 graphs with no missing
   sample item model or reload bake failure, but three warm launches differed
   from the feature-off control by only about 0.15 seconds on the test PC.
-  Post-GC heap readings were also inconclusive, so this remains default-off
-  and is not presented as a measured launch-time improvement.
+  Post-GC heap readings were inconclusive in that first test. Later
+  compatibility runs led to the 1.1.0 default-on setting; this early sample
+  is not presented as a measured launch-time improvement.
 
-Deferred block-state model baking (`deferBlockStateModelBaking`, off by
-default, client, independent of the item stage) is a separate prototype. It is
+Deferred block-state model baking (`deferBlockStateModelBaking`, on by
+default, client, independent of the item stage) is a separate implementation. It is
 also an independent design with no copied ModernFix source. It differs from
 ModernFix 1.18's dynamic provider as follows:
 
-- Only the top-level **bake** is deferred. Block-state graphs, parents, and
-  materials still load before stitching, so no texture is ever missing from
-  the atlas and no manifest is needed. Deferring graph loading for block states
-  was rejected: `ModelBakery#getModel`/`loadModel` mutate the unbaked cache and
-  loading stack, and the first reader is usually a chunk-compile worker.
+- The top-level **bake** is deferred. On a first or invalidated launch,
+  block-state graphs, parents, and materials still load before stitching.
+  On a warm launch, `skipBlockStateGraphLoading` can restore a validated
+  material manifest and load certified plain graphs on a single background
+  loader at first use; textures are still stitched before any bake.
 - A key qualifies only when its whole closure is a vanilla `MultiVariant` or
   `MultiPart` over ordinary JSON `BlockModel`s already in the unbaked cache,
   with parents bound, no custom geometry, no `builtin/` marker, and not the
-  missing model. Inventory variants and Vault, EveryCompat, Sophisticated,
-  BuildScape, and CTM namespaces stay eager.
+  missing model. Eligible plain Vault, EveryCompat and BuildScape models can
+  now qualify; custom, dynamic and CTM-textured graphs retain guards.
 - Thread-safety basis: such a bake only reads bakery state, exactly as VHA's
   parallel top-level bake already does on worker threads. Before the registry
   is published, the bakery's unbaked and baked caches are replaced with
@@ -208,8 +209,9 @@ ModernFix 1.18's dynamic provider as follows:
   either replaces or clears this lookup before use. Known limitation: until the reload rebuilds the lookup, a
   chunk compile reading a never-baked state gets the missing model, uncached.
   The world renderer rebuilds every chunk after a reload, so such meshes are
-  discarded. Not active with CTM or ModernFix's dynamic-resource provider,
-  in Compare Mode, or for in-world reloads.
+  discarded. CTM-wrapped models are handled by a specific compatibility path;
+  VHA does not run this alongside ModernFix's dynamic-resource provider, in
+  Compare Mode, or during in-world reloads.
 - Post-first-frame measurement (debug only): each world session logs one
   snapshot at its first playable frame and one about five seconds later in
   the same level. Each covers registry counts plus the first-use bake count,
@@ -219,8 +221,8 @@ ModernFix 1.18's dynamic provider as follows:
   timing, and whether that baking causes gameplay hitches still needs in-game
   validation. A disconnect, new level, or reload cancels a pending snapshot.
 - Review risk: third-party code hooked into bake must be thread-safe after
-  apply, not just during the parallel bake window. No performance result is
-  claimed until independent CMA A/B testing.
+  apply, not just during the parallel bake window. First-use frame-time and
+  cross-pack stability remain important release checks.
 
 ## Rejected after 1.18.2 validation
 

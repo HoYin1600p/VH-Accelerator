@@ -3,11 +3,12 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.0.14-7b68ee)](docs/releases/1.0.14.md)
+[![Release](https://img.shields.io/badge/Release-1.1.0-7b68ee)](docs/releases/1.1.0.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
-clients. It reduces work on the client-launch and multiplayer-login critical
-paths while keeping the first reported world frame playable.
+packs. Its tested client paths reduce launch and multiplayer-login work while
+keeping the first reported world frame playable. Dedicated-server use is
+intended but has not yet been tested.
 
 The same jar supports the current Vault Hunters Third Edition, Remastered, and
 the custom MVP test profile. Optional integrations activate only when their
@@ -48,6 +49,10 @@ target mod and supported class layout are present.
   modules.
 - Guarded large-pack launch improvements for CTM, generated model registries,
   voxel-shape merging, and optional FerriteCore table sizing.
+- Deferred model baking and validated warm graph skipping for eligible plain
+  models, with dynamic and custom models kept on their guarded eager paths.
+- Lower menu memory use in large packs through compact JEI indexes, model
+  data release, and version-gated Decocraft and Every Compat caching.
 - Reduced client DataFixerUpper warm-up contention while retaining on-demand
   migration for old client data.
 - Faster Vault tiered-loot probability setup without changing its generated
@@ -65,7 +70,7 @@ mod behavior remain on their established threads.
 | Minecraft | `1.18.2` |
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
-| Environment | Client; dedicated-server testing is not yet complete |
+| Environment | Client tested; dedicated server intended but not yet tested |
 | Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
 | Wolds Vaults | Packs `0.32.2`, `0.33.0` and `0.34.1`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
@@ -73,9 +78,10 @@ mod behavior remain on their established threads.
 | Asgard | Its own `3.21.62` build baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
-VH Accelerator is currently released and tested as a client mod. It does not
-need to be installed on the remote server. Dedicated-server support will be
-documented separately after its testing pass is complete.
+VH Accelerator is intended for both clients and dedicated servers. Its client
+paths have been tested; dedicated-server installation and behavior have not
+yet been tested, so use caution before deploying it to a production server.
+Clients can use VHA without installing it on the remote server.
 
 See [Installation](docs/INSTALLATION.md) for placement, upgrade, conflicting
 mods, and first-launch expectations.
@@ -85,12 +91,13 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.0.14.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.1.0.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
-ModernFix is optional. When present, VH Accelerator detects its effective
-dynamic-resource setting and disables overlapping transformations.
+ModernFix is optional. When present, VH Accelerator detects overlapping
+features and selects one owner; its guarded model pipeline takes ownership
+of ModernFix dynamic resources when configured to do so.
 
 ## Commands
 
@@ -212,6 +219,7 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
+| [Release notes 1.1.0](docs/releases/1.1.0.md) | Critical model, JEI, memory and warm-launch update |
 | [Release notes 1.0.12](docs/releases/1.0.12.md) | Update notifications and simplified default timing output |
 | [Release notes 1.0.11](docs/releases/1.0.11.md) | Targeted JEI recipe-index repair and audit diagnostics |
 | [Release notes 1.0.10](docs/releases/1.0.10.md) | JEI recipe correctness and persistent-index safety |
