@@ -218,6 +218,7 @@
     "compat.vaulthunters.ModifiersViewCacheMixin",
     "compat.supplementaries.BookPileAtLeastOneBookMixin",
     "compat.vaulthunters.CascadeFilterFirstMixin",
+    "compat.vaulthunters.ForgeEventRegisterMixin",
     "compat.vaulthunters.ModifiersTickIndexMixin",
     "compat.vaulthunters.VaultDataWatchMixin",
     "compat.vaulthunters.VaultEventDispatchMixin",

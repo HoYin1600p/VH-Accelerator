@@ -27,6 +27,11 @@ public final class VaultEventDispatch {
     private VaultEventDispatch() {
     }
 
+    /** Implemented on Vault's {@code Event} by the mixin. */
+    public interface Owner {
+        State vhaccelerator$dispatchState();
+    }
+
     /** Per-event state kept by the mixin. */
     public static final class State {
         private final boolean clientEvent;
@@ -42,7 +47,13 @@ public final class VaultEventDispatch {
             return clientEvent;
         }
 
-        /** Called after every register or release on the event. */
+        /**
+         * Called after every register or release on the event. Vault's
+         * ForgeEvent adds listeners straight into its parent's table, so its
+         * own register method reports here too; the snapshot also compares
+         * the table's sizes on every post, so a writer that reports nothing
+         * still cannot leave a new listener owner out.
+         */
         public void changed() {
             synchronized (this) {
                 version++;
@@ -54,7 +65,7 @@ public final class VaultEventDispatch {
     public static void invoke(State state, Map<Integer, Map<Object, List<Consumer>>> listeners, Object data) {
         long version = state.version;
         Snapshot snapshot = state.snapshot;
-        if (snapshot == null || snapshot.version != version) {
+        if (snapshot == null || snapshot.version != version || !snapshot.matches(listeners)) {
             snapshot = Snapshot.build(version, listeners);
             state.snapshot = snapshot;
         }
@@ -85,7 +96,21 @@ public final class VaultEventDispatch {
     }
 
     @SuppressWarnings("rawtypes")
-    private record Snapshot(long version, Integer[] priorities, List[][] groups, Object[][][] consumers) {
+    private record Snapshot(long version, Integer[] priorities, List[][] groups, Object[][][] consumers,
+                            Map[] owners) {
+        /** Same priorities and listener owners as when taken; a few size reads per post. */
+        boolean matches(Map<Integer, Map<Object, List<Consumer>>> listeners) {
+            if (listeners.size() != priorities.length) {
+                return false;
+            }
+            for (int p = 0; p < owners.length; p++) {
+                if (owners[p].size() != groups[p].length) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         @SuppressWarnings("unchecked")
         static Snapshot build(long version, Map<Integer, Map<Object, List<Consumer>>> listeners) {
             TreeMap<Integer, Map<Object, List<Consumer>>> ordered = new TreeMap<>(Collections.reverseOrder());
@@ -95,8 +120,10 @@ public final class VaultEventDispatch {
             Integer[] priorities = ordered.keySet().toArray(new Integer[0]);
             List[][] groups = new List[priorities.length][];
             Object[][][] consumers = new Object[priorities.length][][];
+            Map[] owners = new Map[priorities.length];
             for (int p = 0; p < priorities.length; p++) {
                 Map<Object, List<Consumer>> byOwner = ordered.get(priorities[p]);
+                owners[p] = byOwner;
                 synchronized (byOwner) {
                     groups[p] = byOwner.values().toArray(new List[0]);
                 }
@@ -105,7 +132,7 @@ public final class VaultEventDispatch {
                     consumers[p][g] = groups[p][g].toArray();
                 }
             }
-            return new Snapshot(version, priorities, groups, consumers);
+            return new Snapshot(version, priorities, groups, consumers, owners);
         }
     }
 }

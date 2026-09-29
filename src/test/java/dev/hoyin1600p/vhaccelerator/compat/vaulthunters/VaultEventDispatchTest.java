@@ -95,6 +95,22 @@ final class VaultEventDispatchTest {
     }
 
     @Test
+    void listenerAddedStraightIntoTheTableRunsOnTheNextPost() {
+        // Vault's ForgeEvent children write into the parent's table without
+        // Event.register; a vault opened in game registered its tick that way.
+        List<String> log = new ArrayList<>();
+        FakeEvent event = new FakeEvent();
+        event.register("existing", d -> log.add("existing"), 0);
+        event.snapshot(null);
+        event.listeners.get(0).computeIfAbsent("new vault", r -> new ArrayList<>()).add(d -> log.add("new vault"));
+        event.snapshot(null);
+        event.listeners.computeIfAbsent(-3, p -> Collections.synchronizedMap(new LinkedHashMap<>()))
+                .computeIfAbsent("late priority", r -> new ArrayList<>()).add(d -> log.add("late priority"));
+        event.snapshot(null);
+        assertEquals(List.of("existing", "existing", "new vault", "existing", "new vault", "late priority"), log);
+    }
+
+    @Test
     void stableTableReusesTheSnapshot() {
         List<String> log = new ArrayList<>();
         FakeEvent event = new FakeEvent();

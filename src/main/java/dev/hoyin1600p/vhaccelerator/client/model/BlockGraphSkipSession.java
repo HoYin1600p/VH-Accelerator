@@ -418,18 +418,51 @@ public final class BlockGraphSkipSession {
         if (dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             recordCaller();
         }
+        // The whole block counts as loaded afterwards (needsGraph), so every
+        // one of its states is loaded and parent-bound here, as vanilla's
+        // loadTopLevel + getMaterials would have done. Binding only the
+        // requested state left the block's other variant models (a log's
+        // horizontal model, a slab's top/double models) unbound; they then
+        // baked without their parent's elements: zero quads, an invisible
+        // block, and no error.
         boolean covered = ModelGraphLoader.call(() -> {
-            UnbakedModel model = getter.apply(location);
-            Collection<Material> materials = model.getMaterials(getter, new HashSet<>());
-            boolean plain = DeferredBlockStateBaking.select(Map.of(location, model), unbakedCache)
-                    .contains(location);
-            return verify(location, plain, materials);
+            boolean all = true;
+            for (ResourceLocation key : blockStateKeys(location)) {
+                UnbakedModel model = getter.apply(key);
+                Collection<Material> materials = model.getMaterials(getter, new HashSet<>());
+                boolean plain = DeferredBlockStateBaking.select(Map.of(key, model), unbakedCache)
+                        .contains(key);
+                all &= verify(key, plain, materials);
+            }
+            return all;
         });
         if (!covered) {
             return null;
         }
+        firstUseLoads.incrementAndGet();
         completedBlocks.add(location.getNamespace() + ":" + location.getPath());
         return baker.apply(location);
+    }
+
+    /**
+     * Every state key of {@code location}'s block, the requested key first;
+     * just that key if the block cannot be resolved.
+     */
+    static List<ResourceLocation> blockStateKeys(ResourceLocation location) {
+        List<ResourceLocation> keys = new ArrayList<>();
+        keys.add(location);
+        ResourceLocation blockId = new ResourceLocation(location.getNamespace(), location.getPath());
+        Block block = Registry.BLOCK.getOptional(blockId).orElse(null);
+        if (block == null) {
+            return keys;
+        }
+        for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+            ModelResourceLocation key = BlockModelShaper.stateToModelLocation(blockId, state);
+            if (!key.equals(location)) {
+                keys.add(key);
+            }
+        }
+        return keys;
     }
 
     private boolean verify(ResourceLocation location, boolean plain, Collection<Material> materials) {
@@ -458,7 +491,6 @@ public final class BlockGraphSkipSession {
             }
         }
         if (covered) {
-            firstUseLoads.incrementAndGet();
             return true;
         }
         if (invalidated.compareAndSet(false, true)) {

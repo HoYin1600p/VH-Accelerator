@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 @Mixin(value = Event.class, remap = false)
-public abstract class VaultEventDispatchMixin {
+public abstract class VaultEventDispatchMixin implements VaultEventDispatch.Owner {
     @Shadow
     protected boolean child;
 
@@ -31,6 +31,11 @@ public abstract class VaultEventDispatchMixin {
     // before a field initializer merged by Mixin would have run.
     @Unique
     private volatile VaultEventDispatch.State vhaccelerator$dispatch;
+
+    @Override
+    public VaultEventDispatch.State vhaccelerator$dispatchState() {
+        return this.vhaccelerator$dispatch();
+    }
 
     @Unique
     private VaultEventDispatch.State vhaccelerator$dispatch() {

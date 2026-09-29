@@ -5,6 +5,28 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - Unreleased
+
+### Fixed
+
+- Opening a new vault could leave the player standing in the portal, never
+  teleported in (`snapshotVaultEventListeners`). Vault's Forge-backed events,
+  including its server tick, add listeners straight into the event table
+  instead of through the method VHA watched, so the listener snapshot kept
+  running without the new vault's tick. Those registrations now refresh the
+  snapshot, and every post also checks the table's size, so a listener owner
+  added any other way is picked up too. The same gap could skip listeners that
+  new cake-vault modifiers added during a vault.
+
+- With `skipBlockStateGraphLoading`, some block variants rendered invisible
+  (no geometry, no missing-model cube, no error): for example sideways logs
+  and Create pillars, and slabs of one type. A skipped block's first use
+  loaded and parent-bound only the requested state's models but then marked
+  the whole block loaded, so its other variants' models (a log's horizontal
+  model, a slab's top or double model) baked without their parent's elements.
+  The first use now loads and binds every state of the block, as vanilla's
+  model loading does.
+
 ## [1.1.0] - 2026-09-28
 
 ### Changed
