@@ -6,7 +6,7 @@
     "1.1.0": "Important model-loading and recipe-cache fixes"
   },
   "promos": {
-    "1.18.2-latest": "1.1.0",
-    "1.18.2-recommended": "1.1.0"
+    "1.18.2-latest": "1.0.14",
+    "1.18.2-recommended": "1.0.14"
   }
 }
