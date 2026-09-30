@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.1.1-7b68ee)](docs/releases/1.1.1.md)
+[![Release](https://img.shields.io/badge/Release-1.1.2-7b68ee)](docs/releases/1.1.2.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 packs. Its tested client paths reduce launch and multiplayer-login work while
@@ -91,7 +91,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.1.1.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.1.2.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -219,6 +219,7 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
+| [Release notes 1.1.2](docs/releases/1.1.2.md) | Critical fix for world holes with Farsight installed |
 | [Release notes 1.1.1](docs/releases/1.1.1.md) | Critical fix for invisible blocks and vault portals in 1.1.0 |
 | [Release notes 1.1.0](docs/releases/1.1.0.md) | Critical model, JEI, memory and warm-launch update |
 | [Release notes 1.0.12](docs/releases/1.0.12.md) | Update notifications and simplified default timing output |

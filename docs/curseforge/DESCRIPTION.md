@@ -8,7 +8,7 @@ client paths reduce launch and multiplayer-login work in large Vault Hunters
 Third Edition and Remastered packs. Dedicated-server use is intended but has
 not yet been tested.
 
-The current 1.1.1 release adds guarded deferred model loading, lower menu
+The current 1.1.2 release adds guarded deferred model loading, lower menu
 memory use, faster warm launches and world joins, and targeted fixes for JEI
 and model compatibility. It has been exercised with Remastered, Asgard and
 Wolds Vaults 0.34.1. It also includes the compatibility, startup-reliability,
@@ -109,7 +109,7 @@ production server.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.1.1.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.1.2.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 

@@ -5,7 +5,25 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - Unreleased
+## [1.1.2] - 2026-09-29
+
+### Fixed
+
+- With Farsight installed, parts of the world could vanish and stay empty
+  until a relog (`boundFarsightChunkRetention`, new in 1.1.0): blocks were
+  invisible and the player could not walk on them, often in vault hallways
+  and portal rooms on the way back. The bound forgot any client chunk more
+  than `max(server view distance, render distance) + 1` chunks from the
+  player. The server tracks the player a little behind the client, most of
+  all while flying, so the bound could forget a chunk the server still
+  counted as sent, and the server only resends a chunk after it has told the
+  client to forget it. The bound now records the server's forget packets
+  (which Farsight's cancelled handler never sees) and forgets only chunks
+  the server already unloaded, so the server always resends them when the
+  player returns. Its light-engine release also skips a chunk the server
+  resent in the meantime.
+
+## [1.1.1] - 2026-09-28
 
 ### Fixed
 

@@ -161,6 +161,7 @@
     "client.ModelBakeryMixin",
     "client.TagNetworkPayloadAccessor",
     "client.compat.farsight.ClientPacketListenerFarsightMixin",
+    "client.compat.farsight.ForgetLevelChunkPacketFarsightMixin",
     "compat.jei.v9.IngredientFilterMixin",
     "compat.placebo.ModelMapRegistryProfilerMixin",
     "compat.jei.v9.IngredientBlacklistInternalMixin",

@@ -794,7 +794,7 @@ public final class VHAcceleratorClientConfig {
                     .define("deferXaeroOnlineChecks", true);
             boundFarsightChunkRetention = builder
                     .comment(
-                            "Forgets client chunks that Farsight keeps beyond",
+                            "Forgets client chunks that the server already unloaded but Farsight keeps beyond",
                             "max(server view distance, render distance) + 1 chunks",
                             "from the player, once per second. Each forget runs the",
                             "vanilla chunk drop, light-engine release, and Embeddium",

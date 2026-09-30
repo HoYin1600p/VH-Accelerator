@@ -12,6 +12,7 @@ import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraftforge.event.TickEvent;
 
@@ -29,9 +30,14 @@ import net.minecraftforge.event.TickEvent;
  * never removes the chunk's render sections. Every chunk seen while travelling
  * stays in memory until the level changes.
  *
- * <p>This class reproduces the vanilla forget for chunks that are farther
- * than {@code max(server radius, client render distance) + 1} from the
- * player, once every {@value #SWEEP_INTERVAL_TICKS} client ticks. The real
+ * <p>This class reproduces the vanilla forget for chunks the server has
+ * already told the client to forget and that are farther than
+ * {@code max(server radius, client render distance) + 1} from the player,
+ * once every {@value #SWEEP_INTERVAL_TICKS} client ticks. Only a chunk the
+ * server forgot may be dropped: the server resends a chunk only after it
+ * forgot it, so dropping one it still counts as sent (the client runs ahead
+ * of the server's view of the player, most of all when flying) leaves a hole
+ * in the world that the server never refills until the player relogs. The real
  * server radius is recorded at HEAD of the two packet handlers, before
  * Farsight's redirect replaces the value the handler body sees. Chunks inside
  * the bound are untouched, so Farsight still shows terrain beyond the server
@@ -53,6 +59,7 @@ public final class FarsightChunkBound {
     static final int SWEEP_INTERVAL_TICKS = 20;
     static final int BOUND_MARGIN = 1;
 
+    /** Chunks the server forgot that are still resident client-side. */
     private static final LongOpenHashSet TRACKED = new LongOpenHashSet();
     private static WeakReference<ClientLevel> trackedLevel =
             new WeakReference<>(null);
@@ -84,12 +91,32 @@ public final class FarsightChunkBound {
     }
 
     /**
-     * Tracks a chunk the client just stored. Called at RETURN of
-     * {@code handleLevelChunkWithLight}, so only chunks that really reached
-     * {@code ClientChunkCache.replaceWithPacketData} are recorded.
+     * The server resent a chunk, so it counts it as sent again and it must
+     * stay. Called at RETURN of {@code handleLevelChunkWithLight}.
      */
     public static void onChunkLoaded(ClientLevel level, int chunkX, int chunkZ) {
         if (level == null || !Minecraft.getInstance().isSameThread()) {
+            return;
+        }
+        syncLevel(level);
+        TRACKED.remove(ChunkPos.asLong(chunkX, chunkZ));
+    }
+
+    /**
+     * The server told the client to forget a chunk, which Farsight may have
+     * kept. Called from the forget packet itself, which Farsight's cancel of
+     * the handler does not reach; that cancel also runs before the handler
+     * moves to the client thread, so this may arrive on the network thread
+     * and is then queued behind the packets already scheduled on the client.
+     */
+    public static void onServerForget(int chunkX, int chunkZ) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!minecraft.isSameThread()) {
+            minecraft.execute(() -> onServerForget(chunkX, chunkZ));
+            return;
+        }
+        ClientLevel level = minecraft.level;
+        if (level == null) {
             return;
         }
         syncLevel(level);
@@ -162,7 +189,13 @@ public final class FarsightChunkBound {
         for (int i = 0; i < evict.size(); i++) {
             long key = evict.getLong(i);
             TRACKED.remove(key);
-            forget(level, chunkCache, ChunkPos.getX(key), ChunkPos.getZ(key));
+            int chunkX = ChunkPos.getX(key);
+            int chunkZ = ChunkPos.getZ(key);
+            // Farsight did not keep it, or it is gone already.
+            if (chunkCache.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) == null) {
+                continue;
+            }
+            forget(level, chunkCache, chunkX, chunkZ);
         }
         evictedTotal += evict.size();
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
@@ -194,6 +227,10 @@ public final class FarsightChunkBound {
     ) {
         chunkCache.drop(chunkX, chunkZ);
         level.queueLightUpdate(() -> {
+            // The server may have resent it before this queued update ran.
+            if (chunkCache.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) != null) {
+                return;
+            }
             LevelLightEngine lightEngine = level.getLightEngine();
             for (int section = level.getMinSection();
                     section < level.getMaxSection();
