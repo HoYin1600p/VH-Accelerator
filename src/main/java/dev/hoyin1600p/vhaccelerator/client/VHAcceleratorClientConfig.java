@@ -403,7 +403,8 @@ public final class VHAcceleratorClientConfig {
                     .comment(
                             "Evaluates CraftTweaker's own recipe-removal matchers (by output, input,",
                             "mod) across worker threads, then removes the matches on the calling",
-                            "thread. Script-defined predicates keep the original loop. Restart required.")
+                            "thread. Script-defined predicates keep the original loop. Takes effect the",
+                            "next time CraftTweaker scripts run (world join or /reload).")
                     .define("parallelCraftTweakerRecipeRemoval", true);
             indexCreateBlockCuttingRecipes = builder
                     .comment(

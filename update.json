@@ -5,10 +5,11 @@
     "1.0.14": "Launch and Runtime Improvements",
     "1.1.0": "Important model-loading and recipe-cache fixes",
     "1.1.1": "[CRITICAL] Fixes invisible blocks and vault portals that would not let players in",
-    "1.1.2": "[CRITICAL] Fixes parts of the world vanishing until relog when Farsight is installed"
+    "1.1.2": "[CRITICAL] Fixes parts of the world vanishing until relog when Farsight is installed",
+    "1.1.3": "Adds an in-game settings screen"
   },
   "promos": {
-    "1.18.2-latest": "1.1.2",
-    "1.18.2-recommended": "1.1.2"
+    "1.18.2-latest": "1.1.3",
+    "1.18.2-recommended": "1.1.3"
   }
 }

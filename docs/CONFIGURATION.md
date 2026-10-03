@@ -8,6 +8,76 @@ VH Accelerator uses one common Forge config and one physical-client config:
 Commands save their common diagnostic setting immediately. Other file edits
 should be made while the game is stopped, followed by a restart.
 
+## Settings screen
+
+VH Accelerator has an in-game settings screen. Open it with the **Open VH Accelerator settings**
+key, which is unbound by default: set it in Options > Controls, under **VH Accelerator**. The key
+works while you are in a world. There is no Mods-list or pause-menu button.
+
+VH Accelerator's screens (the settings screen, its dialogs and the bug-report preview) look the
+same at every resolution and GUI scale setting. While one of them is open, VH Accelerator lays it
+out at a fixed virtual size of 960 x 540 GUI units, scaling it to fill the window (2x at 1080p,
+about 2.67x at 1440p, 4x at 4K; windows smaller than 960 x 540 pixels use 1x). Your own GUI scale
+is restored as soon as you leave these screens.
+
+The screen needs [Cloth Config](https://www.curseforge.com/minecraft/mc-mods/cloth-config)
+(Forge, 6.5.102 or newer). Cloth is an optional dependency. Without it VH Accelerator loads and
+runs normally, and pressing the key prints a chat message saying that the settings can still be
+changed in `config/vhaccelerator-client.toml` and `config/vhaccelerator-common.toml`.
+
+Every setting in both files is on the screen, grouped into tabs by what it affects rather than by
+`.toml` section: General, Launch & loading, Joining worlds, Vault Hunters, Mod compatibility,
+Memory, Server & engine, Backports and Diagnostics. Common-file settings only take effect in
+singleplayer, and on a dedicated server that uses the same file.
+
+Each setting is a toggle, a slider (within the `.toml` range) or a selector. A grey line under it
+summarises it; click that line to show or hide the full explanation underneath. A `(restart)`
+badge marks settings that take effect only after a restart: most launch, model-loading, memory,
+server and backport settings, and the two main switches. Settings without the badge apply when
+you save; a few apply from the next world join or resource reload, as their explanations say.
+
+**Save** writes the values through Forge's config and applies them the same way the `/vha`
+commands do, then lists any changed setting that needs a restart.
+
+Two extra buttons sit beside Cancel and Save. Both ask for confirmation first, discard unsaved
+edits on the screen, and save and apply immediately:
+
+- **Default** resets every setting, including Diagnostics, to the shipped defaults.
+- **Experimental** turns on every setting that ships off, except those in Diagnostics and
+  `parallelAtlasStitching`, which has produced wrong textures in Vault packs. The confirmation
+  lists the settings it will change. Currently these are
+  `persistentVanillaRecipeValidationCache`, `parallelReloadPreparation`,
+  `skipRedundantRegistryValidation`, `skipRegistryDump`, `parallelBlockStateInit` and
+  `lazyBlockStateCache`.
+
+### Report a bug
+
+The Diagnostics tab starts with a **Report a bug** button. It opens a preview screen. VH
+Accelerator uploads nothing: it only copies text to your clipboard and opens a page in your
+browser, and only after you click.
+
+The preview shows the exact text of a new GitHub issue for `HoYin1600p/VH-Accelerator`:
+
+- versions of VH Accelerator, Minecraft, Forge, Java and the operating system;
+- your GPU and driver, and the versions of Vault Hunters, JEI, ModernFix, Embeddium or Rubidium,
+  Vault Render Optimization, Farsight, BuildScape, CTM, KubeJS and CraftTweaker;
+- Compare Mode, the two main switches and debug logging;
+- every setting that differs from its default.
+
+If `crash-reports/` holds a crash report, the newest one is shown below the issue text exactly as
+it would be copied. Before anything is shown, paths inside user folders (`C:\Users\<name>\`,
+`/home/<name>/`, `/Users/<name>/`) become `<user>`, and your Minecraft name and UUID become
+`<player>` and `<uuid>`.
+
+- **Copy crash report & open GitHub** copies that crash report to the clipboard and opens the
+  pre-filled issue, which includes the exception line and a marked place to paste the report.
+- **Open GitHub without crash report** opens the issue without the crash section. Without a
+  crash report this button is simply **Open GitHub**.
+- **Cancel** goes back.
+
+The link is kept under about 7,500 characters. When the report is longer, the list of changed
+settings is shortened.
+
 ## Target Dummy startup correction
 
 In the common config, `[compatibility]`

@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
+import dev.hoyin1600p.vhaccelerator.client.config.ConfigScreenKey;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import com.mojang.realmsclient.RealmsMainScreen;
 import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
@@ -79,6 +81,11 @@ public final class VHAcceleratorClient {
         FMLJavaModLoadingContext.get()
                 .getModEventBus()
                 .addListener(ClientConfigReloadObserver::onLoadComplete);
+        // Settings screen: an unbound key under VH Accelerator in Controls.
+        FMLJavaModLoadingContext.get()
+                .getModEventBus()
+                .addListener((FMLClientSetupEvent event) -> event.enqueueWork(ConfigScreenKey::register));
+        MinecraftForge.EVENT_BUS.addListener(ConfigScreenKey::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onScreenOpened);
         MinecraftForge.EVENT_BUS.addListener(SingleplayerLevelPruner::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(VHAcceleratorClient::onPlayerLoggedIn);
@@ -152,12 +159,12 @@ public final class VHAcceleratorClient {
         );
     }
 
-    private static void setUpdateChecksEnabled(boolean enabled) {
+    public static void setUpdateChecksEnabled(boolean enabled) {
         VHAcceleratorClientConfig.setUpdateChecksEnabled(enabled);
         UpdateNoticeService.setEnabled(enabled);
     }
 
-    private static void setUpdateNoticeFilter(UpdateNoticeFilter filter) {
+    public static void setUpdateNoticeFilter(UpdateNoticeFilter filter) {
         VHAcceleratorClientConfig.setUpdateNoticeFilter(filter);
         UpdateNoticeService.setFilter(filter);
     }

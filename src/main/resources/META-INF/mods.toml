@@ -31,3 +31,11 @@ mandatory = true
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
+
+# Optional: only the settings screen needs it. Without Cloth Config the key explains where the settings live.
+[[dependencies."${mod_id}"]]
+modId="cloth_config"
+mandatory=false
+versionRange="[6,)"
+ordering="NONE"
+side="CLIENT"

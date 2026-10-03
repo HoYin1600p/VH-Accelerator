@@ -80,6 +80,11 @@ repositories {
         name = 'Sponge'
         url = 'https://repo.spongepowered.org/maven'
     }
+    maven {
+        // Cloth Config: optional settings-screen dependency, compiled against only, never shaded.
+        name = 'shedaniel'
+        url = 'https://maven.shedaniel.me/'
+    }
 }
 
 def localCompileDependency = { String fileName ->
@@ -96,6 +101,8 @@ def localCompileDependency = { String fileName ->
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    // The settings screen uses Cloth Config when it is installed; VHA runs without it.
+    compileOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 
     // Optional at runtime. These jars expose only the APIs targeted by guarded

@@ -8,7 +8,8 @@ client paths reduce launch and multiplayer-login work in large Vault Hunters
 Third Edition and Remastered packs. Dedicated-server use is intended but has
 not yet been tested.
 
-The current 1.1.2 release adds guarded deferred model loading, lower menu
+The current 1.1.3 release adds an optional in-game settings screen. It builds
+on guarded deferred model loading, lower menu
 memory use, faster warm launches and world joins, and targeted fixes for JEI
 and model compatibility. It has been exercised with Remastered, Asgard and
 Wolds Vaults 0.34.1. It also includes the compatibility, startup-reliability,
@@ -109,13 +110,22 @@ production server.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.1.2.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.1.3.jar` in the instance's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
 ModernFix is optional. If it is installed, VH Accelerator detects overlapping
 features and selects one owner. Its guarded model pipeline can take ownership
 of ModernFix dynamic resources when that option is enabled.
+
+## Settings screen
+
+With [Cloth Config](https://www.curseforge.com/minecraft/mc-mods/cloth-config) (Forge 6.5.102 or
+newer) installed, every VH Accelerator setting can be changed in game. Bind **Open VH Accelerator
+settings** in Options > Controls; it is unbound by default. Settings are grouped into tabs with a
+plain-English explanation for each, and a (restart) badge on the ones that need a restart. Cloth
+Config is optional: without it VH Accelerator works as before and the settings stay in the
+config files.
 
 ## Timers and commands
 

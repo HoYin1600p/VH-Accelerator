@@ -74,4 +74,42 @@ class UpdateNoticeParserTest {
         assertEquals("1.0.12", notice.targetVersion());
         assertEquals("Stable Release", notice.message());
     }
+
+    @Test
+    void skippedCriticalReleaseKeepsTheNoticeCritical() {
+        Map<String, String> changes = new LinkedHashMap<>();
+        changes.put("1.1.1", "[CRITICAL] Fixes invisible blocks");
+        changes.put("1.1.2", "[CRITICAL] Fixes vanishing world parts");
+        changes.put("1.1.3", "Adds an in-game settings screen");
+        UpdateNotice notice = UpdateNoticeParser.parse(
+                "vhaccelerator",
+                "1.1.0",
+                "1.1.3",
+                changes,
+                "VH Accelerator",
+                DOWNLOAD_URL
+        ).orElseThrow();
+
+        assertEquals(UpdateNotice.Severity.CRITICAL, notice.severity());
+        assertEquals("Fixes vanishing world parts", notice.message());
+        assertEquals("1.1.3", notice.targetVersion());
+    }
+
+    @Test
+    void criticalReleasesAlreadyInstalledDoNotEscalate() {
+        Map<String, String> changes = new LinkedHashMap<>();
+        changes.put("1.1.2", "[CRITICAL] Fixes vanishing world parts");
+        changes.put("1.1.3", "Adds an in-game settings screen");
+        UpdateNotice notice = UpdateNoticeParser.parse(
+                "vhaccelerator",
+                "1.1.2",
+                "1.1.3",
+                changes,
+                "VH Accelerator",
+                DOWNLOAD_URL
+        ).orElseThrow();
+
+        assertEquals(UpdateNotice.Severity.NORMAL, notice.severity());
+        assertEquals("Adds an in-game settings screen", notice.message());
+    }
 }

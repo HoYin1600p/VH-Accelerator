@@ -5,6 +5,37 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-10-02
+
+### Added
+
+- An optional in-game settings screen. With Cloth Config (Forge 6.5.102 or
+  newer) installed, the **Open VH Accelerator settings** key, unbound by
+  default under VH Accelerator in Controls, opens a screen with every setting
+  from both config files, grouped into nine tabs. Each setting has a short
+  summary and a click-to-expand explanation, and a `(restart)` badge when it
+  only takes effect after a restart. Save applies settings through the same
+  paths as the `/vha` commands and lists changed settings that need a restart.
+  **Default** resets everything and **Experimental** turns on the settings
+  that ship off (not Diagnostics, not `parallelAtlasStitching`), each after a
+  confirmation. Without Cloth Config, VH Accelerator runs as before and the key
+  points to the config files.
+- **Report a bug** in the Diagnostics tab shows a preview of a pre-filled
+  GitHub issue with versions, related mods and changed settings, with user
+  folders, the player name and UUID removed. It can copy the newest crash
+  report to the clipboard; nothing is uploaded.
+- The settings screen, its dialogs and the bug-report preview keep a fixed
+  960 x 540 layout at every resolution and GUI scale.
+
+### Changed
+
+- Update notices stay critical when you skip a critical release. Before, only
+  the newest release's message decided, so with the default critical-only
+  filter a player two versions behind could miss a critical fix whenever the
+  newest release was a normal one. Applies from this version on.
+- The `parallelCraftTweakerRecipeRemoval` config comment no longer says it
+  needs a restart; it takes effect the next time CraftTweaker scripts run.
+
 ## [1.1.2] - 2026-09-29
 
 ### Fixed

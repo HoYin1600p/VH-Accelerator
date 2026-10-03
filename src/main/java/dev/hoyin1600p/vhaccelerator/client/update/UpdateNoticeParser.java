@@ -31,6 +31,14 @@ public final class UpdateNoticeParser {
         ParsedMessage parsedMessage = parseMessage(
                 findTargetMessage(targetVersion, changes)
         );
+        if (parsedMessage.severity() != UpdateNotice.Severity.CRITICAL) {
+            // A player who skipped a critical release still needs to hear about it, even
+            // when the newest release is a normal one: show the newest skipped critical one.
+            ParsedMessage skipped = newestSkippedCritical(currentVersion, targetVersion, changes);
+            if (skipped != null) {
+                parsedMessage = skipped;
+            }
+        }
         return Optional.of(new UpdateNotice(
                 modId,
                 displayName,
@@ -57,6 +65,38 @@ public final class UpdateNoticeParser {
                     + "…";
         }
         return new ParsedMessage(severity, message);
+    }
+
+    /**
+     * The newest critical message for a version after {@code current} and before
+     * {@code target}, or null when every skipped release was a normal one.
+     */
+    static ParsedMessage newestSkippedCritical(
+            String current,
+            String target,
+            Map<String, String> changes
+    ) {
+        if (changes == null || changes.isEmpty()) {
+            return null;
+        }
+        ComparableVersion comparableCurrent = new ComparableVersion(current);
+        ComparableVersion comparableTarget = new ComparableVersion(target);
+        ComparableVersion newest = null;
+        ParsedMessage found = null;
+        for (Map.Entry<String, String> entry : changes.entrySet()) {
+            ComparableVersion version = new ComparableVersion(entry.getKey());
+            if (version.compareTo(comparableCurrent) <= 0
+                    || version.compareTo(comparableTarget) >= 0
+                    || (newest != null && version.compareTo(newest) <= 0)) {
+                continue;
+            }
+            ParsedMessage parsed = parseMessage(entry.getValue());
+            if (parsed.severity() == UpdateNotice.Severity.CRITICAL) {
+                newest = version;
+                found = parsed;
+            }
+        }
+        return found;
     }
 
     private static String findTargetMessage(
