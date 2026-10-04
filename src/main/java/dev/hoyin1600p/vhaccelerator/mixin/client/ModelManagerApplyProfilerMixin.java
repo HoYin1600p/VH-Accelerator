@@ -1,12 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
-import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeEventProfiler;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeRegistryIndex;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ModelBakeEventProfiler;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.texture.AtlasSet;
@@ -215,7 +216,7 @@ public abstract class ModelManagerApplyProfilerMixin {
     @Unique
     private static String vhaccelerator$millis(long nanos) {
         return String.format(
-                java.util.Locale.ROOT,
+                Locale.ROOT,
                 "%.1f",
                 nanos / 1_000_000.0
         );

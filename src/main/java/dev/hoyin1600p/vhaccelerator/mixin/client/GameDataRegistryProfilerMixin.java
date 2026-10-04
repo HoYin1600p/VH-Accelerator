@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.RegistryLaunchProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.RegistryLaunchProfiler;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;

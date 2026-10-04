@@ -495,5 +495,19 @@
   "vhaccelerator.config.backports.strongholdRingEarlyRejection.summary": "Rejects impossible stronghold spots earlier.",
   "vhaccelerator.config.backports.strongholdRingEarlyRejection.tooltip": "When the game works out where strongholds go, it throws out impossible positions sooner. Affects new terrain and stronghold searches. Needs a restart.",
   "vhaccelerator.config.enum.critical": "Critical only",
-  "vhaccelerator.config.enum.all": "All updates"
+  "vhaccelerator.config.enum.all": "All updates",
+  "vhaccelerator.jei.reload.start": "[VH Accelerator] Rebuilding JEI from the live recipe and tag state. The game may pause briefly.",
+  "vhaccelerator.jei.reload.failed": "[VH Accelerator] %s",
+  "vhaccelerator.jei.reload.done": "[VH Accelerator] JEI rebuilt from live data in %ss. VHA's JEI caches and parallel index paths were bypassed for this reload.",
+  "vhaccelerator.timer.compare_suffix": " Compare",
+  "vhaccelerator.timer.launch": "[VH Accelerator%s] Launch: %ss",
+  "vhaccelerator.timer.launch_login": "[VH Accelerator%s] Launch: %ss | Server login: %ss",
+  "vhaccelerator.timer.transfer": "[VH Accelerator] Server/world transfer: %ss",
+  "vhaccelerator.timer.post_login": " | Post-login: %ss",
+  "vhaccelerator.timer.post_login_running": " | Post-login: running",
+  "vhaccelerator.timer.post_login_done": "[VH Accelerator] Post-login work completed in %ss",
+  "vhaccelerator.update.available": "%s Update Available",
+  "vhaccelerator.update.message": " - %s",
+  "vhaccelerator.update.download": " [Download on CurseForge]",
+  "vhaccelerator.update.download_tooltip": "Open the %s CurseForge page"
 }

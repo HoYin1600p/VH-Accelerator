@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client.compat.leaks;
 
+import dev.hoyin1600p.vhaccelerator.client.SingleplayerLevelPruner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MinecraftClearLevelModelDataMixin {
     @Inject(method = "clearLevel(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     private void vhaccelerator$releaseLevelModelData(Screen progressScreen, CallbackInfo callback) {
-        dev.hoyin1600p.vhaccelerator.client.SingleplayerLevelPruner.onClearLevel((Minecraft) (Object) this);
+        SingleplayerLevelPruner.onClearLevel((Minecraft) (Object) this);
         ModelDataManagerAccessor.vhaccelerator$needModelDataRefresh().clear();
         ModelDataManagerAccessor.vhaccelerator$modelDataCache().clear();
         ItemStack.EMPTY.setEntityRepresentation(null);

@@ -1,9 +1,11 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.ctm;
 
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.BakeEventProxies;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
@@ -93,11 +95,11 @@ public final class CtmModelBakeOptimizer {
             return false;
         }
         // CTM inspects concrete model types; it needs real models.
-        dev.hoyin1600p.vhaccelerator.client.model.BakeEventProxies.suspend();
+        BakeEventProxies.suspend();
         try {
             return optimizeWithRealModels(event, wrappedModels, wrapper, active);
         } finally {
-            dev.hoyin1600p.vhaccelerator.client.model.BakeEventProxies.resume();
+            BakeEventProxies.resume();
         }
     }
 
@@ -146,7 +148,7 @@ public final class CtmModelBakeOptimizer {
             // A deferred model is baked here only if CTM wraps it; reading
             // the value of any other would bake it for nothing.
             boolean deferred = DeferredBlockStateBaking.isUnresolved(location)
-                    || dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.isUnresolved(location);
+                    || DeferredItemModelBaking.isUnresolved(location);
             BakedModel bakedModel = deferred ? null : entry.getValue();
             if (!deferred && (active.ctmBakedModel().isInstance(bakedModel)
                     || bakedModel.isCustomRenderer())) {

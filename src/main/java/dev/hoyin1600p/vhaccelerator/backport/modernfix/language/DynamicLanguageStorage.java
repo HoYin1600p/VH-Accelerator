@@ -51,7 +51,8 @@ public final class DynamicLanguageStorage {
     }
 
     public static void log(BuildResult result) {
-        LOGGER.info("Prepared immutable language snapshot: {} entries, {} duplicate values shared ({} characters); no lookup-time resource reads",
+        LOGGER.info("Prepared immutable language snapshot: {} entries, {} duplicate values shared "
+                        + "({} characters); no lookup-time resource reads",
                 result.storage().size(), result.deduplicatedValues(), result.sharedCharacters());
     }
 

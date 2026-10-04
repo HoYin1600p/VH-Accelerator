@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.client.compat.crafttweaker;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.util.TimeFormat;
 
 /**
  * Tracks CraftTweaker's synchronized client script replay and compacts only
@@ -37,11 +38,11 @@ public final class CraftTweakerClientReplay {
                 "CraftTweaker synchronized client replay completed in {} ms "
                         + "[sources {} ms, modules {} ms, semantic {} ms, "
                         + "execution {} ms, compacted {} action log lines]",
-                formatMillis(total),
-                formatMillis(timing.sourcePreparationNanos),
-                formatMillis(timing.moduleInitializationNanos),
-                formatMillis(semantic),
-                formatMillis(timing.executionNanos),
+                TimeFormat.formatMillis(total),
+                TimeFormat.formatMillis(timing.sourcePreparationNanos),
+                TimeFormat.formatMillis(timing.moduleInitializationNanos),
+                TimeFormat.formatMillis(semantic),
+                TimeFormat.formatMillis(timing.executionNanos),
                 timing.compactedActionLogs
         );
     }
@@ -125,14 +126,6 @@ public final class CraftTweakerClientReplay {
         return VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.VALUES
                         .compactCraftTweakerClientReplayLogging.get();
-    }
-
-    private static String formatMillis(long nanos) {
-        return String.format(
-                java.util.Locale.ROOT,
-                "%.3f",
-                nanos / 1_000_000.0
-        );
     }
 
     private static final class Timing {

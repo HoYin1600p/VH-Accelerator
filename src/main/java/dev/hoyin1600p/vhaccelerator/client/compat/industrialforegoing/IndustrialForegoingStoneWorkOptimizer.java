@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.industrialforegoing;
 
-import com.buuz135.industrial.block.resourceproduction.tile.MaterialStoneWorkFactoryTile;
 import com.buuz135.industrial.block.resourceproduction.tile.MaterialStoneWorkFactoryTile.StoneWorkAction;
+import com.buuz135.industrial.block.resourceproduction.tile.MaterialStoneWorkFactoryTile;
 import com.buuz135.industrial.plugin.jei.JEICustomPlugin;
 import com.buuz135.industrial.plugin.jei.category.StoneWorkCategory;
 import java.util.ArrayList;

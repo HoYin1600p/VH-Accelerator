@@ -1,9 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;

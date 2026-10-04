@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client.compat.create;
 
 import com.simibubi.create.compat.jei.category.BlockCuttingCategory;
 import com.simibubi.create.foundation.item.ItemHelper;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,9 +34,9 @@ public abstract class BlockCuttingCondenseMixin {
             List<Recipe<?>> stoneCuttingRecipes,
             CallbackInfoReturnable<List<BlockCuttingCategory.CondensedBlockCuttingRecipe>> callback
     ) {
-        if (!dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.optimizationsEnabled()
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.launchValue(
-                        dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.VALUES
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
                                 .indexCreateBlockCuttingRecipes)) {
             return;
         }

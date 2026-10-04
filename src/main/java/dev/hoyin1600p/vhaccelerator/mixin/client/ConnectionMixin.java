@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
-import dev.hoyin1600p.vhaccelerator.client.DisconnectTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.DisconnectTimer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;

@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin;
 
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.ParallelBlockStateInitializer;
-import dev.hoyin1600p.vhaccelerator.RegistryValidationState;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.startup.ParallelBlockStateInitializer;
+import dev.hoyin1600p.vhaccelerator.startup.RegistryValidationState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistry;
 import org.spongepowered.asm.mixin.Mixin;

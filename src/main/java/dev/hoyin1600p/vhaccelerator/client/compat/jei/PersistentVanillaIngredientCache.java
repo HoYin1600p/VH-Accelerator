@@ -1,22 +1,21 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -416,7 +415,7 @@ public final class PersistentVanillaIngredientCache {
             temporary = Files.createTempFile(
                     DIRECTORY,
                     serverKey + "-" + jeiGeneration + "-",
-                    ".tmp"
+                    CacheFiles.TEMP_SUFFIX
             );
 
             CompoundTag root = new CompoundTag();
@@ -443,20 +442,7 @@ public final class PersistentVanillaIngredientCache {
             )) {
                 NbtIo.writeCompressed(root, output);
             }
-            try {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            }
+            AtomicFiles.moveIntoPlace(temporary, target);
             VHAccelerator.LOGGER.info(
                     "Persisted {} JEI {} vanilla item ingredients for future logins",
                     cached.stacks().size(),

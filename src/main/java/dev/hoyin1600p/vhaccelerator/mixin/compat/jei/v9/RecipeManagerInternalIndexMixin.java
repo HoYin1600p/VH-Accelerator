@@ -1,13 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v9;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.CachedRecipeOutputReconciler;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.v9.RecipeMapIndexAccess;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;

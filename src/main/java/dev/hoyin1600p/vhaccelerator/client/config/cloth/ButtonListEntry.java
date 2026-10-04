@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.config.cloth;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.hoyin1600p.vhaccelerator.client.gui.GuiLayout;
 import java.util.List;
 import java.util.Optional;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
@@ -16,7 +17,7 @@ final class ButtonListEntry extends AbstractConfigListEntry<Object> {
 
     ButtonListEntry(Component label, Button.OnPress onPress) {
         super(label, false);
-        this.button = new Button(0, 0, BUTTON_WIDTH, 20, label, onPress);
+        this.button = new Button(0, 0, BUTTON_WIDTH, GuiLayout.BUTTON_HEIGHT, label, onPress);
     }
 
     // Cloth 6.5 passes y BEFORE x (index, y, x, ...), unlike vanilla list entries.

@@ -1,12 +1,12 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphOwner;
-import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredTopLevelManifest;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredTopLevelManifest;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DynamicModelGuard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;

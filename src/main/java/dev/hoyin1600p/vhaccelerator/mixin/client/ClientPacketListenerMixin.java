@@ -1,15 +1,15 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.ServerLoginTimer;
-import dev.hoyin1600p.vhaccelerator.client.ServerTransferTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.ThermalRefreshPhase;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ServerLoginTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ServerTransferTimer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import org.spongepowered.asm.mixin.Mixin;

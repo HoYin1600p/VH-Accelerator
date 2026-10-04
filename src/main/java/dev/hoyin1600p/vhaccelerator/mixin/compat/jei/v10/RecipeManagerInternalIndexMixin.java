@@ -1,18 +1,20 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.CachedRecipeOutputReconciler;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLiveIndexTimer;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.v10.RecipeMapIndexAccess;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import mezz.jei.api.constants.VanillaTypes;
@@ -73,8 +75,8 @@ public abstract class RecipeManagerInternalIndexMixin {
             Collection<T> recipes,
             CallbackInfo callback
     ) {
-        if (dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
-            dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLiveIndexTimer.start();
+        if (dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            JeiLiveIndexTimer.start();
         }
     }
 
@@ -88,7 +90,7 @@ public abstract class RecipeManagerInternalIndexMixin {
             Collection<T> recipes,
             CallbackInfo callback
     ) {
-        long nanos = dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiLiveIndexTimer.finish();
+        long nanos = JeiLiveIndexTimer.finish();
         if (nanos < 0L) {
             return;
         }
@@ -98,7 +100,7 @@ public abstract class RecipeManagerInternalIndexMixin {
                 recipeTypeData.getRecipeCategory().getRecipeType().getUid(),
                 recipes.size(),
                 withIds,
-                String.format(java.util.Locale.ROOT, "%.1f", nanos / 1_000_000.0)
+                String.format(Locale.ROOT, "%.1f", nanos / 1_000_000.0)
         );
     }
 

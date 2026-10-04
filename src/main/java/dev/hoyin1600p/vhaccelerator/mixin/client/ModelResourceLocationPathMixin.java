@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.model.ModelLocationPaths;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelLocationPaths;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

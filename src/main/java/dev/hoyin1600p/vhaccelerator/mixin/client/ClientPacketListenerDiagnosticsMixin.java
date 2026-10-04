@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.ClientConnectionProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ClientConnectionProfiler;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;

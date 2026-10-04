@@ -1,5 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.compat.ferritecore;
 
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapCommonConfig;
+
 /**
  * Drops FerriteCore 4.2.2's per-state property-map view.
  *
@@ -18,7 +20,7 @@ public final class FerriteCorePropertyMaps {
     }
 
     public static boolean enabled() {
-        return dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+        return BootstrapCommonConfig.bool(
                 "compatibility", "compactFerriteCorePropertyMaps", true);
     }
 }

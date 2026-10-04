@@ -2,6 +2,9 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.ConcurrentDeferredModelRegistry;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredModelRegistry;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.LazyStateModelCache;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

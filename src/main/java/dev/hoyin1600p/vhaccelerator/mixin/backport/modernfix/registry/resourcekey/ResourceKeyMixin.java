@@ -35,7 +35,8 @@ public abstract class ResourceKeyMixin<T> {
     ) {
         callback.setReturnValue(ResourceKeyCache.getOrCreate(
                 registry,
-                location
+                location,
+                ResourceKeyConstructor::vha$construct
         ));
     }
 }

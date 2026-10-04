@@ -5,7 +5,7 @@ import cofh.thermal.core.util.recipes.dynamo.StirlingFuel;
 import cofh.thermal.lib.util.recipes.internal.IDynamoFuel;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.ThermalRefreshPhase;
 import java.util.ArrayList;

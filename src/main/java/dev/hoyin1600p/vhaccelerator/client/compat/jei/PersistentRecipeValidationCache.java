@@ -1,11 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
+import dev.hoyin1600p.vhaccelerator.util.Digests;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -13,12 +15,9 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -360,7 +359,7 @@ public final class PersistentRecipeValidationCache {
             temporary = Files.createTempFile(
                     DIRECTORY,
                     serverKey + "-",
-                    ".tmp"
+                    CacheFiles.TEMP_SUFFIX
             );
             try (DataOutputStream output = new DataOutputStream(
                     new BufferedOutputStream(Files.newOutputStream(temporary))
@@ -390,20 +389,7 @@ public final class PersistentRecipeValidationCache {
                 output.writeUTF(manifestHash(manifest));
             }
 
-            try {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            }
+            AtomicFiles.moveIntoPlace(temporary, target);
             int recipeCount = manifest.categories().values().stream()
                     .mapToInt(entry -> entry.acceptedIds().size())
                     .sum();
@@ -548,31 +534,27 @@ public final class PersistentRecipeValidationCache {
     }
 
     private static String manifestHash(CachedManifest manifest) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            LoginStateFingerprint.RecipeDependencies dependencies =
-                    manifest.dependencies();
-            updateDigest(digest, dependencies.value());
-            updateDigest(digest, dependencies.localCodeHash());
-            updateDigest(digest, dependencies.recipePayloadHash());
-            updateDigest(digest, dependencies.tagPayloadHash());
-            updateDigest(digest, dependencies.serverConfigHash());
-            manifest.categories().entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> {
-                        updateDigest(digest, entry.getKey());
-                        updateDigest(
-                                digest,
-                                Integer.toString(entry.getValue().sourceCount())
-                        );
-                        entry.getValue().acceptedIds().forEach(
-                                recipeId -> updateDigest(digest, recipeId)
-                        );
-                    });
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
+        MessageDigest digest = Digests.sha256();
+        LoginStateFingerprint.RecipeDependencies dependencies =
+                manifest.dependencies();
+        updateDigest(digest, dependencies.value());
+        updateDigest(digest, dependencies.localCodeHash());
+        updateDigest(digest, dependencies.recipePayloadHash());
+        updateDigest(digest, dependencies.tagPayloadHash());
+        updateDigest(digest, dependencies.serverConfigHash());
+        manifest.categories().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    updateDigest(digest, entry.getKey());
+                    updateDigest(
+                            digest,
+                            Integer.toString(entry.getValue().sourceCount())
+                    );
+                    entry.getValue().acceptedIds().forEach(
+                            recipeId -> updateDigest(digest, recipeId)
+                    );
+                });
+        return HexFormat.of().formatHex(digest.digest());
     }
 
     private static void updateDigest(MessageDigest digest, String value) {

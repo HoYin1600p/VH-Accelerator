@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -350,7 +351,7 @@ public final class ZipPackIndex {
         if (path.isEmpty()) {
             return new String[0];
         }
-        return java.util.Arrays.stream(path.split("/"))
+        return Arrays.stream(path.split("/"))
                 .filter(component -> !component.isEmpty())
                 .toArray(String[]::new);
     }

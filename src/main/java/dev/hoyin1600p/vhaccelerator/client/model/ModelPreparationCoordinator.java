@@ -1,8 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,7 +24,9 @@ public final class ModelPreparationCoordinator {
         int parallelism = SharedWorkers.budget().compute();
         if (parallelism >= 2) { return true; }
         if (CAPACITY_WARNING.compareAndSet(false, true)) {
-            VHAccelerator.LOGGER.info("Using sequential model preparation within the shared worker budget [{} compute workers]", parallelism);
+            VHAccelerator.LOGGER.info(
+                    "Using sequential model preparation within the shared worker budget [{} compute workers]",
+                    parallelism);
         }
         return false;
     }

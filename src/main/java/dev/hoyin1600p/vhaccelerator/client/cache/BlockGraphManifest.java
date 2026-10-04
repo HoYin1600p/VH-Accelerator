@@ -2,6 +2,8 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
+import dev.hoyin1600p.vhaccelerator.util.Digests;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -16,7 +18,6 @@ import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -208,7 +209,7 @@ public final class BlockGraphManifest {
     }
 
     public static void write(Manifest manifest, OutputStream target) throws IOException {
-        MessageDigest digest = sha256();
+        MessageDigest digest = Digests.sha256();
         DigestOutputStream digesting = new DigestOutputStream(target, digest);
         DataOutputStream output = new DataOutputStream(digesting);
         output.writeInt(MAGIC);
@@ -239,7 +240,7 @@ public final class BlockGraphManifest {
 
     /** Reads a manifest; null for another format version, throws if corrupt. */
     public static Manifest read(InputStream source) throws IOException {
-        MessageDigest digest = sha256();
+        MessageDigest digest = Digests.sha256();
         DigestInputStream digesting = new DigestInputStream(source, digest);
         DataInputStream input = new DataInputStream(digesting);
         if (input.readInt() != MAGIC) {
@@ -316,14 +317,6 @@ public final class BlockGraphManifest {
         return new String(input.readNBytes(length), StandardCharsets.UTF_8);
     }
 
-    private static MessageDigest sha256() {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
-
     public static CompletableFuture<Manifest> readAsync() {
         return CompletableFuture.supplyAsync(BlockGraphManifest::readFile, SharedWorkers.io());
     }
@@ -368,7 +361,7 @@ public final class BlockGraphManifest {
 
     private static void writeFile(Manifest manifest) {
         Path file = cacheFile();
-        Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
+        Path temporary = file.resolveSibling(file.getFileName() + CacheFiles.TEMP_SUFFIX);
         try {
             Files.createDirectories(file.getParent());
             try (OutputStream output = new GZIPOutputStream(new BufferedOutputStream(Files.newOutputStream(temporary)))) {

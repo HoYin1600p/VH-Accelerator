@@ -15,6 +15,7 @@ package dev.hoyin1600p.vhaccelerator.backport.modernfix.registry;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -94,7 +95,7 @@ public final class ObjectHolderThrowableCompactor {
     }
 
     private static Field[] capturedThrowableFields(Class<?> handlerClass) {
-        return java.util.Arrays.stream(handlerClass.getDeclaredFields())
+        return Arrays.stream(handlerClass.getDeclaredFields())
                 .filter(Field::isSynthetic)
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))
                 .filter(field -> Throwable.class.isAssignableFrom(field.getType()))

@@ -17,8 +17,8 @@ Build:
 .\gradlew.bat clean build
 ```
 
-The `check` lifecycle compiles the universal source against all four Vault/JEI
-profiles and verifies the packaged compatibility layout.
+The `check` lifecycle compiles the universal source against every Vault/JEI
+profile and verifies the packaged compatibility layout.
 
 ## Repository boundaries
 
@@ -32,6 +32,9 @@ Do not commit:
 
 Reference material must remain local and legally obtained. A tracked document
 may record behavioral findings without reproducing third-party source.
+
+See [Architecture](docs/ARCHITECTURE.md) for the package layout and the rules
+that keep client code, mixins, config keys and cache formats stable.
 
 ## Optimization design rules
 

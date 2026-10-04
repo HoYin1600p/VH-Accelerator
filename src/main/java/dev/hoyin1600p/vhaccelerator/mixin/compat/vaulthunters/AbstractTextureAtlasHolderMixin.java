@@ -5,6 +5,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtla
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.DeferredVaultAtlasUploads;
 import iskallia.vault.client.atlas.AbstractTextureAtlasHolder;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -112,7 +113,7 @@ public abstract class AbstractTextureAtlasHolderMixin
 
         int unusedCount = 0;
         try (Stream<ResourceLocation> resources = getResourcesToLoad()) {
-            java.util.Iterator<ResourceLocation> iterator =
+            Iterator<ResourceLocation> iterator =
                     resources.iterator();
             while (iterator.hasNext()) {
                 ResourceLocation location = iterator.next();

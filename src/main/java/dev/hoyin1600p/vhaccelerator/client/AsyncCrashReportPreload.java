@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
-import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
-import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapCompareMode;
+import dev.hoyin1600p.vhaccelerator.bootstrap.ConfigMigration;
 import java.nio.file.Path;
 import net.minecraft.CrashReport;
 import net.minecraft.util.MemoryReserve;
@@ -15,7 +15,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * <p>{@code Main.main} calls {@code CrashReport.preload()} on the main thread
  * before starting bootstrap. It reserves emergency memory and then builds and
  * discards a full crash report only so the crash-reporting classes are
- * loaded before memory could run out. In CMA Remastered that report cost
+ * loaded before memory could run out. In the Remastered test pack that report cost
  * ~0.8 s (Patchouli's crash-report hook ~0.4 s and OSHI hardware queries
  * ~0.4 s) while nothing else could start. The memory reservation stays
  * synchronous. The throwaway report is built on a daemon thread started

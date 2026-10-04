@@ -2,9 +2,9 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest.Manifest;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest.MaterialId;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest.Manifest;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest.MaterialId;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

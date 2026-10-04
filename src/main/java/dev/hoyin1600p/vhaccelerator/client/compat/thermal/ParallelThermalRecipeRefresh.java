@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.client.compat.thermal;
 import cofh.thermal.lib.util.managers.IManager;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.util.TimeFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -56,9 +57,9 @@ public final class ParallelThermalRecipeRefresh {
                             managers.size(),
                             AdaptiveJeiWorkScheduler.currentParallelism()
                     ),
-                    formatMillis(elapsed),
+                    TimeFormat.formatMillis(elapsed),
                     timings.get(0).managerName(),
-                    formatMillis(timings.get(0).elapsedNanos())
+                    TimeFormat.formatMillis(timings.get(0).elapsedNanos())
             );
             return true;
         } catch (RuntimeException | LinkageError exception) {
@@ -84,14 +85,6 @@ public final class ParallelThermalRecipeRefresh {
         return new ManagerTiming(
                 manager.getClass().getSimpleName(),
                 System.nanoTime() - started
-        );
-    }
-
-    private static String formatMillis(long nanos) {
-        return String.format(
-                java.util.Locale.ROOT,
-                "%.3f",
-                nanos / 1_000_000.0
         );
     }
 

@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.ClientReloadProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ClientReloadProfiler;
 import java.util.List;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;

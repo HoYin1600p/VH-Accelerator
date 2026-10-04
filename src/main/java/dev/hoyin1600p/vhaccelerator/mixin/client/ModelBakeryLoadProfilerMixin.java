@@ -1,11 +1,11 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.decocraft.DecocraftBbModelCache;
 import dev.hoyin1600p.vhaccelerator.client.model.BlockStateGraphLoadDiagnostics;
 import dev.hoyin1600p.vhaccelerator.client.model.PlaceboItemMappingProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.model.ModelPreparationWorkHolder;
-import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateModelLocations;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ParallelBlockStateModelLocations;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.spongepowered.asm.mixin.Mixin;

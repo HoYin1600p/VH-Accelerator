@@ -2,9 +2,9 @@ package dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
-import ironfurnaces.init.Registration;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import ironfurnaces.Config;
+import ironfurnaces.init.Registration;
 import ironfurnaces.jei.RecipeCategoryGeneratorBlasting;
 import ironfurnaces.jei.RecipeCategoryGeneratorRegular;
 import ironfurnaces.jei.RecipeCategoryGeneratorSmoking;

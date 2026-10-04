@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.config;
 
-import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.TranslatableComponent;

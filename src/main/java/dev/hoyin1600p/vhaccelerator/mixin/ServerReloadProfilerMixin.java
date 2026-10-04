@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin;
 
-import dev.hoyin1600p.vhaccelerator.ReloadListenerTimer;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.startup.ReloadListenerTimer;
 import java.util.List;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.ReloadableServerResources;

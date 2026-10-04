@@ -1,10 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;

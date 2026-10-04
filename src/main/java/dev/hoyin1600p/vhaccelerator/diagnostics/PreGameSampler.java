@@ -1,5 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.diagnostics;
 
+import java.lang.management.ClassLoadingMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,8 +58,8 @@ public final class PreGameSampler {
         long previous = started;
         Thread[] poolThreads = new Thread[0];
         int iteration = 0;
-        java.lang.management.ClassLoadingMXBean classes =
-                java.lang.management.ManagementFactory.getClassLoadingMXBean();
+        ClassLoadingMXBean classes =
+                ManagementFactory.getClassLoadingMXBean();
         long loadedBefore = classes.getTotalLoadedClassCount();
         while (System.getProperty(STOP_PROPERTY) == null
                 && launchThread.isAlive()
@@ -96,7 +99,7 @@ public final class PreGameSampler {
         }
         Thread[] threads = new Thread[Math.max(16, root.activeCount() * 2)];
         int count = root.enumerate(threads, true);
-        return java.util.Arrays.stream(threads, 0, count)
+        return Arrays.stream(threads, 0, count)
                 .filter(thread -> thread.getName().startsWith("pool-"))
                 .toArray(Thread[]::new);
     }

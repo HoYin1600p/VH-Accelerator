@@ -12,7 +12,6 @@
  */
 package dev.hoyin1600p.vhaccelerator.backport.modernfix.registry;
 
-import dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.registry.resourcekey.ResourceKeyConstructor;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import java.util.Map;
 import net.minecraft.resources.ResourceKey;
@@ -27,10 +26,20 @@ public final class ResourceKeyCache {
     private ResourceKeyCache() {
     }
 
+    /** Creates a key through the mixin-generated private constructor. */
+    @FunctionalInterface
+    public interface KeyFactory {
+        <T> ResourceKey<T> construct(
+                ResourceLocation registry,
+                ResourceLocation location
+        );
+    }
+
     @SuppressWarnings("unchecked")
     public static synchronized <T> ResourceKey<T> getOrCreate(
             ResourceLocation registry,
-            ResourceLocation location
+            ResourceLocation location,
+            KeyFactory factory
     ) {
         Map<ResourceLocation, ResourceKey<?>> registryKeys =
                 KEYS.computeIfAbsent(
@@ -39,7 +48,7 @@ public final class ResourceKeyCache {
                 );
         ResourceKey<?> key = registryKeys.get(location);
         if (key == null) {
-            key = ResourceKeyConstructor.vha$construct(registry, location);
+            key = factory.construct(registry, location);
             registryKeys.put(location, key);
         }
         return (ResourceKey<T>) key;

@@ -1,10 +1,11 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * Keeps explicitly safe JEI collection work off Minecraft's shared common
@@ -85,7 +86,7 @@ public final class AdaptiveJeiWorkScheduler {
         }
     }
 
-    public static <T> java.util.stream.Stream<T> stream(java.util.Collection<T> values) {
+    public static <T> Stream<T> stream(Collection<T> values) {
         return gameplayActive ? values.stream() : SharedWorkers.stream(values);
     }
 }

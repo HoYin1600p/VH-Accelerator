@@ -9,7 +9,7 @@ import java.util.function.Consumer;
  *
  * <p>Decoration mods build block shapes in their constructors, once per block
  * and wood variant, from freshly created boxes (MrCrayfish's Furniture alone
- * spent ~0.4 s combining them in a CMA Remastered launch). While mod loading
+ * spent ~0.4 s combining them in a Remastered test pack launch). While mod loading
  * runs, equal {@code Shapes.box} bounds return one shared instance, and
  * {@code Shapes.joinUnoptimized} and {@code VoxelShape.optimize} results are
  * reused by input identity. Because boxes are shared, every variant's

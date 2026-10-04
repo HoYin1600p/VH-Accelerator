@@ -1,13 +1,12 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.ClientBackgroundExecutor;
-
 import com.mojang.authlib.minecraft.UserApiService;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.telemetry.TelemetryBlockingUserApiService;
+import dev.hoyin1600p.vhaccelerator.client.ClientBackgroundExecutor;
 import dev.hoyin1600p.vhaccelerator.client.DeferredUserApiService;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.concurrent.CompletableFuture;

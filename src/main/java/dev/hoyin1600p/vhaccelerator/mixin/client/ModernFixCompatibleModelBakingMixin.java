@@ -1,14 +1,14 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership;
+import dev.hoyin1600p.vhaccelerator.client.diagnostics.DynamicModelLoadingAudit;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.BlockModelRotation;
@@ -175,7 +176,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
                 VHAcceleratorClientConfig.VALUES.protectDynamicModels
         );
         topLevelModels.forEach((location, model) -> {
-            if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeBakes(location)
+            if (BuildScapeModelOwnership.buildScapeBakes(location)
                     || protectDynamic
                     && scanner.requiresSequentialBaking(model)) {
                 sequential.add(location);
@@ -192,7 +193,7 @@ public abstract class ModernFixCompatibleModelBakingMixin {
     @Unique
     private static <T> void vhaccelerator$runBatched(
             List<T> values,
-            java.util.function.Consumer<T> action
+            Consumer<T> action
     ) {
         SharedWorkers.forEach(values, action);
     }

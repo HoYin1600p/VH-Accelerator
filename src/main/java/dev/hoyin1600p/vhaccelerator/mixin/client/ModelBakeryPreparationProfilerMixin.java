@@ -1,9 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.LaunchStackSampler;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchStackSampler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;

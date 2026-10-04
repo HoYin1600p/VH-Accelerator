@@ -4,6 +4,7 @@ import com.blamejared.crafttweaker.api.CraftTweakerAPI;
 import com.blamejared.crafttweaker.api.tag.CraftTweakerTagRegistry;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
+import dev.hoyin1600p.vhaccelerator.util.TimeFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,7 +92,7 @@ public final class ParallelCraftTweakerTagBinding {
                             entries.size(),
                             AdaptiveJeiWorkScheduler.currentParallelism()
                     ),
-                    formatMillis(System.nanoTime() - started)
+                    TimeFormat.formatMillis(System.nanoTime() - started)
             );
             return true;
         } catch (RuntimeException | LinkageError exception) {
@@ -132,13 +133,5 @@ public final class ParallelCraftTweakerTagBinding {
             ResourceKey<? extends Registry<?>> key
     ) {
         return new TagManager.LoadResult((ResourceKey) key, new HashMap<>());
-    }
-
-    private static String formatMillis(long nanos) {
-        return String.format(
-                java.util.Locale.ROOT,
-                "%.3f",
-                nanos / 1_000_000.0
-        );
     }
 }

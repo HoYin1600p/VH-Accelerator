@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelOwner;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +37,7 @@ public interface BakeryRetention {
     /** Applies S2 to the bakery the model manager just applied. */
     static void releaseAfterApply(Object bakery) {
         if (bakery instanceof BakeryRetention audited
-                && dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+                && dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             try {
                 DeferralScopeAudit.report(
                         audited.vhaccelerator$topLevelModels(),
@@ -46,9 +48,9 @@ public interface BakeryRetention {
             }
         }
         if (!(bakery instanceof BakeryRetention retention)
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.optimizationsEnabled()
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.launchValue(
-                        dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.VALUES
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
                                 .releaseBakeryLoadMaps)) {
             return;
         }

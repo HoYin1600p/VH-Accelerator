@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.1.3-7b68ee)](docs/releases/1.1.3.md)
+[![Release](https://img.shields.io/badge/Release-1.1.4-7b68ee)](docs/releases/1.1.4.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
 packs. Its tested client paths reduce launch and multiplayer-login work while
@@ -44,7 +44,7 @@ target mod and supported class layout are present.
   active in optimization Compare Mode.
 - An in-world `/vha reload_jei` recovery command that rebuilds JEI from the
   live synchronized recipe and tag state without disconnecting.
-- Automatic ownership handoff for overlapping ModernFix features.
+- Automatic detection of overlapping ModernFix features, so only one mod handles each.
 - One universal jar containing isolated JEI 9 and JEI 10 compatibility
   modules.
 - Guarded large-pack launch improvements for CTM, generated model registries,
@@ -91,7 +91,7 @@ mods, and first-launch expectations.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.1.3.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.1.4.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -148,7 +148,8 @@ VH Accelerator writes:
 
 With [Cloth Config](https://www.curseforge.com/minecraft/mc-mods/cloth-config) installed, every
 setting can also be changed in game: bind **Open VH Accelerator settings** in Options > Controls.
-See [Settings screen](docs/CONFIGURATION.md#settings-screen).
+See [Settings screen](docs/CONFIGURATION.md#settings-screen) and the
+[screenshots](#screenshots) below.
 
 Release defaults use:
 
@@ -181,6 +182,20 @@ cache; stale cache data is not trusted.
 
 See [Configuration and commands](docs/CONFIGURATION.md) for every setting and
 default.
+
+## Screenshots
+
+The settings screen groups every option into player-facing tabs. Each option has a
+click-to-expand explanation, and options that need a restart are marked.
+
+![The General tab of the settings screen](docs/images/settings-screen.jpg)
+
+![The Vault Hunters tab of the settings screen](docs/images/settings-vault-tab.jpg)
+
+The bug report screen shows the exact issue text before anything leaves the game.
+Personal paths and your name are removed, and nothing is uploaded.
+
+![The bug report preview screen](docs/images/bug-report-preview.jpg)
 
 ## Measurement
 
@@ -223,6 +238,7 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
+| [Release notes 1.1.4](docs/releases/1.1.4.md) | Maintenance: translatable messages, logo, code cleanup |
 | [Release notes 1.1.3](docs/releases/1.1.3.md) | In-game settings screen (optional, needs Cloth Config) |
 | [Release notes 1.1.2](docs/releases/1.1.2.md) | Critical fix for world holes with Farsight installed |
 | [Release notes 1.1.1](docs/releases/1.1.1.md) | Critical fix for invisible blocks and vault portals in 1.1.0 |
@@ -236,6 +252,8 @@ Current compatibility details:
 | [Configuration and commands](docs/CONFIGURATION.md) | Every option, default, command, and permission |
 | [Testing and benchmarking](docs/TESTING.md) | Compare Mode and repeatable launch/login testing |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Safe isolation and issue-reporting steps |
+| [Architecture](docs/ARCHITECTURE.md) | Package layout and rules for contributors |
+| [Contributing](CONTRIBUTING.md) | Development setup, design rules, and pull requests |
 | [Release notes 1.0.7](docs/releases/1.0.7.md) | Client launch efficiency and optional FerriteCore integration |
 | [Release notes 1.0.6](docs/releases/1.0.6.md) | Wold's Compatibility pass and large-pack launch improvements |
 | [Release notes 1.0.5](docs/releases/1.0.5.md) | Dynamic block-atlas texture registration correction |
@@ -247,7 +265,6 @@ Current compatibility details:
 | [Credits](CREDITS.md) | Inspiration, research, and compatibility attribution |
 | [Original behavior map](docs/ORIGINAL_BEHAVIOR.md) | LaunchFaster behavior studied during initial discovery |
 | [VHClientOptimize analysis](docs/VH_CLIENT_OPTIMIZE_ANALYSIS.md) | Vault/JEI behavior and risk review |
-| [Cross-version research](docs/CROSS_VERSION_LOADING_RESEARCH.md) | Other performance projects and newer model pipelines |
 
 ## Building
 
@@ -278,9 +295,7 @@ research; all are documented in [CREDITS.md](CREDITS.md).
 
 No third-party mod jar is bundled. ModernFix-derived backports are identified
 at file level and recorded with their exact upstream source paths and commits
-in [the backport provenance ledger](docs/MODERNFIX_BACKPORTS.md). The staged
-implementation, ownership, exclusion, and validation plan is documented in
-[the ModernFix implementation plan](docs/MODERNFIX_IMPLEMENTATION_PLAN.md).
+in [the backport provenance ledger](docs/MODERNFIX_BACKPORTS.md).
 
 Post-1.0.13 development is licensed under
 [LGPL-3.0-or-later](LICENSE). Releases through 1.0.13 remain available under

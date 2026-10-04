@@ -2,11 +2,14 @@ package dev.hoyin1600p.vhaccelerator.client.model;
 
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.cache.BlockGraphManifest;
-import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredModelCompatibility;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelGraphLoader;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,11 +17,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -155,8 +160,8 @@ public final class BlockGraphSkipSession {
     }
 
     /** Debug: first-use graph loads by the first caller frame outside the model stack. */
-    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger>
-            callers = new java.util.concurrent.ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger>
+            callers = new ConcurrentHashMap<>();
 
     private void recordCaller() {
         String caller = StackWalker.getInstance().walk(frames -> frames
@@ -172,7 +177,7 @@ public final class BlockGraphSkipSession {
                 .reduce((a, b) -> a + " <- " + b)
                 .orElse("?"));
         callers.computeIfAbsent(Thread.currentThread().getName().replaceAll("-?\\d+$", "")
-                + " | " + caller, key -> new java.util.concurrent.atomic.AtomicInteger()).incrementAndGet();
+                + " | " + caller, key -> new AtomicInteger()).incrementAndGet();
     }
 
     /** Debug: skipped blocks and first-use graph loads so far, with top callers. */
@@ -324,7 +329,7 @@ public final class BlockGraphSkipSession {
             BiConsumer<S, Integer> setGroup,
             Consumer<List<S>> registerGroup
     ) {
-        Map<Integer, List<S>> byLabel = new java.util.LinkedHashMap<>();
+        Map<Integer, List<S>> byLabel = new LinkedHashMap<>();
         for (int index = 0; index < labels.length && index < states.size(); index++) {
             int label = labels[index];
             if (label == BlockGraphManifest.NON_MODEL_GROUP) {
@@ -349,7 +354,7 @@ public final class BlockGraphSkipSession {
     }
 
     /** Skipped blocks whose whole graph finished loading through {@link #loadAndBake}. */
-    private final Set<String> completedBlocks = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<String> completedBlocks = ConcurrentHashMap.newKeySet();
 
     /**
      * Whether a deferred key still needs its skipped block's graph loaded:
@@ -415,7 +420,7 @@ public final class BlockGraphSkipSession {
         if (loadingClosed) {
             return null;
         }
-        if (dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+        if (dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             recordCaller();
         }
         // The whole block counts as loaded afterwards (needsGraph), so every
@@ -555,7 +560,7 @@ public final class BlockGraphSkipSession {
                                             .MissingTextureAtlasSprite.getLocation())) {
                                 return null;
                             }
-                            if (dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer.textureUsesCtm(material.texture())) {
+                            if (CtmModelBakeOptimizer.textureUsesCtm(material.texture())) {
                                 // CTM wraps it in the bake event, which needs its graph.
                                 return null;
                             }

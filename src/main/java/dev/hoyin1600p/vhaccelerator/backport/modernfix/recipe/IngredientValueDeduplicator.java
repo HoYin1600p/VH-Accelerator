@@ -13,7 +13,6 @@
  */
 package dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe;
 
-import dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.recipe.dedup.IngredientItemValueAccess;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -36,7 +35,7 @@ public final class IngredientValueDeduplicator {
         }
 
         Ingredient.ItemValue itemValue = (Ingredient.ItemValue) value;
-        ItemStack stack = ((IngredientItemValueAccess) itemValue)
+        ItemStack stack = ((IngredientItemValueView) itemValue)
                 .vha$getItem();
         StackKey key = new StackKey(stack);
         synchronized (VALUES) {

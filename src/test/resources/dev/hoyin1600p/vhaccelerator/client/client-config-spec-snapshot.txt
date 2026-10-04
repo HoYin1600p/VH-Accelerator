@@ -1,0 +1,563 @@
+section optimizations
+value optimizations.enableClientOptimizations | default=true | range=null | restart=false | translation=null | comment=Master switch for optimizations that only apply to the physical client.
+value optimizations.overlapModelPreparation | default=true | range=null | restart=false | translation=null | comment=Starts model-key and blockstate preparation together\nwhile model JSON is prepared on the client reload thread.\nAll independent work joins before vanilla bakery discovery.\nThis backports the asynchronous preparation shape used\nby newer Minecraft versions.
+value optimizations.parallelModelLoading | default=true | range=null | restart=false | translation=null | comment=Reads and parses plain model JSON concurrently.\nForge custom loaders, BuildScape models, cache misses, and parse failures\nremain on their established loading paths.
+value optimizations.parallelBlockStateLoading | default=true | range=null | restart=false | translation=null | comment=Reads ordered registered blockstate JSON resource stacks concurrently.\nEvery definition is still parsed by Minecraft and Forge on their\nestablished loading path. BuildScape, unknown-block, and failed\nresources remain entirely on their original path.\nThis backports the split model/blockstate loading pipeline\nused by newer Minecraft versions.
+value optimizations.parallelAtlasStitching | default=false | range=null | restart=false | translation=null | comment=Prepares independent texture atlases concurrently. Off by default:\nForge fires TextureStitchEvent.Pre inside each preparation, so mod\nlisteners would run on several threads at once. Restart required.
+value optimizations.serializeAtlasStitchEvents | default=true | range=null | restart=false | translation=null | comment=With parallelAtlasStitching: fires every atlas's TextureStitchEvent.Pre\nfirst, one at a time on the loading thread in vanilla order, and prepares\nthe atlases in parallel afterwards, so mod stitch listeners never run on\nseveral threads at once. Restart required.
+value optimizations.parallelModelBaking | default=true | range=null | restart=false | translation=null | comment=Bakes top-level models in batches on Minecraft's background executor.
+value optimizations.optimizeVoxelShapeMerging | default=true | range=null | restart=false | translation=null | comment=Uses a flat-array coordinate merger for complex voxel shapes.\nThe output is equivalent to Minecraft's original merger and\ncan reduce block-registration time in decoration-heavy packs.\nVH Accelerator yields this patch when Canary or Lithium is present.
+value optimizations.cacheLaunchVoxelShapes | default=true | range=null | restart=false | translation=null | comment=While mods load, shares equal voxel-shape boxes and reuses identical\nshape joins, so decoration mods that build the same shapes for every\nblock and wood variant stop recomputing them. Shapes are immutable.\nThe cache is released when mod loading completes. Yields to Canary or\nLithium. Restart required.
+value optimizations.asyncCrashReportPreload | default=true | range=null | restart=false | translation=null | comment=Builds Minecraft's startup throwaway crash report (which only preloads\ncrash-reporting classes) on a background thread started after\nbootstrap, instead of on the main thread before bootstrap. The\nemergency memory reservation stays synchronous. Read before Forge\nconfig loads. Restart required.
+value optimizations.persistentModelJsonCache | default=true | range=null | restart=false | translation=null | comment=Persists the resolved initial model JSON resource view as one\nchecksummed file and restores it only when the mod files,\nresource packs, relevant local configs, and pack order match.\nForge still parses every JSON and runs every custom geometry loader;\nparsed models, baked models, textures, and dynamic state are never stored.\nRuntime resource reloads always bypass this cache.
+value optimizations.prewarmPersistentPlainModels | default=true | range=null | restart=false | translation=null | comment=Parses eligible plain models from the validated persistent JSON\ncache before Minecraft reaches its initial resource-reload barrier.\nThe prewarmed objects remain memory-only and are used only when\nthe live asset fingerprint matches the cache. Forge custom loaders,\nBuildScape models, and failures keep their established loading path.
+value optimizations.separateModelPrewarmIo | default=true | range=null | restart=false | translation=null | comment=Releases the serial disk-cache lane before plain-model CPU preparation.\nPreparation still completes before its existing resource readiness barrier.\nRestart required; disable to compare the original combined read/parse path.
+value optimizations.optimizeMaterialCacheSession | default=true | range=null | restart=false | translation=null | comment=Avoids bulk copying restored material maps and repeated model-name parsing.\nEvery restore still runs the existing dynamic-model and parent-binding guards.\nAll lookup state is discarded with the material collection session.
+value optimizations.releaseCacheMemoryAfterUse | default=true | range=null | restart=false | translation=null | comment=Drops in-memory copies of persistent cache data once it has been used,\nso it is not held during gameplay. Cache files on disk are never deleted\nand are read again when next needed. Restart required.
+value optimizations.releaseBakeryLoadMaps | default=true | range=null | restart=false | translation=null | comment=Forge keeps the last model bakery alive for the whole session. After\nmodels are applied, release its top-level model map, and its intermediate\nbaked cache when no deferred bake needs it. The unbaked cache and the\nbaked model registry are kept. Restart required.
+value optimizations.takeOverBuildScapeModelLoading | default=true | range=null | restart=false | translation=null | comment=With BuildScape installed, VHA's model pipeline loads and bakes BuildScape's\nmodels like any other (parsed with the rest, deferred or skipped when plain),\nand BuildScape skips its own parallel parse and bake. Without VHA, or with this\noff, BuildScape keeps its own launch optimizations. Restart required.
+value optimizations.isolateBackgroundNetworkWork | default=true | range=null | restart=false | translation=null | comment=Runs optional blocking online checks outside model compute and disk-cache workers.\nUses at most two lazy, idle-expiring network workers (one on a single-CPU JVM).\nDoes not change connection timeouts or defer asset readiness. Restart required.
+value optimizations.persistentBlockStateJsonCache | default=true | range=null | restart=false | translation=null | comment=Persists ordered raw blockstate resource stacks.\nDefinitions are still parsed fresh against the active\nblock registry, and custom/dynamic model loading is\nnever serialized. The same asset fingerprint and\nruntime-reload bypass as the model JSON cache apply.
+value optimizations.preSizeModelCaches | default=true | range=null | restart=false | translation=null | comment=Sizes ModelBakery's large maps from the registered block-state\nand item counts before discovery. This avoids repeated rehashing\nin packs with hundreds of thousands of generated model states.\nA map replaced by another mod is detected and left untouched.
+value optimizations.stageModelCacheSizing | default=true | range=null | restart=false | translation=null | comment=Refines preSizeModelCaches: size baked maps only when baking begins,\nusing the discovered top-level count instead of the registry estimate.\nLeaves the internal bake cache to the parallel baker when enabled.\nDisable to compare with original eager sizing. Restart required.
+value optimizations.preSizeFerriteCoreQuadCache | default=true | range=null | restart=false | translation=null | comment=Learns FerriteCore's temporary baked-quad table size per pack\nand pre-sizes it on later launches to avoid multi-million-entry\nrehashes. Only the entry count is cached; quad and model data\nremain launch-local and under FerriteCore's normal ownership.\nThis setting does nothing when FerriteCore is absent.
+value optimizations.promoteCachedTopLevelModels | default=true | range=null | restart=false | translation=null | comment=Publishes an already-loaded unbaked model directly into the\ntop-level model map. Minecraft's original path redundantly\nlooks up and re-inserts every cached block-state model.
+value optimizations.asyncUserApiService | default=true | range=null | restart=false | translation=null | comment=Creates the online UserApiService asynchronously.\nUnlike LaunchFaster, the completed service is retained behind a non-blocking proxy.
+value optimizations.memoizeModelMaterials | default=true | range=null | restart=false | translation=null | comment=Memoizes BlockModel material dependency walks for each model instance.
+value optimizations.persistentModelMaterialCache | default=true | range=null | restart=false | translation=null | comment=Persists material dependency lists for ordinary JSON models.\nEntries are restored only when the complete client asset\nfingerprint matches and the live graph can safely rebind every\nparent. Custom geometry, dynamic models, missing textures,\nand runtime resource reloads always use Forge's normal path.
+value optimizations.deduplicateModelMaterialCollection | default=true | range=null | restart=false | translation=null | comment=Collects materials once for repeated safe model instances.\nCustom and dynamic model graphs retain their original call count.\nThis is especially useful in packs that map many block states\nto the same underlying unbaked model.
+value optimizations.cacheBlockStateModelLocations | default=true | range=null | restart=false | translation=null | comment=Reuses each block state's canonical model location.\nMinecraft 1.18.2 otherwise rebuilds the same property string\nduring model discovery and again for the render lookup cache.\nThe cached key is attached to the immutable block-state instance.
+value optimizations.compactModelFaceLists | default=true | range=null | restart=false | translation=null | comment=Stores each simple baked model's face lists as exact-size immutable lists\nand shares one empty side map (FerriteCore's modelSides, which its 1.18.2\nrelease lacks). Skipped when Vault Render Optimization, which does the\nsame, is installed. Restart required.
+value optimizations.lazyBakeEventModels | default=true | range=null | restart=false | translation=null | comment=Requires deferBlockStateModelBaking. While mods' model-bake-event handlers\nrun, a deferred block-state model they read is a stand-in that bakes on\nfirst use, so handlers that only wrap models (Create, Mekanism, Refined\nStorage and others) no longer force those bakes at launch. CTM's pass and\nFramedBlocks keys get real models. Restart required.
+value optimizations.parallelCraftTweakerRecipeRemoval | default=true | range=null | restart=false | translation=null | comment=Evaluates CraftTweaker's own recipe-removal matchers (by output, input,\nmod) across worker threads, then removes the matches on the calling\nthread. Script-defined predicates keep the original loop. Takes effect the\nnext time CraftTweaker scripts run (world join or /reload).
+value optimizations.indexCreateBlockCuttingRecipes | default=true | range=null | restart=false | translation=null | comment=Create 0.5.1.i: groups stonecutting recipes for its JEI block-cutting\ncategory through a map keyed by ingredient items instead of comparing\neach recipe with every group. Same groups, order and outputs.
+value optimizations.indexVaultSmeltingJeiRecipes | default=true | range=null | restart=false | translation=null | comment=Vault Hunters' JEI tool-smelting category: answers its per-item smelting\nlookups from one index built in the recipe manager's order instead of\nscanning every smelting recipe for each of about 39,000 items.
+value optimizations.indexVaultCascadeModifiers | default=true | range=null | restart=false | translation=null | comment=Vault Hunters (builds without grouped modifiers, e.g. 3.21.6 and 20.0.3):\ncascade modifiers (cake vault chest/coin/ore cascades) look up their stack\ncount from an index rebuilt when the modifier list changes, instead of every\nstack scanning every modifier entry on every generated chunk. Same result;\nlong cake vaults no longer slow down with each cake. Singleplayer only.
+value optimizations.cacheVaultModifierViews | default=true | range=null | restart=false | translation=null | comment=Vault Hunters: on the client and integrated server threads, the vault\nmodifier list (getDisplayGroup/getModifiers, used by the HUD each frame and\nby potion and trinket checks each tick) is reused until the modifier\nentries change or 250 ms pass, instead of being rebuilt from every entry.\nLong cake vaults add about 15 entries per cake. Callers get copies.
+value optimizations.indexVaultModifierTicks | default=true | range=null | restart=false | translation=null | comment=Vault Hunters: the per-tick modifier update visits only entries that are\nnew or timed, instead of walking every entry three times each tick; any\ntick that has something to apply or expire runs Vault's own code.\nLong cake vaults hold thousands of permanent entries. Singleplayer only.
+value optimizations.snapshotVaultEventListeners | default=true | range=null | restart=false | translation=null | comment=Vault Hunters: its own event system runs listeners from a snapshot taken\nwhen listeners change, instead of copying every listener list on every\nevent (spawn and despawn checks post one per mob per tick). Same order.\nClient render events are left to Vault Render Optimization.
+value optimizations.filterVaultCascadeByState | default=true | range=null | restart=false | translation=null | comment=Vault Hunters: cascade modifiers (cake vault chest/coin cascades) skip\nbuilding the saved data of block entities whose block already fails their\nfilter, such as the thousands of ores in a late cake vault's mine rooms.\nSame result. Singleplayer only.
+value optimizations.repairEmptyBookPiles | default=true | range=null | restart=false | translation=null | comment=Vault Hunters + Supplementaries: library room templates store book piles\nwithout books, which fail to load and show as magenta "Missing:\nsupplementaries:book_pile" error blocks. Such piles now load with as many\nplain books as their block shows (at least one). Singleplayer only.
+value optimizations.prefetchJoinRecipeFingerprint | default=true | range=null | restart=false | translation=null | comment=On a world join, starts the recipe fingerprint that validates VHA's\npersistent JEI recipe index in the background as soon as the server's\ntags are applied, instead of on the render thread when JEI registers\nvanilla recipes. Same fingerprint; overlaps JEI's first startup phases.
+value optimizations.prefetchCtmTextureMetadata | default=true | range=null | restart=false | translation=null | comment=CTM 1.1.5+5: reads every sprite's CTM texture metadata in parallel before\nCTM's texture stitch listener, which then finds each one in its own cache\ninstead of reading them one at a time. Same metadata; failures are left\nfor CTM to read and report itself.
+value optimizations.indexKubeJsPackFiles | default=true | range=null | restart=false | translation=null | comment=KubeJS 1802.5.5: its resource pack checks the disk for every resource\nlookup. The pack's kubejs/assets or kubejs/data folder is listed once per\nopen pack (each resource reload) and the checks are answered from that\nlisting, matching file names the way the platform does.
+value optimizations.lazyGeckoLibResources | default=true | range=null | restart=false | translation=null | comment=GeckoLib 3.0.57 (and Ars Nouveau 2.9.0's copy): lists animation and geo\nmodel files during a resource reload and loads each one the first time\nit is rendered, instead of parsing and keeping every file of every mod.
+value optimizations.persistentEveryCompatPack | default=true | range=null | restart=false | translation=null | comment=Every Compat (with Selene 1.17.14 or 1.17.17): stores its generated client\npack on disk, keyed by the mod files, registered blocks and items, Every\nCompat's and Selene's configs, resource packs, KubeJS assets and pack order,\nand restores it on the next launch instead of generating it again.
+value optimizations.suspendIntegratedServerDuringJoin | default=true | range=null | restart=false | translation=null | comment=Singleplayer join: the integrated server holds its world ticks until the\nclient has processed the join data (recipes, tags, JEI start), at most\n60 s. Chunk loading continues. Never affects LAN guests or proxy servers.
+value optimizations.deduplicateModelLocationPaths | default=true | range=null | restart=false | translation=null | comment=Shares one copy of each block or item path among its model locations\n(one location per block state, about 1.3 M in large packs). Strings are\nimmutable, so only memory changes. Restart required.
+value optimizations.parallelBlockStateModelLocations | default=true | range=null | restart=false | translation=null | comment=Precomputes uncached canonical block-state model keys\nacross available processors before bakery discovery.\nWorkers use Minecraft's original key builder, so property\nordering and modded Property value names remain unchanged.
+value optimizations.parallelBlockModelCache | default=true | range=null | restart=false | translation=null | comment=Resolves the final BlockState-to-BakedModel render lookup\nin worker-owned array ranges after Forge's model-bake event.\nThe complete identity map is published only after every\nworker joins; any failure runs Minecraft's original pass.
+value optimizations.deferItemModelBaking | default=true | range=null | restart=false | translation=null | comment=Defers baking of ordinary inventory item models until their first\nreal use (usually their first render), including EveryCompat,\nVault Hunters and, while VHA owns BuildScape's model loading,\nBuildScape items. Later launches with the same assets also skip\nloading those items' model graphs. Generated, custom-geometry,\nVault gear and Sophisticated models stay eager. With CTM\n1.18.2-1.1.5+5, CTM-textured items are baked for CTM and never\nskipped. Inactive under ModernFix dynamic resources, in Compare\nMode and during in-world reloads. Restart required.
+value optimizations.deferBlockStateModelBaking | default=true | range=null | restart=false | translation=null | comment=Defers baking of block-state models whose whole graph is plain\nvanilla JSON (MultiVariant/MultiPart over ordinary BlockModels)\nuntil their first lookup, usually on a chunk-compile worker. Covers\nEveryCompat, Vault Hunters and, while VHA owns BuildScape's model\nloading, BuildScape block states. Custom, dynamic and Sophisticated\nmodels stay eager. With CTM 1.18.2-1.1.5+5, VHA's CTM bake pass bakes\nonly the deferred models CTM wraps. Inactive under ModernFix dynamic\nresources, in Compare Mode and during in-world reloads.\nRestart required.
+value optimizations.skipBlockStateGraphLoading | default=true | range=null | restart=false | translation=null | comment=Requires deferBlockStateModelBaking. The first launch certifies\nblocks whose every state is a plain vanilla JSON model graph (never\nCTM-textured ones). Later launches with the same assets skip reading\nand parsing those blocks' blockstate files and models: their\ntextures are stitched from the certification, their model groups\nrestored, and each block's graph loads on one background thread the\nfirst time it is needed. Inactive under ModernFix dynamic resources,\nin Compare Mode and on later reloads. Restart required.
+value optimizations.recordBlockStateMaterialManifest | default=false | range=null | restart=false | translation=null | comment=Experimental research capture only; it records for later\nexperiments and does not speed up launches or save memory.\nOn the initial launch, writes the block-atlas texture list and\nmodel-group code of each plain vanilla minecraft block-state\nmodel, plus per-block state coverage, to\ncache/vhaccelerator/client-assets/deferred-block-state-v2.bin.gz.\nNothing reads that file yet: model loading, atlases, baking, and\nthe model registry are unchanged, and recording adds a small\ncost to that launch. Inactive in Compare Mode, with CTM or\nModernFix dynamic resources, and on every later resource reload.
+section compatibility
+value compatibility.protectDynamicModels | default=true | range=null | restart=false | translation=null | comment=Keeps Forge custom geometry, dynamic models, and their dependency graphs\non vanilla's single-threaded atlas and model paths.\nAlso retries every model sequentially if a parallel bake fails.\nKeep this enabled unless diagnosing the compatibility guard itself.
+value compatibility.indexModelBakeRegistries | default=true | range=null | restart=false | translation=null | comment=Indexes the baked-model registry by namespace once\nfor compatible Forge callbacks that otherwise rescan\nthe complete registry. Listener order and model-map\nmutations remain on the render thread.
+value compatibility.memoizeCtmModelBakeTraversal | default=true | range=null | restart=false | translation=null | comment=Reuses ConnectedTexturesMod's model-graph result when multiple baked keys share the same live unbaked model object.\nThe cache exists only during one ModelBakeEvent; CTM still wraps every matching model and resource reloads start fresh.\nCurrently enabled only for the explicitly validated CTM 1.18.2 build.
+value compatibility.disableEveryCompatDebugResourceDump | default=true | range=null | restart=false | translation=null | comment=Keeps EveryCompat's generated client resources in memory without rewriting its large diagnostic resource-pack mirror to debug/generated_resource_pack on every launch.\nRuntime assets are generated normally; only the optional debug copy is disabled.\nCurrently enabled only for the explicitly validated EveryCompat and Selene 1.18.2 builds.
+value compatibility.cacheDecocraftBbModels | default=true | range=null | restart=false | translation=null | comment=Reuses Decocraft's parsed Blockbench geometry when many\nmaterial variants reference the same .bbmodel file.\nThe cache is memory-only, cleared on every resource reload,\nand enabled only for the explicitly validated Decocraft build.
+value compatibility.parallelJeiIngredientSorting | default=true | range=null | restart=false | translation=null | comment=Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.\nWorker count is derived from available processors and reduced after\nthe first playable frame so the sort does not saturate gameplay.\nThe sort remains synchronous: JEI is not published and plugins are not notified\nuntil every sorted index has been assigned.
+value compatibility.indexPowahWikiRecipes | default=true | range=null | restart=false | translation=null | comment=Indexes crafting and smelting recipes once for Powah's in-game wiki.\nThis replaces repeated full recipe-list scans after each server connection.
+value compatibility.parallelJeiTweakerMatching | default=true | range=null | restart=false | translation=null | comment=Matches JEITweaker hidden ingredients against a stable snapshot in parallel.\nRuntime removals remain synchronous and failures retry with the original\nsingle-threaded matching behavior.
+value compatibility.jeiTweakerParallelThreshold | default=256 | range=32 ~ 100000 | restart=false | translation=null | comment=Minimum JEI ingredient count before hidden matching uses the bounded worker pool.\nRange: 32 ~ 100000
+value compatibility.stagedVaultGroupLoading | default=true | range=null | restart=false | translation=null | comment=Builds Vault block and entity groups in bounded main-thread slices.\nOnly complete group maps are published; no worker ever touches live entities.
+value compatibility.optimizeVaultLootCdf | default=true | range=null | restart=false | translation=null | comment=Uses hash buckets while Vault Hunters builds tiered-loot\ncumulative distributions during the initial resource reload.\nThe same permutations, heuristic ordering, probabilities,\npacked keys, and cumulative values are retained.
+value compatibility.lazyVaultLootCdf | default=true | range=null | restart=false | translation=null | comment=Computes each Vault Hunters tiered-loot distribution the first time\nloot generation needs it instead of on every config load. Vault\nbuilds 53 per supported loot table (about 110 MB in Asgard); a\nmultiplayer client never reads them, and each takes about 2 ms.
+value compatibility.vaultGroupTickBudgetMillis | default=4 | range=1 ~ 25 | restart=false | translation=null | comment=Maximum main-thread time used by staged Vault group loading per client tick.\nRange: 1 ~ 25
+value compatibility.asyncJeiSearchIndex | default=true | range=null | restart=false | translation=null | comment=Builds JEI's ingredient search index as a private worker-owned object.\nPlugin registration and JEI lifecycle work stay on Minecraft's main thread.\nThe complete index is published with one main-thread reference swap.\nRuntime ingredient additions are journaled and merged before publication.\nA failed worker build automatically retries on the main thread.
+value compatibility.parallelJeiSearchPrefixes | default=true | range=null | restart=false | translation=null | comment=Populates each independent JEI search-prefix storage in parallel.\nIngredient order inside every prefix remains sequential and the private\nindex is published only after all prefixes complete.\nAny failure discards the private index and uses the sequential fallback.
+value compatibility.optimizeJeiIngredientFilterConstruction | default=true | range=null | restart=false | translation=null | comment=Avoids repeated UID and cache-invalidation work while JEI constructs\nits initial ingredient filter. The UID shortcut is used only for\nitem stacks when both JEI blacklist sets are empty; otherwise JEI's\noriginal visibility checks run unchanged.
+value compatibility.persistentVanillaIngredientCache | default=true | range=null | restart=false | translation=null | comment=Persists JEI's completed vanilla item ingredient list between launches.\nA cached list is restored only when the server address, JEI generation,\ninstalled mods/files, item registry, registered client/common configs,\nsynchronized item tags, and Forge server configs match.\nA miss runs JEI's original factory.\nItem stacks are reconstructed on the client thread before JEI sees them.
+value compatibility.parallelVanillaRecipeValidation | default=true | range=null | restart=false | translation=null | comment=Validates JEI's vanilla crafting, furnace, smoking, blasting,\ncampfire, stonecutting, and smithing recipe lists in a bounded pool.\nResult ordering is preserved and any failure retries JEI's original\nsequential validation path.
+value compatibility.persistentVanillaRecipeValidationCache | default=false | range=null | restart=false | translation=null | comment=Persists the IDs that passed JEI's vanilla recipe validation.\nDisabled by default because restoring and resolving a large accepted-ID\nmanifest can cost more than bounded parallel validation saves.\nRecipe objects are always resolved from the active world; cached IDs\nare accepted only when the semantic recipe state, synchronized tags,\nserver configs, and installed mod files match.\nVolatile UI and per-world client settings are intentionally excluded\nbecause they do not define the server-synchronized recipe set.
+value compatibility.persistentJeiRecipeIndexCache | default=true | range=null | restart=false | translation=null | comment=Persists JEI's deterministic vanilla recipe-to-ingredient index.\nCached string plans are restored only when the semantic recipe state,\nitem tags, server configs, installed mod files, server,\nand JEI generation match. Recipe objects always come from the active world.\nIngredient-choice ordering and packet-map ordering do not cause false misses.\nA miss builds JEI's original layouts before recording independent batches.
+value compatibility.cacheJerCompatibility | default=true | range=null | restart=false | translation=null | comment=Preloads Just Enough Resources' local loot tables asynchronously in menus,\nthen reuses its compatibility scan for later JEI rebuilds.\nConnecting before the preload finishes safely waits for the remaining work.\nJER data is local to the installed pack, so cluster transfers do not rebuild it.
+value compatibility.parallelCraftTweakerTagBinding | default=true | range=null | restart=false | translation=null | comment=Decodes CraftTweaker's independent synchronized tag view in parallel.\nEach registry is built in worker-owned memory, all workers are joined\nbefore publication, and a failure retries CraftTweaker's original path.
+value compatibility.compactCraftTweakerClientReplayLogging | default=true | range=null | restart=false | translation=null | comment=Compacts repeated per-action INFO messages while CraftTweaker\nreplays server-synchronized scripts on the client.\nWarnings, errors, script file names, and lifecycle messages remain.\nDisable this when individual client replay actions are needed\nin crafttweaker.log for script troubleshooting.
+value compatibility.parallelThermalRecipeRefresh | default=true | range=null | restart=false | translation=null | comment=Refreshes independent Thermal machine recipe managers concurrently.\nDefers Stirling's duplicate pre-tag furnace-fuel scan and restores\nvalidated base fuel values from disk when server tags/configs match.\nThermal's explicit recipe overrides are always applied fresh.\nThe Forge recipe/tag event remains blocked until every manager finishes,\nso no incomplete Thermal recipe state reaches the first world frame.
+value compatibility.cacheIronFurnacesJeiRecipes | default=true | range=null | restart=false | translation=null | comment=Builds Iron Furnaces' fuel and smoking JEI lists in one main-thread pass\nand reuses the immutable lists for later JEI rebuilds in this game session.\nActual generator recipes remain world-specific and are always read fresh.
+value compatibility.persistentIronFurnacesFuelCache | default=true | range=null | restart=false | translation=null | comment=Persists validated Iron Furnaces fuel results between client launches.\nA cached list is used only when synchronized item tags and Forge configs,\nlocal mod versions/files, and the item registry match.\nRecipes and unrelated client configs do not affect furnace fuel values.\nCache misses rebuild before the first world frame; no fuel scan is deferred.
+value compatibility.precompileIronFurnacesJeiRecipes | default=true | range=null | restart=false | translation=null | comment=Precompiles only Iron Furnaces' server-independent smoking list\nin small menu-frame slices. Fuel burn times are always evaluated\nafter the active client world exists so server tags and config apply.
+value compatibility.ironFurnacesPrecompileFrameBudgetMillis | default=3 | range=1 ~ 8 | restart=false | translation=null | comment=Maximum main-thread time used by the smoking-list precompile per menu frame.\nThe default targets smooth menus while normally completing during server selection.\nRange: 1 ~ 8
+value compatibility.optimizeIndustrialForegoingStoneWorkJeiRecipes | default=true | range=null | restart=false | translation=null | comment=Builds Industrial Foregoing stonework combinations incrementally\nand gives JEI only the shortest equivalent path for each output.\nResults remain based on the active server recipe manager.
+value compatibility.deferXaeroOnlineChecks | default=true | range=null | restart=false | translation=null | comment=Moves Xaero's Minimap and World Map update/Patreon network checks\noff Forge's client-setup barrier and starts them on one low-priority\nworker after the first usable menu frame.\nUpdate metadata is still applied on Minecraft's client thread.\nCurrently enabled only for the explicitly validated Xaero versions.
+value compatibility.boundFarsightChunkRetention | default=true | range=null | restart=false | translation=null | comment=Forgets client chunks that the server already unloaded but Farsight keeps beyond\nmax(server view distance, render distance) + 1 chunks\nfrom the player, once per second. Each forget runs the\nvanilla chunk drop, light-engine release, and Embeddium\nrender-section removal that Farsight's cancelled packet\nhandler skips. Chunks within render distance stay loaded.\nOnly used when Farsight is installed and Vault Render\nOptimization, which owns this behavior when present, is not.
+value compatibility.deferVaultAtlasUploads | default=true | range=null | restart=false | translation=null | comment=Moves the initial Vault GUI texture-atlas uploads out of the\nresource-reload barrier and performs one upload per loading-overlay\nframe during Minecraft's fixed two-second fade.\nThe overlay remains visible until every queued atlas is ready,\nso the title screen and first world frame never see partial atlases.\nRuntime resource reloads retain Vault's original synchronous behavior.
+value compatibility.cacheVaultTooltips | default=true | range=null | restart=false | translation=null | comment=Caches Vault Hunters tooltip lookups by item and active locale.\nOnly used when both the client optimization master switch and The Vault are present.
+value compatibility.optimizeVaultAtlasValidation | default=true | range=null | restart=false | translation=null | comment=Validates Vault texture atlases with constant-time membership checks.\nWhen diagnostics.debug is false, Vault's warning-only validation is\nskipped entirely. When debug is true, the same missing and unused\ntextures are counted with bounded warning details.\nThis changes diagnostics only; atlas contents are never modified.
+section diagnostics
+value diagnostics.profileClientLaunchPhases | default=true | range=null | restart=false | translation=null | comment=Profiles Forge client-loading phases and the initial resource reload.\nResource listeners taking at least 20 milliseconds are logged.\nThe common diagnostics.debug master switch must also be enabled.\nThe profiler observes the existing futures and does not change\nlistener order, executors, or menu precompile behavior.
+section updates
+value updates.checkForUpdates | default=true | range=null | restart=false | translation=null | comment=Checks the mod's GitHub manifest asynchronously and shows\navailable updates on the main menu and occasionally in chat.\nThe /vha updates command changes this setting immediately.
+value updates.updateTypes | default=CRITICAL | range=null | restart=false | translation=null | comment=Chooses which available updates are shown in the menu\nand chat. CRITICAL shows only manifests marked [CRITICAL].\nALL also shows normal updates. The default is CRITICAL.\nUse /vha updates critical or /vha updates all to change it.\nAllowed Values: CRITICAL, ALL
+--- generated toml ---
+
+[diagnostics]
+	#Profiles Forge client-loading phases and the initial resource reload.
+	#Resource listeners taking at least 20 milliseconds are logged.
+	#The common diagnostics.debug master switch must also be enabled.
+	#The profiler observes the existing futures and does not change
+	#listener order, executors, or menu precompile behavior.
+	profileClientLaunchPhases = true
+
+[updates]
+	#Chooses which available updates are shown in the menu
+	#and chat. CRITICAL shows only manifests marked [CRITICAL].
+	#ALL also shows normal updates. The default is CRITICAL.
+	#Use /vha updates critical or /vha updates all to change it.
+	#Allowed Values: CRITICAL, ALL
+	updateTypes = "CRITICAL"
+	#Checks the mod's GitHub manifest asynchronously and shows
+	#available updates on the main menu and occasionally in chat.
+	#The /vha updates command changes this setting immediately.
+	checkForUpdates = true
+
+[compatibility]
+	#Moves Xaero's Minimap and World Map update/Patreon network checks
+	#off Forge's client-setup barrier and starts them on one low-priority
+	#worker after the first usable menu frame.
+	#Update metadata is still applied on Minecraft's client thread.
+	#Currently enabled only for the explicitly validated Xaero versions.
+	deferXaeroOnlineChecks = true
+	#Decodes CraftTweaker's independent synchronized tag view in parallel.
+	#Each registry is built in worker-owned memory, all workers are joined
+	#before publication, and a failure retries CraftTweaker's original path.
+	parallelCraftTweakerTagBinding = true
+	#Avoids repeated UID and cache-invalidation work while JEI constructs
+	#its initial ingredient filter. The UID shortcut is used only for
+	#item stacks when both JEI blacklist sets are empty; otherwise JEI's
+	#original visibility checks run unchanged.
+	optimizeJeiIngredientFilterConstruction = true
+	#Matches JEITweaker hidden ingredients against a stable snapshot in parallel.
+	#Runtime removals remain synchronous and failures retry with the original
+	#single-threaded matching behavior.
+	parallelJeiTweakerMatching = true
+	#Uses hash buckets while Vault Hunters builds tiered-loot
+	#cumulative distributions during the initial resource reload.
+	#The same permutations, heuristic ordering, probabilities,
+	#packed keys, and cumulative values are retained.
+	optimizeVaultLootCdf = true
+	#Persists validated Iron Furnaces fuel results between client launches.
+	#A cached list is used only when synchronized item tags and Forge configs,
+	#local mod versions/files, and the item registry match.
+	#Recipes and unrelated client configs do not affect furnace fuel values.
+	#Cache misses rebuild before the first world frame; no fuel scan is deferred.
+	persistentIronFurnacesFuelCache = true
+	#Forgets client chunks that the server already unloaded but Farsight keeps beyond
+	#max(server view distance, render distance) + 1 chunks
+	#from the player, once per second. Each forget runs the
+	#vanilla chunk drop, light-engine release, and Embeddium
+	#render-section removal that Farsight's cancelled packet
+	#handler skips. Chunks within render distance stay loaded.
+	#Only used when Farsight is installed and Vault Render
+	#Optimization, which owns this behavior when present, is not.
+	boundFarsightChunkRetention = true
+	#Reuses Decocraft's parsed Blockbench geometry when many
+	#material variants reference the same .bbmodel file.
+	#The cache is memory-only, cleared on every resource reload,
+	#and enabled only for the explicitly validated Decocraft build.
+	cacheDecocraftBbModels = true
+	#Moves the initial Vault GUI texture-atlas uploads out of the
+	#resource-reload barrier and performs one upload per loading-overlay
+	#frame during Minecraft's fixed two-second fade.
+	#The overlay remains visible until every queued atlas is ready,
+	#so the title screen and first world frame never see partial atlases.
+	#Runtime resource reloads retain Vault's original synchronous behavior.
+	deferVaultAtlasUploads = true
+	#Keeps Forge custom geometry, dynamic models, and their dependency graphs
+	#on vanilla's single-threaded atlas and model paths.
+	#Also retries every model sequentially if a parallel bake fails.
+	#Keep this enabled unless diagnosing the compatibility guard itself.
+	protectDynamicModels = true
+	#Keeps EveryCompat's generated client resources in memory without rewriting its large diagnostic resource-pack mirror to debug/generated_resource_pack on every launch.
+	#Runtime assets are generated normally; only the optional debug copy is disabled.
+	#Currently enabled only for the explicitly validated EveryCompat and Selene 1.18.2 builds.
+	disableEveryCompatDebugResourceDump = true
+	#Builds JEI's ingredient search index as a private worker-owned object.
+	#Plugin registration and JEI lifecycle work stay on Minecraft's main thread.
+	#The complete index is published with one main-thread reference swap.
+	#Runtime ingredient additions are journaled and merged before publication.
+	#A failed worker build automatically retries on the main thread.
+	asyncJeiSearchIndex = true
+	#Uses a dedicated adaptive worker pool for JEI's ingredient pre-sort.
+	#Worker count is derived from available processors and reduced after
+	#the first playable frame so the sort does not saturate gameplay.
+	#The sort remains synchronous: JEI is not published and plugins are not notified
+	#until every sorted index has been assigned.
+	parallelJeiIngredientSorting = true
+	#Validates Vault texture atlases with constant-time membership checks.
+	#When diagnostics.debug is false, Vault's warning-only validation is
+	#skipped entirely. When debug is true, the same missing and unused
+	#textures are counted with bounded warning details.
+	#This changes diagnostics only; atlas contents are never modified.
+	optimizeVaultAtlasValidation = true
+	#Persists the IDs that passed JEI's vanilla recipe validation.
+	#Disabled by default because restoring and resolving a large accepted-ID
+	#manifest can cost more than bounded parallel validation saves.
+	#Recipe objects are always resolved from the active world; cached IDs
+	#are accepted only when the semantic recipe state, synchronized tags,
+	#server configs, and installed mod files match.
+	#Volatile UI and per-world client settings are intentionally excluded
+	#because they do not define the server-synchronized recipe set.
+	persistentVanillaRecipeValidationCache = false
+	#Populates each independent JEI search-prefix storage in parallel.
+	#Ingredient order inside every prefix remains sequential and the private
+	#index is published only after all prefixes complete.
+	#Any failure discards the private index and uses the sequential fallback.
+	parallelJeiSearchPrefixes = true
+	#Persists JEI's deterministic vanilla recipe-to-ingredient index.
+	#Cached string plans are restored only when the semantic recipe state,
+	#item tags, server configs, installed mod files, server,
+	#and JEI generation match. Recipe objects always come from the active world.
+	#Ingredient-choice ordering and packet-map ordering do not cause false misses.
+	#A miss builds JEI's original layouts before recording independent batches.
+	persistentJeiRecipeIndexCache = true
+	#Builds Industrial Foregoing stonework combinations incrementally
+	#and gives JEI only the shortest equivalent path for each output.
+	#Results remain based on the active server recipe manager.
+	optimizeIndustrialForegoingStoneWorkJeiRecipes = true
+	#Indexes the baked-model registry by namespace once
+	#for compatible Forge callbacks that otherwise rescan
+	#the complete registry. Listener order and model-map
+	#mutations remain on the render thread.
+	indexModelBakeRegistries = true
+	#Precompiles only Iron Furnaces' server-independent smoking list
+	#in small menu-frame slices. Fuel burn times are always evaluated
+	#after the active client world exists so server tags and config apply.
+	precompileIronFurnacesJeiRecipes = true
+	#Indexes crafting and smelting recipes once for Powah's in-game wiki.
+	#This replaces repeated full recipe-list scans after each server connection.
+	indexPowahWikiRecipes = true
+	#Compacts repeated per-action INFO messages while CraftTweaker
+	#replays server-synchronized scripts on the client.
+	#Warnings, errors, script file names, and lifecycle messages remain.
+	#Disable this when individual client replay actions are needed
+	#in crafttweaker.log for script troubleshooting.
+	compactCraftTweakerClientReplayLogging = true
+	#Maximum main-thread time used by the smoking-list precompile per menu frame.
+	#The default targets smooth menus while normally completing during server selection.
+	#Range: 1 ~ 8
+	ironFurnacesPrecompileFrameBudgetMillis = 3
+	#Preloads Just Enough Resources' local loot tables asynchronously in menus,
+	#then reuses its compatibility scan for later JEI rebuilds.
+	#Connecting before the preload finishes safely waits for the remaining work.
+	#JER data is local to the installed pack, so cluster transfers do not rebuild it.
+	cacheJerCompatibility = true
+	#Validates JEI's vanilla crafting, furnace, smoking, blasting,
+	#campfire, stonecutting, and smithing recipe lists in a bounded pool.
+	#Result ordering is preserved and any failure retries JEI's original
+	#sequential validation path.
+	parallelVanillaRecipeValidation = true
+	#Builds Iron Furnaces' fuel and smoking JEI lists in one main-thread pass
+	#and reuses the immutable lists for later JEI rebuilds in this game session.
+	#Actual generator recipes remain world-specific and are always read fresh.
+	cacheIronFurnacesJeiRecipes = true
+	#Minimum JEI ingredient count before hidden matching uses the bounded worker pool.
+	#Range: 32 ~ 100000
+	jeiTweakerParallelThreshold = 256
+	#Computes each Vault Hunters tiered-loot distribution the first time
+	#loot generation needs it instead of on every config load. Vault
+	#builds 53 per supported loot table (about 110 MB in Asgard); a
+	#multiplayer client never reads them, and each takes about 2 ms.
+	lazyVaultLootCdf = true
+	#Builds Vault block and entity groups in bounded main-thread slices.
+	#Only complete group maps are published; no worker ever touches live entities.
+	stagedVaultGroupLoading = true
+	#Caches Vault Hunters tooltip lookups by item and active locale.
+	#Only used when both the client optimization master switch and The Vault are present.
+	cacheVaultTooltips = true
+	#Reuses ConnectedTexturesMod's model-graph result when multiple baked keys share the same live unbaked model object.
+	#The cache exists only during one ModelBakeEvent; CTM still wraps every matching model and resource reloads start fresh.
+	#Currently enabled only for the explicitly validated CTM 1.18.2 build.
+	memoizeCtmModelBakeTraversal = true
+	#Refreshes independent Thermal machine recipe managers concurrently.
+	#Defers Stirling's duplicate pre-tag furnace-fuel scan and restores
+	#validated base fuel values from disk when server tags/configs match.
+	#Thermal's explicit recipe overrides are always applied fresh.
+	#The Forge recipe/tag event remains blocked until every manager finishes,
+	#so no incomplete Thermal recipe state reaches the first world frame.
+	parallelThermalRecipeRefresh = true
+	#Persists JEI's completed vanilla item ingredient list between launches.
+	#A cached list is restored only when the server address, JEI generation,
+	#installed mods/files, item registry, registered client/common configs,
+	#synchronized item tags, and Forge server configs match.
+	#A miss runs JEI's original factory.
+	#Item stacks are reconstructed on the client thread before JEI sees them.
+	persistentVanillaIngredientCache = true
+	#Maximum main-thread time used by staged Vault group loading per client tick.
+	#Range: 1 ~ 25
+	vaultGroupTickBudgetMillis = 4
+
+[optimizations]
+	#Reuses each block state's canonical model location.
+	#Minecraft 1.18.2 otherwise rebuilds the same property string
+	#during model discovery and again for the render lookup cache.
+	#The cached key is attached to the immutable block-state instance.
+	cacheBlockStateModelLocations = true
+	#Vault Hunters: cascade modifiers (cake vault chest/coin cascades) skip
+	#building the saved data of block entities whose block already fails their
+	#filter, such as the thousands of ores in a late cake vault's mine rooms.
+	#Same result. Singleplayer only.
+	filterVaultCascadeByState = true
+	#Shares one copy of each block or item path among its model locations
+	#(one location per block state, about 1.3 M in large packs). Strings are
+	#immutable, so only memory changes. Restart required.
+	deduplicateModelLocationPaths = true
+	#Sizes ModelBakery's large maps from the registered block-state
+	#and item counts before discovery. This avoids repeated rehashing
+	#in packs with hundreds of thousands of generated model states.
+	#A map replaced by another mod is detected and left untouched.
+	preSizeModelCaches = true
+	#Resolves the final BlockState-to-BakedModel render lookup
+	#in worker-owned array ranges after Forge's model-bake event.
+	#The complete identity map is published only after every
+	#worker joins; any failure runs Minecraft's original pass.
+	parallelBlockModelCache = true
+	#Vault Hunters: on the client and integrated server threads, the vault
+	#modifier list (getDisplayGroup/getModifiers, used by the HUD each frame and
+	#by potion and trinket checks each tick) is reused until the modifier
+	#entries change or 250 ms pass, instead of being rebuilt from every entry.
+	#Long cake vaults add about 15 entries per cake. Callers get copies.
+	cacheVaultModifierViews = true
+	#Persists ordered raw blockstate resource stacks.
+	#Definitions are still parsed fresh against the active
+	#block registry, and custom/dynamic model loading is
+	#never serialized. The same asset fingerprint and
+	#runtime-reload bypass as the model JSON cache apply.
+	persistentBlockStateJsonCache = true
+	#Forge keeps the last model bakery alive for the whole session. After
+	#models are applied, release its top-level model map, and its intermediate
+	#baked cache when no deferred bake needs it. The unbaked cache and the
+	#baked model registry are kept. Restart required.
+	releaseBakeryLoadMaps = true
+	#Defers baking of block-state models whose whole graph is plain
+	#vanilla JSON (MultiVariant/MultiPart over ordinary BlockModels)
+	#until their first lookup, usually on a chunk-compile worker. Covers
+	#EveryCompat, Vault Hunters and, while VHA owns BuildScape's model
+	#loading, BuildScape block states. Custom, dynamic and Sophisticated
+	#models stay eager. With CTM 1.18.2-1.1.5+5, VHA's CTM bake pass bakes
+	#only the deferred models CTM wraps. Inactive under ModernFix dynamic
+	#resources, in Compare Mode and during in-world reloads.
+	#Restart required.
+	deferBlockStateModelBaking = true
+	#Runs optional blocking online checks outside model compute and disk-cache workers.
+	#Uses at most two lazy, idle-expiring network workers (one on a single-CPU JVM).
+	#Does not change connection timeouts or defer asset readiness. Restart required.
+	isolateBackgroundNetworkWork = true
+	#Defers baking of ordinary inventory item models until their first
+	#real use (usually their first render), including EveryCompat,
+	#Vault Hunters and, while VHA owns BuildScape's model loading,
+	#BuildScape items. Later launches with the same assets also skip
+	#loading those items' model graphs. Generated, custom-geometry,
+	#Vault gear and Sophisticated models stay eager. With CTM
+	#1.18.2-1.1.5+5, CTM-textured items are baked for CTM and never
+	#skipped. Inactive under ModernFix dynamic resources, in Compare
+	#Mode and during in-world reloads. Restart required.
+	deferItemModelBaking = true
+	#Every Compat (with Selene 1.17.14 or 1.17.17): stores its generated client
+	#pack on disk, keyed by the mod files, registered blocks and items, Every
+	#Compat's and Selene's configs, resource packs, KubeJS assets and pack order,
+	#and restores it on the next launch instead of generating it again.
+	persistentEveryCompatPack = true
+	#Singleplayer join: the integrated server holds its world ticks until the
+	#client has processed the join data (recipes, tags, JEI start), at most
+	#60 s. Chunk loading continues. Never affects LAN guests or proxy servers.
+	suspendIntegratedServerDuringJoin = true
+	#KubeJS 1802.5.5: its resource pack checks the disk for every resource
+	#lookup. The pack's kubejs/assets or kubejs/data folder is listed once per
+	#open pack (each resource reload) and the checks are answered from that
+	#listing, matching file names the way the platform does.
+	indexKubeJsPackFiles = true
+	#While mods load, shares equal voxel-shape boxes and reuses identical
+	#shape joins, so decoration mods that build the same shapes for every
+	#block and wood variant stop recomputing them. Shapes are immutable.
+	#The cache is released when mod loading completes. Yields to Canary or
+	#Lithium. Restart required.
+	cacheLaunchVoxelShapes = true
+	#Bakes top-level models in batches on Minecraft's background executor.
+	parallelModelBaking = true
+	#Avoids bulk copying restored material maps and repeated model-name parsing.
+	#Every restore still runs the existing dynamic-model and parent-binding guards.
+	#All lookup state is discarded with the material collection session.
+	optimizeMaterialCacheSession = true
+	#With BuildScape installed, VHA's model pipeline loads and bakes BuildScape's
+	#models like any other (parsed with the rest, deferred or skipped when plain),
+	#and BuildScape skips its own parallel parse and bake. Without VHA, or with this
+	#off, BuildScape keeps its own launch optimizations. Restart required.
+	takeOverBuildScapeModelLoading = true
+	#Collects materials once for repeated safe model instances.
+	#Custom and dynamic model graphs retain their original call count.
+	#This is especially useful in packs that map many block states
+	#to the same underlying unbaked model.
+	deduplicateModelMaterialCollection = true
+	#Precomputes uncached canonical block-state model keys
+	#across available processors before bakery discovery.
+	#Workers use Minecraft's original key builder, so property
+	#ordering and modded Property value names remain unchanged.
+	parallelBlockStateModelLocations = true
+	#Vault Hunters: the per-tick modifier update visits only entries that are
+	#new or timed, instead of walking every entry three times each tick; any
+	#tick that has something to apply or expire runs Vault's own code.
+	#Long cake vaults hold thousands of permanent entries. Singleplayer only.
+	indexVaultModifierTicks = true
+	#Requires deferBlockStateModelBaking. While mods' model-bake-event handlers
+	#run, a deferred block-state model they read is a stand-in that bakes on
+	#first use, so handlers that only wrap models (Create, Mekanism, Refined
+	#Storage and others) no longer force those bakes at launch. CTM's pass and
+	#FramedBlocks keys get real models. Restart required.
+	lazyBakeEventModels = true
+	#Vault Hunters' JEI tool-smelting category: answers its per-item smelting
+	#lookups from one index built in the recipe manager's order instead of
+	#scanning every smelting recipe for each of about 39,000 items.
+	indexVaultSmeltingJeiRecipes = true
+	#Prepares independent texture atlases concurrently. Off by default:
+	#Forge fires TextureStitchEvent.Pre inside each preparation, so mod
+	#listeners would run on several threads at once. Restart required.
+	parallelAtlasStitching = false
+	#Learns FerriteCore's temporary baked-quad table size per pack
+	#and pre-sizes it on later launches to avoid multi-million-entry
+	#rehashes. Only the entry count is cached; quad and model data
+	#remain launch-local and under FerriteCore's normal ownership.
+	#This setting does nothing when FerriteCore is absent.
+	preSizeFerriteCoreQuadCache = true
+	#Parses eligible plain models from the validated persistent JSON
+	#cache before Minecraft reaches its initial resource-reload barrier.
+	#The prewarmed objects remain memory-only and are used only when
+	#the live asset fingerprint matches the cache. Forge custom loaders,
+	#BuildScape models, and failures keep their established loading path.
+	prewarmPersistentPlainModels = true
+	#Starts model-key and blockstate preparation together
+	#while model JSON is prepared on the client reload thread.
+	#All independent work joins before vanilla bakery discovery.
+	#This backports the asynchronous preparation shape used
+	#by newer Minecraft versions.
+	overlapModelPreparation = true
+	#Creates the online UserApiService asynchronously.
+	#Unlike LaunchFaster, the completed service is retained behind a non-blocking proxy.
+	asyncUserApiService = true
+	#CTM 1.1.5+5: reads every sprite's CTM texture metadata in parallel before
+	#CTM's texture stitch listener, which then finds each one in its own cache
+	#instead of reading them one at a time. Same metadata; failures are left
+	#for CTM to read and report itself.
+	prefetchCtmTextureMetadata = true
+	#Requires deferBlockStateModelBaking. The first launch certifies
+	#blocks whose every state is a plain vanilla JSON model graph (never
+	#CTM-textured ones). Later launches with the same assets skip reading
+	#and parsing those blocks' blockstate files and models: their
+	#textures are stitched from the certification, their model groups
+	#restored, and each block's graph loads on one background thread the
+	#first time it is needed. Inactive under ModernFix dynamic resources,
+	#in Compare Mode and on later reloads. Restart required.
+	skipBlockStateGraphLoading = true
+	#Releases the serial disk-cache lane before plain-model CPU preparation.
+	#Preparation still completes before its existing resource readiness barrier.
+	#Restart required; disable to compare the original combined read/parse path.
+	separateModelPrewarmIo = true
+	#Drops in-memory copies of persistent cache data once it has been used,
+	#so it is not held during gameplay. Cache files on disk are never deleted
+	#and are read again when next needed. Restart required.
+	releaseCacheMemoryAfterUse = true
+	#Memoizes BlockModel material dependency walks for each model instance.
+	memoizeModelMaterials = true
+	#Uses a flat-array coordinate merger for complex voxel shapes.
+	#The output is equivalent to Minecraft's original merger and
+	#can reduce block-registration time in decoration-heavy packs.
+	#VH Accelerator yields this patch when Canary or Lithium is present.
+	optimizeVoxelShapeMerging = true
+	#Persists the resolved initial model JSON resource view as one
+	#checksummed file and restores it only when the mod files,
+	#resource packs, relevant local configs, and pack order match.
+	#Forge still parses every JSON and runs every custom geometry loader;
+	#parsed models, baked models, textures, and dynamic state are never stored.
+	#Runtime resource reloads always bypass this cache.
+	persistentModelJsonCache = true
+	#Vault Hunters + Supplementaries: library room templates store book piles
+	#without books, which fail to load and show as magenta "Missing:
+	#supplementaries:book_pile" error blocks. Such piles now load with as many
+	#plain books as their block shows (at least one). Singleplayer only.
+	repairEmptyBookPiles = true
+	#Reads and parses plain model JSON concurrently.
+	#Forge custom loaders, BuildScape models, cache misses, and parse failures
+	#remain on their established loading paths.
+	parallelModelLoading = true
+	#On a world join, starts the recipe fingerprint that validates VHA's
+	#persistent JEI recipe index in the background as soon as the server's
+	#tags are applied, instead of on the render thread when JEI registers
+	#vanilla recipes. Same fingerprint; overlaps JEI's first startup phases.
+	prefetchJoinRecipeFingerprint = true
+	#Stores each simple baked model's face lists as exact-size immutable lists
+	#and shares one empty side map (FerriteCore's modelSides, which its 1.18.2
+	#release lacks). Skipped when Vault Render Optimization, which does the
+	#same, is installed. Restart required.
+	compactModelFaceLists = true
+	#Publishes an already-loaded unbaked model directly into the
+	#top-level model map. Minecraft's original path redundantly
+	#looks up and re-inserts every cached block-state model.
+	promoteCachedTopLevelModels = true
+	#Persists material dependency lists for ordinary JSON models.
+	#Entries are restored only when the complete client asset
+	#fingerprint matches and the live graph can safely rebind every
+	#parent. Custom geometry, dynamic models, missing textures,
+	#and runtime resource reloads always use Forge's normal path.
+	persistentModelMaterialCache = true
+	#Evaluates CraftTweaker's own recipe-removal matchers (by output, input,
+	#mod) across worker threads, then removes the matches on the calling
+	#thread. Script-defined predicates keep the original loop. Takes effect the
+	#next time CraftTweaker scripts run (world join or /reload).
+	parallelCraftTweakerRecipeRemoval = true
+	#Builds Minecraft's startup throwaway crash report (which only preloads
+	#crash-reporting classes) on a background thread started after
+	#bootstrap, instead of on the main thread before bootstrap. The
+	#emergency memory reservation stays synchronous. Read before Forge
+	#config loads. Restart required.
+	asyncCrashReportPreload = true
+	#Refines preSizeModelCaches: size baked maps only when baking begins,
+	#using the discovered top-level count instead of the registry estimate.
+	#Leaves the internal bake cache to the parallel baker when enabled.
+	#Disable to compare with original eager sizing. Restart required.
+	stageModelCacheSizing = true
+	#Master switch for optimizations that only apply to the physical client.
+	enableClientOptimizations = true
+	#Reads ordered registered blockstate JSON resource stacks concurrently.
+	#Every definition is still parsed by Minecraft and Forge on their
+	#established loading path. BuildScape, unknown-block, and failed
+	#resources remain entirely on their original path.
+	#This backports the split model/blockstate loading pipeline
+	#used by newer Minecraft versions.
+	parallelBlockStateLoading = true
+	#Vault Hunters: its own event system runs listeners from a snapshot taken
+	#when listeners change, instead of copying every listener list on every
+	#event (spawn and despawn checks post one per mob per tick). Same order.
+	#Client render events are left to Vault Render Optimization.
+	snapshotVaultEventListeners = true
+	#With parallelAtlasStitching: fires every atlas's TextureStitchEvent.Pre
+	#first, one at a time on the loading thread in vanilla order, and prepares
+	#the atlases in parallel afterwards, so mod stitch listeners never run on
+	#several threads at once. Restart required.
+	serializeAtlasStitchEvents = true
+	#Create 0.5.1.i: groups stonecutting recipes for its JEI block-cutting
+	#category through a map keyed by ingredient items instead of comparing
+	#each recipe with every group. Same groups, order and outputs.
+	indexCreateBlockCuttingRecipes = true
+	#GeckoLib 3.0.57 (and Ars Nouveau 2.9.0's copy): lists animation and geo
+	#model files during a resource reload and loads each one the first time
+	#it is rendered, instead of parsing and keeping every file of every mod.
+	lazyGeckoLibResources = true
+	#Experimental research capture only; it records for later
+	#experiments and does not speed up launches or save memory.
+	#On the initial launch, writes the block-atlas texture list and
+	#model-group code of each plain vanilla minecraft block-state
+	#model, plus per-block state coverage, to
+	#cache/vhaccelerator/client-assets/deferred-block-state-v2.bin.gz.
+	#Nothing reads that file yet: model loading, atlases, baking, and
+	#the model registry are unchanged, and recording adds a small
+	#cost to that launch. Inactive in Compare Mode, with CTM or
+	#ModernFix dynamic resources, and on every later resource reload.
+	recordBlockStateMaterialManifest = false
+	#Vault Hunters (builds without grouped modifiers, e.g. 3.21.6 and 20.0.3):
+	#cascade modifiers (cake vault chest/coin/ore cascades) look up their stack
+	#count from an index rebuilt when the modifier list changes, instead of every
+	#stack scanning every modifier entry on every generated chunk. Same result;
+	#long cake vaults no longer slow down with each cake. Singleplayer only.
+	indexVaultCascadeModifiers = true

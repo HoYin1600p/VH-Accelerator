@@ -1,7 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
+import dev.hoyin1600p.vhaccelerator.client.profiling.DisconnectTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.PostLoginWorkTimer;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 
 /**
  * Identifies client login/transfer work that belongs to the current server
@@ -17,7 +20,7 @@ public final class ClientWorkSession {
     public static synchronized boolean observeConnection(Object connection) {
         if (!EPOCH.observe(connection)) { return false; }
         DisconnectTimer.cancelActive();
-        dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch.invalidate();
+        JeiRuntimeEpoch.invalidate();
         long activeGeneration = EPOCH.current();
         PostLoginWorkTimer.beginSession(activeGeneration);
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
@@ -42,7 +45,7 @@ public final class ClientWorkSession {
     public static synchronized boolean invalidate(Object connection, String reason) {
         long invalidated = EPOCH.current();
         if (!EPOCH.close(connection)) { return false; }
-        dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch.invalidate();
+        JeiRuntimeEpoch.invalidate();
         PostLoginWorkTimer.cancelSession(invalidated);
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info(

@@ -1,0 +1,61 @@
+monitored digest b5b282aded78e1fe859d2bbd94146ee7c805106a867cf3eb9954c500c588895d
+  input config=alpha-client.toml:f488531600391df5c2eae53632bcb5b0b95817c9dc20f323f4e22dfefebf0cbb
+  input config=byg/byg-client.toml:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  input config=huge.bin:34603008:1699859697000
+  input config=nested/beta.json:e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67
+  input config=nested/deeper/gamma.cfg:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  input default-config=delta.toml:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  manifest config/alpha-client.toml -> sha256:f488531600391df5c2eae53632bcb5b0b95817c9dc20f323f4e22dfefebf0cbb
+  manifest config/byg/byg-client.toml -> sha256:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  manifest config/huge.bin -> metadata:34603008:1699859697000
+  manifest config/nested/beta.json -> sha256:e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67
+  manifest config/nested/deeper/gamma.cfg -> sha256:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  manifest default-config/delta.toml -> sha256:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  changed []
+scanned digest b5b282aded78e1fe859d2bbd94146ee7c805106a867cf3eb9954c500c588895d
+  input config=alpha-client.toml:f488531600391df5c2eae53632bcb5b0b95817c9dc20f323f4e22dfefebf0cbb
+  input config=byg/byg-client.toml:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  input config=huge.bin:34603008:1699859697000
+  input config=nested/beta.json:e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67
+  input config=nested/deeper/gamma.cfg:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  input default-config=delta.toml:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  manifest config/alpha-client.toml -> sha256:f488531600391df5c2eae53632bcb5b0b95817c9dc20f323f4e22dfefebf0cbb
+  manifest config/byg/byg-client.toml -> sha256:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  manifest config/huge.bin -> metadata:34603008:1699859697000
+  manifest config/nested/beta.json -> sha256:e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67
+  manifest config/nested/deeper/gamma.cfg -> sha256:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  manifest default-config/delta.toml -> sha256:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  changed []
+after-edit digest 547c6db388b54235843d597da26d516a0493fa44fe5268c08ed7e780b65fb241
+  input config=added.toml:c5c9ae930ea0502fa0dcddf868685c55babb77f996d22f526b73595c2a40ed1a
+  input config=alpha-client.toml:b675bda69dfc240ae69f637174c009cc4a14493fc4c3fc71aa058cf0752c0e6e
+  input config=byg/byg-client.toml:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  input config=huge.bin:34603008:1699859697000
+  input config=nested/deeper/gamma.cfg:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  input default-config=delta.toml:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  manifest config/added.toml -> sha256:c5c9ae930ea0502fa0dcddf868685c55babb77f996d22f526b73595c2a40ed1a
+  manifest config/alpha-client.toml -> sha256:b675bda69dfc240ae69f637174c009cc4a14493fc4c3fc71aa058cf0752c0e6e
+  manifest config/byg/byg-client.toml -> sha256:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a
+  manifest config/huge.bin -> metadata:34603008:1699859697000
+  manifest config/nested/deeper/gamma.cfg -> sha256:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6
+  manifest default-config/delta.toml -> sha256:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2
+  changed [config/alpha-client.toml]
+installation inputs
+  minecraft=fixture
+  mod-file=one.jar:7:1699020405000
+  mod-file=two.JAR:14:1699437307000
+missing mods dir [mod-file-directory-missing]
+resource pack inputs
+  resourcepack=PackA/assets/minecraft/models/x.json:2:1699759807000
+  resourcepack=PackA/pack.mcmeta:2:1700217734000
+  resourcepack=PackB.zip:6:1699880761000
+missing resource pack dir [resourcepack-directory-missing]
+encoded v5|cc04ef01be2c682c2d3906830d3d1f834b43b1642a684de17415a80b3da7caa5|b5b282aded78e1fe859d2bbd94146ee7c805106a867cf3eb9954c500c588895d|d6d973ac8a2ce4c75768cca08d2f8ddfaaeae149bc1c0e717077cbfae2cd33b7|3a27304f788f345599a3da65144a8ca62cdfb943cdaaa5b9d1b39ac63de1f6e8
+parsed [cc04ef01be2c682c2d3906830d3d1f834b43b1642a684de17415a80b3da7caa5, b5b282aded78e1fe859d2bbd94146ee7c805106a867cf3eb9954c500c588895d, d6d973ac8a2ce4c75768cca08d2f8ddfaaeae149bc1c0e717077cbfae2cd33b7, 3a27304f788f345599a3da65144a8ca62cdfb943cdaaa5b9d1b39ac63de1f6e8]
+parsed other schema null
+parsed short null
+empty digest e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+unicode digest 81f4b4848ce9364d27e4aef03b0e299ff04ebada5c1819326090a9487d77ef54
+manifest file Y29uZmlnAGFscGhhLWNsaWVudC50b21s	sha256:f488531600391df5c2eae53632bcb5b0b95817c9dc20f323f4e22dfefebf0cbb\nY29uZmlnAGJ5Zy9ieWctY2xpZW50LnRvbWw	sha256:7ae20bc5080007fe4640ed7837bda28961a18dff8f777264e37ffbd7cdd7232a\nY29uZmlnAGh1Z2UuYmlu	metadata:34603008:1699859697000\nY29uZmlnAG5lc3RlZC9iZXRhLmpzb24	sha256:e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67\nY29uZmlnAG5lc3RlZC9kZWVwZXIvZ2FtbWEuY2Zn	sha256:b8964bf64ad78786784ff05524722faedb327155eec625fe54b8146b96885ed6\nZGVmYXVsdC1jb25maWcAZGVsdGEudG9tbA	sha256:e622e6e864fb87312b7b33634d0a217378963805aa40d67c8c0f9099f53da5d2\n
+manifest round trip equal true
+malformed manifest {}

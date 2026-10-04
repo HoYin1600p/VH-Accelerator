@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import com.mojang.datafixers.util.Pair;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelMaterialCache;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Function;

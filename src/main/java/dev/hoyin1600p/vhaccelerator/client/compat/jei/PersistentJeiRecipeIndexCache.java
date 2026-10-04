@@ -1,12 +1,14 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
+import dev.hoyin1600p.vhaccelerator.util.Digests;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -14,16 +16,16 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +197,7 @@ public final class PersistentJeiRecipeIndexCache {
             LoginStateFingerprint.Snapshot fingerprint,
             String jeiGeneration,
             String categoryUid,
-            java.util.Collection<T> sourceRecipes
+            Collection<T> sourceRecipes
     ) {
         if (!enabled() || fingerprint == null) {
             return null;
@@ -257,7 +259,7 @@ public final class PersistentJeiRecipeIndexCache {
             LoginStateFingerprint.Snapshot fingerprint,
             String jeiGeneration,
             String categoryUid,
-            java.util.Collection<?> sourceRecipes,
+            Collection<?> sourceRecipes,
             List<? extends ActiveRecipe<?>> acceptedRecipes
     ) {
         if (!enabled()
@@ -387,7 +389,7 @@ public final class PersistentJeiRecipeIndexCache {
                 try {
                     Files.setLastModifiedTime(
                             path,
-                            java.nio.file.attribute.FileTime.fromMillis(
+                            FileTime.fromMillis(
                                     System.currentTimeMillis()
                             )
                     );
@@ -400,7 +402,7 @@ public final class PersistentJeiRecipeIndexCache {
     }
 
     private static Set<String> recipeIds(
-            java.util.Collection<?> sourceRecipes
+            Collection<?> sourceRecipes
     ) {
         Set<String> ids = new HashSet<>(sourceRecipes.size() * 2);
         for (Object candidate : sourceRecipes) {
@@ -652,7 +654,7 @@ public final class PersistentJeiRecipeIndexCache {
             temporary = Files.createTempFile(
                     DIRECTORY,
                     manifest.cacheKey + "-",
-                    ".tmp"
+                    CacheFiles.TEMP_SUFFIX
             );
             try (DataOutputStream output = new DataOutputStream(
                     new BufferedOutputStream(
@@ -704,7 +706,7 @@ public final class PersistentJeiRecipeIndexCache {
                 }
                 output.writeUTF(manifestHash(manifest));
             }
-            moveAtomically(temporary, target);
+            AtomicFiles.moveIntoPlace(temporary, target);
             pruneOldFiles();
             int recipeCount = manifest.categories.values().stream()
                     .flatMap(category -> category.batches.values().stream())
@@ -737,65 +739,57 @@ public final class PersistentJeiRecipeIndexCache {
     }
 
     private static String manifestHash(Manifest manifest) {
-        try {
-            MessageDigest digest =
-                    MessageDigest.getInstance("SHA-256");
-            update(digest, manifest.cacheKey);
-            update(digest, manifest.fingerprint);
-            manifest.categories.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(categoryEntry -> {
-                        update(digest, categoryEntry.getKey());
-                        CategoryBatches category =
-                                categoryEntry.getValue();
-                        category.batches.entrySet().stream()
-                                .sorted(Map.Entry.comparingByKey())
-                                .forEach(batchEntry -> {
-                                    update(digest, batchEntry.getKey());
-                                    CategoryPlan batch =
-                                            batchEntry.getValue();
+        MessageDigest digest = Digests.sha256();
+        update(digest, manifest.cacheKey);
+        update(digest, manifest.fingerprint);
+        manifest.categories.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(categoryEntry -> {
+                    update(digest, categoryEntry.getKey());
+                    CategoryBatches category =
+                            categoryEntry.getValue();
+                    category.batches.entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey())
+                            .forEach(batchEntry -> {
+                                update(digest, batchEntry.getKey());
+                                CategoryPlan batch =
+                                        batchEntry.getValue();
+                                update(
+                                        digest,
+                                        Integer.toString(
+                                                batch.sourceCount
+                                        )
+                                );
+                                for (RecipePlan recipe : batch.recipes) {
                                     update(
                                             digest,
-                                            Integer.toString(
-                                                    batch.sourceCount
-                                            )
+                                            recipe.recipeId
                                     );
-                                    for (RecipePlan recipe : batch.recipes) {
-                                        update(
-                                                digest,
-                                                recipe.recipeId
-                                        );
-                                        recipe.roleGroups.entrySet().stream()
-                                                .sorted(Map.Entry.comparingByKey())
-                                                .forEach(roleEntry -> {
+                                    recipe.roleGroups.entrySet().stream()
+                                            .sorted(Map.Entry.comparingByKey())
+                                            .forEach(roleEntry -> {
+                                                update(
+                                                        digest,
+                                                        roleEntry.getKey()
+                                                );
+                                                for (List<String> group :
+                                                        roleEntry.getValue()) {
                                                     update(
                                                             digest,
-                                                            roleEntry.getKey()
+                                                            Integer.toString(
+                                                                    group.size()
+                                                            )
                                                     );
-                                                    for (List<String> group :
-                                                            roleEntry.getValue()) {
-                                                        update(
-                                                                digest,
-                                                                Integer.toString(
-                                                                        group.size()
-                                                                )
-                                                        );
-                                                        group.forEach(uid ->
-                                                                update(digest, uid));
-                                                    }
-                                                });
-                                    }
-                                });
-                    });
-            return java.util.HexFormat.of().formatHex(
-                    digest.digest()
-            );
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(
-                    "SHA-256 is unavailable",
-                    exception
-            );
-        }
+                                                    group.forEach(uid ->
+                                                            update(digest, uid));
+                                                }
+                                            });
+                                }
+                            });
+                });
+        return HexFormat.of().formatHex(
+                digest.digest()
+        );
     }
 
     private static void update(
@@ -821,24 +815,6 @@ public final class PersistentJeiRecipeIndexCache {
             );
         }
         return value;
-    }
-
-    private static void moveAtomically(Path source, Path target)
-            throws IOException {
-        try {
-            Files.move(
-                    source,
-                    target,
-                    StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING
-            );
-        } catch (AtomicMoveNotSupportedException ignored) {
-            Files.move(
-                    source,
-                    target,
-                    StandardCopyOption.REPLACE_EXISTING
-            );
-        }
     }
 
     private static long lastModifiedMillis(Path path) {

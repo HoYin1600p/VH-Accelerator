@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IEventBus;

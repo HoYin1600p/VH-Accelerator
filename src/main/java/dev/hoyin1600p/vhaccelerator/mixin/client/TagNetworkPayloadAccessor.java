@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.TagPayloadView;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
@@ -8,7 +9,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(TagNetworkSerialization.NetworkPayload.class)
-public interface TagNetworkPayloadAccessor {
+public interface TagNetworkPayloadAccessor extends TagPayloadView {
+    @Override
     @Accessor("tags")
     Map<ResourceLocation, IntList> vhaccelerator$getTags();
 }

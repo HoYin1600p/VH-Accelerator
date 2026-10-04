@@ -2,7 +2,8 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LocalConfigState;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;

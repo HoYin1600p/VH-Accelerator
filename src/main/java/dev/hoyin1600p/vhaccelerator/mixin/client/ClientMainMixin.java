@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.AsyncCrashReportPreload;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
 import net.minecraft.client.main.Main;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -1,11 +1,11 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapCommonConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -44,7 +44,7 @@ public final class SingleplayerLevelPruner {
     }
 
     private static boolean enabled() {
-        return dev.hoyin1600p.vhaccelerator.compat.BootstrapCommonConfig.bool(
+        return BootstrapCommonConfig.bool(
                 "compatibility", "releaseLevelPinningReferences", true);
     }
 

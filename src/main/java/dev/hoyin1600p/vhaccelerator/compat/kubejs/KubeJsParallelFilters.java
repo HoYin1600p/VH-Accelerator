@@ -5,6 +5,8 @@ import java.lang.reflect.Modifier;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 /**
  * Decides whether a KubeJS recipe filter may be evaluated on several threads.
@@ -67,7 +69,7 @@ public final class KubeJsParallelFilters {
                 || name.equals("dev.latvian.mods.kubejs.item.ItemStackJS");
         if (!filterOrIngredient) {
             // Plain data held by a safe filter or ingredient.
-            return !(value instanceof java.util.function.Predicate<?>)
+            return !(value instanceof Predicate<?>)
                     && !name.startsWith("dev.latvian.mods.rhino.");
         }
         if (!SAFE_CLASSES.contains(name)) {
@@ -90,7 +92,7 @@ public final class KubeJsParallelFilters {
                         }
                     }
                 } else if (!(child instanceof String || child instanceof Number || child instanceof Boolean
-                        || child instanceof java.util.regex.Pattern || child instanceof Map<?, ?>
+                        || child instanceof Pattern || child instanceof Map<?, ?>
                         || child instanceof net.minecraft.resources.ResourceLocation)
                         && !safe(child, seen, depth + 1)) {
                     return false;

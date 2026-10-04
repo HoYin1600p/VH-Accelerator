@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
@@ -21,12 +23,12 @@ public final class VaultLootCdfOptimizer {
     private VaultLootCdfOptimizer() {
     }
 
-    private static final java.util.concurrent.atomic.AtomicInteger FIRST_USE_LOGS =
-            new java.util.concurrent.atomic.AtomicInteger();
+    private static final AtomicInteger FIRST_USE_LOGS =
+            new AtomicInteger();
 
     /** Debug only: the first eight on-demand computations are logged. */
     public static boolean shouldLogFirstUse() {
-        return dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled()
+        return dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig.debugDiagnosticsEnabled()
                 && FIRST_USE_LOGS.getAndIncrement() < 8;
     }
 
@@ -101,7 +103,7 @@ public final class VaultLootCdfOptimizer {
             int total,
             int depth,
             int[] frequencies,
-            java.util.function.Consumer<int[]> action
+            Consumer<int[]> action
     ) {
         if (depth == frequencies.length) {
             action.accept(frequencies);

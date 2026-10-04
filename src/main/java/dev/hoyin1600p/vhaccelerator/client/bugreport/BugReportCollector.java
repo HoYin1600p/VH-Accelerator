@@ -1,9 +1,11 @@
 package dev.hoyin1600p.vhaccelerator.client.bugreport;
 
-import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingCatalog.Setting;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingStore;
 import com.mojang.blaze3d.platform.GlUtil;
+import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog.Setting;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingStore;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,8 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.SharedConstants;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraftforge.fml.ModList;

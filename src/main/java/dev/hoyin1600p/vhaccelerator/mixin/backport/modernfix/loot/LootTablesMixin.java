@@ -15,8 +15,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.loot;
 
 import com.google.gson.JsonElement;
-import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginCache;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginAccess;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.loot.LootResourceOriginCache;
 import java.io.IOException;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;

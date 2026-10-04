@@ -2,8 +2,9 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
-import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ParallelModelJsonParser;
 import java.io.StringReader;
 import java.util.Map;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -74,7 +75,7 @@ public abstract class ModernFixCompatibleModelJsonCacheMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
-        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(location)
+        if (BuildScapeModelOwnership.buildScapeLoads(location)
                 || location.getPath().startsWith("builtin/")) {
             // Vanilla resolves builtin markers first; a pack JSON at that
             // path must never replace them.

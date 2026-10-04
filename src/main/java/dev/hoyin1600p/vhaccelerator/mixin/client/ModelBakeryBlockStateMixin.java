@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.model.ParallelBlockStateJsonParser;
 import dev.hoyin1600p.vhaccelerator.client.model.ModelPreparationWorkHolder;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ParallelBlockStateJsonParser;
 import java.io.IOException;
 import java.util.List;
 import net.minecraft.client.resources.model.ModelBakery;

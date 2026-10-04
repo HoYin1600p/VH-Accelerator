@@ -3,12 +3,12 @@ package dev.hoyin1600p.vhaccelerator.client.update;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.logging.LogUtils;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
@@ -84,7 +84,7 @@ final class UpdateNoticeStateStore {
 
     private void save(UpdateReminderState updatedState) {
         Path temporaryPath = statePath.resolveSibling(
-                statePath.getFileName() + ".tmp"
+                statePath.getFileName() + CacheFiles.TEMP_SUFFIX
         );
         try {
             Files.createDirectories(statePath.getParent());
@@ -93,20 +93,7 @@ final class UpdateNoticeStateStore {
                     GSON.toJson(updatedState),
                     StandardCharsets.UTF_8
             );
-            try {
-                Files.move(
-                        temporaryPath,
-                        statePath,
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(
-                        temporaryPath,
-                        statePath,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            }
+            AtomicFiles.moveIntoPlace(temporaryPath, statePath);
         } catch (IOException exception) {
             LOGGER.warn(
                     "Could not save update reminder state to {}",

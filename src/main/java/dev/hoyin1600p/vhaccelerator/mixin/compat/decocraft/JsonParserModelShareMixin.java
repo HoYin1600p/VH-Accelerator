@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft;
 
 import dev.hoyin1600p.vhaccelerator.compat.decocraft.DecocraftModelData;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -42,7 +43,7 @@ public abstract class JsonParserModelShareMixin {
             ZipFile zipfile,
             CallbackInfoReturnable<Object> callback
     ) {
-        java.util.zip.ZipEntry entry = zipfile != null ? zipfile.getEntry(location) : null;
+        ZipEntry entry = zipfile != null ? zipfile.getEntry(location) : null;
         DecocraftModelData.rememberRegistrationModel(
                 location,
                 callback.getReturnValue(),

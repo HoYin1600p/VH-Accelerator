@@ -1,30 +1,34 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.model.ModelJsonSafety;
-
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership;
+import dev.hoyin1600p.vhaccelerator.client.diagnostics.DynamicModelLoadingAudit;
+import dev.hoyin1600p.vhaccelerator.client.model.AtlasStitchEvents;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelOwner;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelLoadingAudit;
 import dev.hoyin1600p.vhaccelerator.client.model.MaterialMemoHolder;
-import dev.hoyin1600p.vhaccelerator.client.model.ParallelModelJsonParser;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelOwner;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelJsonSafety;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ParallelModelJsonParser;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.texture.TextureAtlas;
@@ -163,7 +167,7 @@ public abstract class ModelBakeryMixin {
             ResourceLocation location,
             CallbackInfoReturnable<BlockModel> callback
     ) {
-        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.buildScapeLoads(location)
+        if (BuildScapeModelOwnership.buildScapeLoads(location)
                 || location.getPath().startsWith("builtin/")) {
             // Vanilla resolves builtin markers first; a pack JSON at that
             // path must never replace them.
@@ -294,21 +298,21 @@ public abstract class ModelBakeryMixin {
         // event here first, in vanilla's order, and prepare in parallel after.
         boolean serializeEvents = VHAcceleratorClientConfig.launchValue(
                 VHAcceleratorClientConfig.VALUES.serializeAtlasStitchEvents, true);
-        Map<ResourceLocation, TextureAtlas> atlases = new java.util.HashMap<>();
-        Map<ResourceLocation, java.util.Set<ResourceLocation>> textureSets = new java.util.HashMap<>();
+        Map<ResourceLocation, TextureAtlas> atlases = new HashMap<>();
+        Map<ResourceLocation, Set<ResourceLocation>> textureSets = new HashMap<>();
         if (serializeEvents) {
             for (Map.Entry<?, ?> rawEntry : entries) {
                 ResourceLocation atlasLocation = (ResourceLocation) rawEntry.getKey();
                 @SuppressWarnings("unchecked")
                 List<Material> materials = (List<Material>) rawEntry.getValue();
                 TextureAtlas atlas = new TextureAtlas(atlasLocation);
-                java.util.Set<ResourceLocation> textures = new java.util.HashSet<>();
+                Set<ResourceLocation> textures = new HashSet<>();
                 for (Material material : materials) {
-                    textures.add(java.util.Objects.requireNonNull(
+                    textures.add(Objects.requireNonNull(
                             material.texture(), "Location cannot be null!"));
                 }
                 net.minecraftforge.client.ForgeHooksClient.onTextureStitchedPre(atlas, textures);
-                dev.hoyin1600p.vhaccelerator.client.model.AtlasStitchEvents.markPrefired(atlas);
+                AtlasStitchEvents.markPrefired(atlas);
                 atlases.put(atlasLocation, atlas);
                 textureSets.put(atlasLocation, textures);
             }
@@ -471,7 +475,7 @@ public abstract class ModelBakeryMixin {
     @Unique
     private static <T> void vhaccelerator$runBatched(
             List<T> values,
-            java.util.function.Consumer<T> action
+            Consumer<T> action
     ) {
         SharedWorkers.forEach(values, action);
     }

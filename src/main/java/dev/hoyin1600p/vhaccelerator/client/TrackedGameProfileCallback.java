@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import com.mojang.authlib.GameProfile;
+import dev.hoyin1600p.vhaccelerator.client.profiling.PostLoginWorkTimer;
 import java.util.function.Consumer;
 
 /**

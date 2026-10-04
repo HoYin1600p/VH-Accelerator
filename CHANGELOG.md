@@ -5,6 +5,35 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-10-04
+
+A maintenance release. Nothing changes in how the mod behaves, what it caches
+or what its settings do.
+
+### Changed
+
+- The launch timer, server and world transfer timer, post-login timer, JEI
+  rebuild messages and the update notice are now translatable (14 new
+  language keys). The English text is unchanged. Command replies sent by a
+  server stay in plain English so players without VH Accelerator never see
+  raw keys.
+- The mod now shows its logo and a fuller description in the Mods list.
+- The jar is built reproducibly: the same source always produces the same
+  file.
+- A failure inside a Vault Hunters event listener is now written to the game
+  log instead of only the console.
+
+### Internal
+
+- The code was reorganised and tidied without behaviour changes: clearer
+  package layout with no dependency cycles, the mixin plugin, client config
+  and asset fingerprint split into smaller classes, shared helpers instead of
+  duplicated ones, and one safe-write path for the caches. New snapshot tests
+  prove every mixin decision, the generated config files and the asset
+  fingerprint are identical to 1.1.3.
+- Internal working notes were removed from `docs/`; `docs/ARCHITECTURE.md`
+  describes the code layout for contributors.
+
 ## [1.1.3] - 2026-10-02
 
 ### Added
@@ -115,7 +144,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   lookup. Only the rejection is ported, not ModernFix's ring cache.
 - Deferred item and block-state model baking, block-graph skipping, and
   `ResourceLocation` namespace deduplication are now on by default. Each was
-  confirmed in CMA Remastered, Wolds Vaults 0.34.1 and Asgard.
+  confirmed in Remastered, Wolds Vaults 0.34.1 and Asgard.
 - Decocraft 3.0.4's Blockbench furniture models are baked on first use instead
   of at launch. Their bake is stateless and thread-safe; the gate is pinned to
   the verified Decocraft version, and their graphs still load eagerly. In
@@ -465,7 +494,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   interop check. BuildScape alone keeps its own optimizations.
 
 - Deferred block-state baking and warm graph skipping now cover EveryCompat's
-  generated block states (396 k more deferrable models in CMA Remastered).
+  generated block states (396 k more deferrable models in the Remastered test instance).
 
 - `overrideModernFixDynamicResources` (default on): VHA claims ModernFix's
   dynamic resources when a pack enables them, so VHA's parallel model
@@ -476,13 +505,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - `responsiveModWorkQueue` (default on): port of ModernFix's current
   ModWorkManager park fix. Forge's main thread notices finished mod-loading
   work within 250 microseconds instead of up to 25 ms, while the loading
-  screen keeps redrawing. About 0.3 s faster to the menu in CMA Remastered.
+  screen keeps redrawing. About 0.3 s faster to the menu in the Remastered test instance.
 
 - The JEI recipe index cache no longer reads every cached recipe file
   (up to 64, ~540 MB here) at launch and keeps them all in memory. It now
   reads ahead only the two newest files, reads any other file only when its
   exact key is needed, keeps only the files used this session, and shares
-  repeated strings and ingredient lists. In CMA Remastered this cut the heap
+  repeated strings and ingredient lists. In the Remastered test instance this cut the heap
   by ~1.36 GB at the menu and ~1.38 GB in the world.
 
 - `releaseBakeryLoadMaps` (default on): dynamic-model stage S2. After models
@@ -502,12 +531,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - `cacheLaunchVoxelShapes` (default on): while mods load, equal voxel-shape
   boxes are shared and identical shape joins are reused. MrCrayfish's
   Furniture and Macaw's mods build the same shapes for every block and wood
-  variant; a CMA Remastered profile put ~0.4 s of launch in that work. The
+  variant; a Remastered profile put ~0.4 s of launch in that work. The
   cache is released when mod loading completes.
 - `asyncCrashReportPreload` (default on): Minecraft's startup throwaway crash
   report, which only preloads crash-reporting classes, is built on a
   background thread after bootstrap instead of on the main thread before it
-  (~0.8 s measured in CMA Remastered).
+  (~0.8 s measured in the Remastered test instance).
 - Debug-only launch samplers attribute launch time to mods by phase, with
   call paths, from the mixin plugin through mod construction, registries and
   the resource reload.

@@ -1,11 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.thermal;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.ServerScopedCacheMemory;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
+import dev.hoyin1600p.vhaccelerator.util.Digests;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -13,12 +15,9 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HexFormat;
@@ -166,7 +165,7 @@ public final class PersistentStirlingFuelCache {
             temporary = Files.createTempFile(
                     DIRECTORY,
                     serverKey + "-",
-                    ".tmp"
+                    CacheFiles.TEMP_SUFFIX
             );
             try (DataOutputStream output = new DataOutputStream(
                     new BufferedOutputStream(Files.newOutputStream(temporary))
@@ -185,20 +184,7 @@ public final class PersistentStirlingFuelCache {
                 output.writeUTF(manifestHash(entries));
             }
 
-            try {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(
-                        temporary,
-                        target,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            }
+            AtomicFiles.moveIntoPlace(temporary, target);
             loaded().join().put(serverKey, cached);
             VHAccelerator.LOGGER.info(
                     "Persisted {} Thermal Stirling base fuels for future logins",
@@ -313,26 +299,19 @@ public final class PersistentStirlingFuelCache {
     }
 
     private static String manifestHash(List<FuelEntry> entries) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (FuelEntry entry : entries) {
-                byte[] item =
-                        entry.itemId().getBytes(StandardCharsets.UTF_8);
-                digest.update(item);
-                digest.update((byte) 0);
-                int energy = entry.energy();
-                digest.update((byte) (energy >>> 24));
-                digest.update((byte) (energy >>> 16));
-                digest.update((byte) (energy >>> 8));
-                digest.update((byte) energy);
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(
-                    "SHA-256 is unavailable",
-                    exception
-            );
+        MessageDigest digest = Digests.sha256();
+        for (FuelEntry entry : entries) {
+            byte[] item =
+                    entry.itemId().getBytes(StandardCharsets.UTF_8);
+            digest.update(item);
+            digest.update((byte) 0);
+            int energy = entry.energy();
+            digest.update((byte) (energy >>> 24));
+            digest.update((byte) (energy >>> 16));
+            digest.update((byte) (energy >>> 8));
+            digest.update((byte) energy);
         }
+        return HexFormat.of().formatHex(digest.digest());
     }
 
     public record FuelEntry(String itemId, int energy) {

@@ -2,15 +2,15 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiIndexCompleteness;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
-import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.DeferredIngredientMutations;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.InitialJeiVisibilityFastPath;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiIndexCompleteness;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.ParallelJeiPrefixIndexer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.PostLoginWorkTimer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -441,7 +441,7 @@ public abstract class IngredientFilterMixin implements DeferredIngredientMutatio
             );
             List<IListElementInfo<?>> sorted =
                     AdaptiveJeiWorkScheduler.invokeParallel(
-                            () -> dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(ingredients).sorted(comparator).toList()
+                            () -> AdaptiveJeiWorkScheduler.stream(ingredients).sorted(comparator).toList()
                     );
             cir.setReturnValue(sorted);
         } catch (RuntimeException exception) {

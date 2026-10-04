@@ -2,9 +2,9 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.ClientWorkSession;
-import dev.hoyin1600p.vhaccelerator.client.PostLoginWorkTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.VaultGroupBuild;
+import dev.hoyin1600p.vhaccelerator.client.profiling.PostLoginWorkTimer;
 import iskallia.vault.core.world.data.entity.EntityPredicate;
 import iskallia.vault.util.GroupUtils;
 import java.util.HashMap;

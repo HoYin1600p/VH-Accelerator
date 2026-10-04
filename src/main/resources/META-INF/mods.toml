@@ -12,7 +12,17 @@ displayURL = "https://github.com/HoYin1600p/VH-Accelerator"
 updateJSONURL = "https://raw.githubusercontent.com/HoYin1600p/VH-Accelerator/master/update.json"
 credits = "Backport source: ModernFix by embeddedt and contributors. Discovery inspiration: LaunchFaster by DogV2 and VHClientOptimize by JustAHuman. See CREDITS.md and THIRD_PARTY_NOTICES.md."
 displayTest = "MATCH_VERSION"
-description = '''${mod_description}'''
+logoFile = "logo.png"
+description = '''
+Client and server optimizations for Vault Hunters on Forge 1.18.2.
+
+- Faster launch: caches and parallelizes work done while mods load.
+- Faster model loading: block-state and item models bake on first use, with a persistent on-disk cache.
+- Faster world join, login and server switching.
+- Vault Hunters fixes and tuning for known slow or fragile code paths.
+- Compatibility handling for common mods such as JEI, CraftTweaker, Thermal and Create.
+- Optional in-game settings screen (needs Cloth Config).
+'''
 
 [modproperties."${mod_id}"]
 hoyinUpdateNotifier = true
@@ -34,8 +44,8 @@ side = "BOTH"
 
 # Optional: only the settings screen needs it. Without Cloth Config the key explains where the settings live.
 [[dependencies."${mod_id}"]]
-modId="cloth_config"
-mandatory=false
-versionRange="[6,)"
-ordering="NONE"
-side="CLIENT"
+modId = "cloth_config"
+mandatory = false
+versionRange = "[6,)"
+ordering = "NONE"
+side = "CLIENT"

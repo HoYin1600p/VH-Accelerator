@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.compat.decocraft;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;

@@ -13,8 +13,8 @@
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.resource;
 
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.resource.ImmutablePathPackIndex;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Set;

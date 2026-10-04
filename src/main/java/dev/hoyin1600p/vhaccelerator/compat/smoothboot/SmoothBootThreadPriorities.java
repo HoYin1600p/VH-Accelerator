@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.compat.smoothboot;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.bootstrap.ConfigMigration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.IdentityHashMap;

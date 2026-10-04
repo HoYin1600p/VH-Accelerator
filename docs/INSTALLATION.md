@@ -32,9 +32,9 @@ runtime testing.
 2. Back up the instance.
 3. Remove or disable any older VH Accelerator jar.
 4. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize.
-5. Copy `VH-Accelerator-1.1.3.jar` into the instance's `mods` directory.
+5. Copy `VH-Accelerator-1.1.4.jar` into the instance's `mods` directory.
 6. Start the client and allow the first launch to build its caches.
-7. Confirm the Mods screen reports version `1.1.3`.
+7. Confirm the Mods screen reports version `1.1.4`.
 
 VH Accelerator works client-side when connecting to a server that does not
 have the mod. This is the expected deployment for public or otherwise

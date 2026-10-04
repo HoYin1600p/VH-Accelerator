@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ParallelBlockStateJsonParser;
 import javax.annotation.Nullable;
 import net.minecraft.server.packs.resources.ResourceManager;
 

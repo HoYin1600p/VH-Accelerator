@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelMaterialCache;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;

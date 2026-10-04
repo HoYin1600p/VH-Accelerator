@@ -1,17 +1,21 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
+
 /** Identity-based ownership: screens, respawns and old disconnects are not connections. */
 public final class ConnectionEpoch {
     private Object owner;
     private long sequence;
     private long active = -1;
-    private final java.util.List<java.lang.ref.WeakReference<Object>> retired = new java.util.ArrayList<>();
+    private final List<WeakReference<Object>> retired = new ArrayList<>();
 
     public synchronized boolean observe(Object connection) {
         if (connection == null || connection == owner) { return false; }
         retired.removeIf(reference -> reference.get() == null);
         if (retired.stream().anyMatch(reference -> reference.get() == connection)) { return false; }
-        if (owner != null) { retired.add(new java.lang.ref.WeakReference<>(owner)); }
+        if (owner != null) { retired.add(new WeakReference<>(owner)); }
         owner = connection;
         active = ++sequence;
         return true;
@@ -19,7 +23,7 @@ public final class ConnectionEpoch {
 
     public synchronized boolean close(Object connection) {
         if (connection == null || connection != owner) { return false; }
-        retired.add(new java.lang.ref.WeakReference<>(owner));
+        retired.add(new WeakReference<>(owner));
         owner = null;
         active = -1;
         return true;

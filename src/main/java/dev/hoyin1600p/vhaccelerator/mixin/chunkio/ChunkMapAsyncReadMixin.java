@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.chunkio;
 
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.chunkio.PrefetchedChunkRead;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;

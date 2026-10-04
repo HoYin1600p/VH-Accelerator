@@ -1,9 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
-import net.minecraft.core.Registry;
-import net.minecraft.world.level.block.Block;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.block.Block;
 
 public final class ModelCacheSizing {
     private ModelCacheSizing() {

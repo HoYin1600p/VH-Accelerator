@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin;
 
-import dev.hoyin1600p.vhaccelerator.ServerLaunchTimer;
+import dev.hoyin1600p.vhaccelerator.startup.ServerLaunchTimer;
 import net.minecraft.server.Main;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

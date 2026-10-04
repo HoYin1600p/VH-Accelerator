@@ -1,9 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
+import dev.hoyin1600p.vhaccelerator.util.Digests;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
+import java.util.HexFormat;
 
 final class JeiRecipeIndexIdentity {
     private JeiRecipeIndexIdentity() {
@@ -21,18 +22,11 @@ final class JeiRecipeIndexIdentity {
             String categoryUid,
             Collection<String> recipeIds
     ) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            update(digest, categoryUid);
-            update(digest, Integer.toString(recipeIds.size()));
-            recipeIds.stream().sorted().forEach(id -> update(digest, id));
-            return java.util.HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(
-                    "SHA-256 is unavailable",
-                    exception
-            );
-        }
+        MessageDigest digest = Digests.sha256();
+        update(digest, categoryUid);
+        update(digest, Integer.toString(recipeIds.size()));
+        recipeIds.stream().sorted().forEach(id -> update(digest, id));
+        return HexFormat.of().formatHex(digest.digest());
     }
 
     private static void update(MessageDigest digest, String value) {

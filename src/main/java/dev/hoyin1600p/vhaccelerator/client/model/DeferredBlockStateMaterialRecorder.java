@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest.MaterialId;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest.MaterialId;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;

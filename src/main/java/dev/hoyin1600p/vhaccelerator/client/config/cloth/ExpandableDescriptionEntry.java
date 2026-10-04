@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.config.cloth;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.hoyin1600p.vhaccelerator.client.gui.GuiLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,9 +27,9 @@ final class ExpandableDescriptionEntry extends AbstractConfigListEntry<Object> {
     private static final int LINE_HEIGHT = 10;
     private static final int PADDING = 2;
     private static final int INDENT = 8;
-    private static final int SUMMARY_COLOR = 0xA0A0A0;
-    private static final int SUMMARY_HOVER_COLOR = 0xD0D0D0;
-    private static final int DESCRIPTION_COLOR = 0xC4C4C4;
+    private static final int SUMMARY_COLOR = GuiLayout.MUTED_COLOR;
+    private static final int SUMMARY_HOVER_COLOR = GuiLayout.MUTED_HOVER_COLOR;
+    private static final int DESCRIPTION_COLOR = GuiLayout.DESCRIPTION_COLOR;
 
     private final Component summary;
     private final Component description;

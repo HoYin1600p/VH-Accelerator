@@ -1,33 +1,40 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
-import dev.hoyin1600p.vhaccelerator.client.config.ConfigScreenKey;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import com.mojang.realmsclient.RealmsMainScreen;
-import dev.hoyin1600p.vhaccelerator.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.VHAcceleratorCommand;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.bootstrap.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.client.cache.ClientConfigReloadObserver;
 import dev.hoyin1600p.vhaccelerator.client.cache.FerriteCoreQuadCacheCapacity;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentBlockStateJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelJsonCache;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.farsight.FarsightChunkBound;
 import dev.hoyin1600p.vhaccelerator.client.compat.ironfurnaces.IronFurnacesRecipeCache;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentBlockStateJsonCache;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelJsonCache;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRuntimeEpoch;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentJeiRecipeIndexCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
+import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentVanillaIngredientCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.jer.JerCompatibilityCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.thermal.PersistentStirlingFuelCache;
 import dev.hoyin1600p.vhaccelerator.client.compat.xaero.XaeroOnlineCheckDeferrer;
+import dev.hoyin1600p.vhaccelerator.client.config.ConfigScreenKey;
+import dev.hoyin1600p.vhaccelerator.client.diagnostics.ClientTextureSafetyAudit;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelLocationPaths;
+import dev.hoyin1600p.vhaccelerator.client.profiling.DisconnectTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.PostLoginWorkTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ServerLoginTimer;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ServerTransferTimer;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeService;
+import dev.hoyin1600p.vhaccelerator.compat.farsight.FarsightBoundOwner;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -36,16 +43,20 @@ import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.client.event.ScreenOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.internal.BrandingControl;
 
@@ -106,11 +117,11 @@ public final class VHAcceleratorClient {
         jerLoaded = ModList.get().isLoaded("jeresources");
         thermalLoaded = ModList.get().isLoaded("thermal");
         ferriteCoreLoaded = ModList.get().isLoaded("ferritecore");
-        dev.hoyin1600p.vhaccelerator.client.model.ModelLocationPaths.configure(
+        ModelLocationPaths.configure(
                 VHAcceleratorClientConfig.optimizationsEnabled()
                         && VHAcceleratorClientConfig.launchValue(
                                 VHAcceleratorClientConfig.VALUES.deduplicateModelLocationPaths, true));
-        if (dev.hoyin1600p.vhaccelerator.compat.farsight.FarsightBoundOwner.vhaOwnsBound(
+        if (FarsightBoundOwner.vhaOwnsBound(
                 net.minecraftforge.fml.loading.LoadingModList.get())) {
             // Same gate as the mixin plugin: VRO owns this once it declares it.
             MinecraftForge.EVENT_BUS.addListener(FarsightChunkBound::onClientTick);
@@ -173,28 +184,24 @@ public final class VHAcceleratorClient {
             CommandSourceStack source
     ) {
         source.sendSuccess(
-                new TextComponent(
-                        "[VH Accelerator] Rebuilding JEI from the live "
-                                + "recipe and tag state. The game may pause "
-                                + "briefly."
-                ).withStyle(ChatFormatting.YELLOW),
+                new TranslatableComponent("vhaccelerator.jei.reload.start")
+                        .withStyle(ChatFormatting.YELLOW),
                 false
         );
         JeiRecoveryReload.Result result = JeiRecoveryReload.reload();
         if (!result.successful()) {
-            source.sendFailure(new TextComponent(
-                    "[VH Accelerator] " + result.failureMessage()
+            source.sendFailure(new TranslatableComponent(
+                    "vhaccelerator.jei.reload.failed",
+                    result.failureMessage()
             ));
             return 0;
         }
 
         source.sendSuccess(
-                new TextComponent(String.format(
-                        "[VH Accelerator] JEI rebuilt from live data in "
-                                + "%.2fs. VHA's JEI caches and parallel "
-                                + "index paths were bypassed for this reload.",
-                        result.elapsedMillis() / 1000.0
-                )).withStyle(ChatFormatting.GREEN),
+                new TranslatableComponent(
+                        "vhaccelerator.jei.reload.done",
+                        seconds(result.elapsedMillis())
+                ).withStyle(ChatFormatting.GREEN),
                 false
         );
         return 1;
@@ -459,26 +466,20 @@ public final class VHAcceleratorClient {
         }
 
         if (loginSample != null) {
-            StringBuilder text = new StringBuilder(String.format(
-                    "[VH Accelerator%s] Launch: %.2fs | Server login: %.2fs",
-                    VHAcceleratorConfig.compareModeEnabled()
-                            ? " Compare"
-                            : "",
-                    LaunchTimer.elapsedMillis() / 1000.0,
-                    loginSample.totalMillis() / 1000.0
-            ));
+            MutableComponent text = new TranslatableComponent(
+                    "vhaccelerator.timer.launch_login",
+                    compareSuffix(),
+                    seconds(LaunchTimer.elapsedMillis()),
+                    seconds(loginSample.totalMillis())
+            ).withStyle(ChatFormatting.GREEN);
             appendPostLoginStatus(text, postLoginSample);
-            minecraft.player.displayClientMessage(
-                    new TextComponent(text.toString()).withStyle(ChatFormatting.GREEN),
-                    false
-            );
+            minecraft.player.displayClientMessage(text, false);
         } else if (transferSample != null) {
-            String text = String.format(
-                    "[VH Accelerator] Server/world transfer: %.2fs",
-                    transferSample.totalMillis() / 1000.0
-            );
             minecraft.player.displayClientMessage(
-                    new TextComponent(text).withStyle(ChatFormatting.GREEN),
+                    new TranslatableComponent(
+                            "vhaccelerator.timer.transfer",
+                            seconds(transferSample.totalMillis())
+                    ).withStyle(ChatFormatting.GREEN),
                     false
             );
         } else if (postLoginSample != null) {
@@ -492,44 +493,48 @@ public final class VHAcceleratorClient {
             return;
         }
 
-        StringBuilder text = new StringBuilder(String.format(
-                "[VH Accelerator%s] Launch: %.2fs",
-                VHAcceleratorConfig.compareModeEnabled()
-                        ? " Compare"
-                        : "",
-                LaunchTimer.elapsedMillis() / 1000.0
-        ));
+        MutableComponent text = new TranslatableComponent(
+                "vhaccelerator.timer.launch",
+                compareSuffix(),
+                seconds(LaunchTimer.elapsedMillis())
+        ).withStyle(ChatFormatting.GREEN);
         appendPostLoginStatus(text, null);
-        minecraft.player.displayClientMessage(
-                new TextComponent(text.toString()).withStyle(ChatFormatting.GREEN),
-                false
-        );
+        minecraft.player.displayClientMessage(text, false);
     }
 
     private static void appendPostLoginStatus(
-            StringBuilder text,
+            MutableComponent text,
             PostLoginWorkTimer.Sample completedSample
     ) {
         if (completedSample != null) {
-            text.append(String.format(
-                    " | Post-login: %.2fs",
-                    completedSample.totalMillis() / 1000.0
+            text.append(new TranslatableComponent(
+                    "vhaccelerator.timer.post_login",
+                    seconds(completedSample.totalMillis())
             ));
         } else if (PostLoginWorkTimer.isRunning()) {
-            text.append(" | Post-login: running");
+            text.append(new TranslatableComponent("vhaccelerator.timer.post_login_running"));
         }
+    }
+
+    private static Component compareSuffix() {
+        return VHAcceleratorConfig.compareModeEnabled()
+                ? new TranslatableComponent("vhaccelerator.timer.compare_suffix")
+                : new TextComponent("");
+    }
+
+    private static String seconds(double millis) {
+        return String.format("%.2f", millis / 1000.0);
     }
 
     private static void showPostLoginMessage(
             Minecraft minecraft,
             PostLoginWorkTimer.Sample sample
     ) {
-        String text = String.format(
-                "[VH Accelerator] Post-login work completed in %.2fs",
-                sample.totalMillis() / 1000.0
-        );
         minecraft.player.displayClientMessage(
-                new TextComponent(text).withStyle(ChatFormatting.GREEN),
+                new TranslatableComponent(
+                        "vhaccelerator.timer.post_login_done",
+                        seconds(sample.totalMillis())
+                ).withStyle(ChatFormatting.GREEN),
                 false
         );
     }

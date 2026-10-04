@@ -1,7 +1,5 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jei;
 
-import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import java.lang.reflect.Field;
 import java.util.ArrayList;

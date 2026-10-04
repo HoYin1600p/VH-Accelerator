@@ -18,8 +18,8 @@ package dev.hoyin1600p.vhaccelerator.backport.modernfix.registry;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Iterator;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;

@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.crafttweaker;
 
 import com.blamejared.crafttweaker.api.recipe.RecipeList;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -33,9 +34,9 @@ public abstract class RecipeListParallelRemovalMixin<T extends Recipe<?>> {
 
     @Inject(method = "removeByRecipeTest", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$testInParallel(Predicate<T> recipePredicate, CallbackInfo callback) {
-        if (!dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.optimizationsEnabled()
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.launchValue(
-                        dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.VALUES
+        if (!VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES
                                 .parallelCraftTweakerRecipeRemoval)
                 || recipes.size() < 2_048
                 || !recipePredicate.getClass().getName().startsWith("com.blamejared.crafttweaker.api.")) {

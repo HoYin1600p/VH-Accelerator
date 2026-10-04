@@ -226,10 +226,10 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/VanillaRecipeValidation.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/v9/RecipeMapIndexAccess.class',
                     'dev/hoyin1600p/vhaccelerator/client/compat/jei/v10/RecipeMapIndexAccess.class',
-                    'dev/hoyin1600p/vhaccelerator/client/cache/ClientAssetFingerprint.class',
-                    'dev/hoyin1600p/vhaccelerator/client/cache/ConfigFingerprintMonitor.class',
-                    'dev/hoyin1600p/vhaccelerator/client/cache/PersistentModelJsonCache.class',
-                    'dev/hoyin1600p/vhaccelerator/client/PacketDecodeProfiler.class',
+                    'dev/hoyin1600p/vhaccelerator/client/cache/fingerprint/ClientAssetFingerprint.class',
+                    'dev/hoyin1600p/vhaccelerator/client/cache/fingerprint/ConfigFingerprintMonitor.class',
+                    'dev/hoyin1600p/vhaccelerator/client/cache/persist/PersistentModelJsonCache.class',
+                    'dev/hoyin1600p/vhaccelerator/client/profiling/PacketDecodeProfiler.class',
                     'dev/hoyin1600p/vhaccelerator/client/update/UpdateNoticeFilter.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientFilterMixin.class',
                     'dev/hoyin1600p/vhaccelerator/mixin/compat/jei/v9/IngredientBlacklistInternalMixin.class',
@@ -372,7 +372,6 @@ tasks.named('processResources', ProcessResources).configure {
             mod_license            : mod_license,
             mod_version            : mod_version,
             mod_authors            : mod_authors,
-            mod_description        : mod_description
     ]
 
     inputs.properties replaceProperties
@@ -403,7 +402,6 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Title'    : project.name,
                 'Implementation-Version'  : project.jar.archiveVersion,
                 'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
                 'MixinConfigs'            : "${mod_id}.mixins.json"
         ])
     }
@@ -424,6 +422,11 @@ tasks.named('sourcesJar', Jar).configure {
     from('docs/MODERNFIX_BACKPORTS.md') {
         into 'META-INF'
     }
+}
+
+tasks.withType(Jar).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }
 
 tasks.withType(JavaCompile).configureEach {

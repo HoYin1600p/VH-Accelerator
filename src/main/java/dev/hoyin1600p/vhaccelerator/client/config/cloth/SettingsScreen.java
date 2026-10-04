@@ -2,12 +2,14 @@ package dev.hoyin1600p.vhaccelerator.client.config.cloth;
 
 import dev.hoyin1600p.vhaccelerator.client.bugreport.BugReportScreen;
 import dev.hoyin1600p.vhaccelerator.client.config.ScreenScale;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingCatalog;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingCatalog.Category;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingCatalog.Setting;
-import dev.hoyin1600p.vhaccelerator.config.ConfigSettingStore;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog.Category;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog.Setting;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog;
+import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingStore;
+import dev.hoyin1600p.vhaccelerator.client.gui.GuiLayout;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
@@ -35,7 +37,7 @@ import net.minecraftforge.common.MinecraftForge;
  */
 public final class SettingsScreen {
     // Cloth's footer: Cancel and Save are centered, each min(200, (width - 62) / 3) wide.
-    private static final int FOOTER_MARGIN = 6;
+    private static final int FOOTER_MARGIN = GuiLayout.FOOTER_MARGIN;
     // At the 960-unit virtual width there is room for 265; keep the extra buttons button-sized.
     private static final int MAX_SIDE_BUTTON_WIDTH = 150;
     // Dialog lists stop here so the dialog buttons stay on screen.
@@ -162,8 +164,8 @@ public final class SettingsScreen {
 
     /** Player-facing name of an enum choice, e.g. vhaccelerator.config.enum.critical. */
     static String enumKey(Enum<?> constant) {
-        return dev.hoyin1600p.vhaccelerator.config.ConfigSettingCatalog.LANG_PREFIX + "enum."
-                + constant.name().toLowerCase(java.util.Locale.ROOT);
+        return ConfigSettingCatalog.LANG_PREFIX + "enum."
+                + constant.name().toLowerCase(Locale.ROOT);
     }
 
     static MutableComponent label(Setting setting) {
@@ -183,9 +185,9 @@ public final class SettingsScreen {
         int clothButtonWidth = Math.min(200, (screen.width - 50 - 12) / 3);
         int sideWidth = Math.min(MAX_SIDE_BUTTON_WIDTH, screen.width / 2 - clothButtonWidth - 3 - 2 * FOOTER_MARGIN);
         int y = screen.height - 26;
-        event.addListener(new Button(FOOTER_MARGIN, y, sideWidth, 20,
+        event.addListener(new Button(FOOTER_MARGIN, y, sideWidth, GuiLayout.BUTTON_HEIGHT,
                 new TranslatableComponent("vhaccelerator.config.button.default"), button -> confirmDefaults(screen)));
-        event.addListener(new Button(screen.width - FOOTER_MARGIN - sideWidth, y, sideWidth, 20,
+        event.addListener(new Button(screen.width - FOOTER_MARGIN - sideWidth, y, sideWidth, GuiLayout.BUTTON_HEIGHT,
                 new TranslatableComponent("vhaccelerator.config.button.experimental"), button -> confirmExperimental(screen)));
     }
 

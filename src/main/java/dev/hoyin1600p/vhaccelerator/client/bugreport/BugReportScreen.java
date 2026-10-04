@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.bugreport;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.hoyin1600p.vhaccelerator.client.gui.GuiLayout;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -22,9 +23,9 @@ public final class BugReportScreen extends Screen {
     private static final int TOP = 32;
     private static final int BOTTOM_SPACE = 56;
     private static final int LINE_HEIGHT = 10;
-    private static final int HEADING_COLOR = 0xFFFF55;
-    private static final int TEXT_COLOR = 0xE0E0E0;
-    private static final int STATUS_COLOR = 0xA0A0A0;
+    private static final int HEADING_COLOR = GuiLayout.HEADING_COLOR;
+    private static final int TEXT_COLOR = GuiLayout.TEXT_COLOR;
+    private static final int STATUS_COLOR = GuiLayout.MUTED_COLOR;
 
     private final Screen parent;
     private final BugReportCollector.Collected collected;
@@ -51,7 +52,7 @@ public final class BugReportScreen extends Screen {
     protected void init() {
         // Re-run on every resize, so all text re-wraps to the current screen width.
         lines.clear();
-        int width = this.width - 40;
+        int width = GuiLayout.contentWidth(this.width);
         hintLines = font.split(new TranslatableComponent("vhaccelerator.bugreport.status.hint"), width);
         heading(new TranslatableComponent("vhaccelerator.bugreport.issue_heading"));
         text(bodyWithCrash, width);
@@ -66,25 +67,26 @@ public final class BugReportScreen extends Screen {
         scroll = Mth.clamp(scroll, 0, maxScroll());
 
         int y = this.height - 28;
-        int gap = 4;
+        int gap = GuiLayout.BUTTON_GAP;
         Component copyAndOpen = new TranslatableComponent("vhaccelerator.bugreport.button.copy_and_open");
         Component withoutCrash = new TranslatableComponent("vhaccelerator.bugreport.button.open_without_crash");
         Component openOnly = new TranslatableComponent("vhaccelerator.bugreport.button.open");
         Component cancel = new TranslatableComponent("gui.cancel");
         if (collected.crash().isPresent()) {
             int buttonWidth = buttonWidth(3, gap, copyAndOpen, withoutCrash, cancel);
-            int left = this.width / 2 - (buttonWidth * 3 + gap * 2) / 2;
-            addRenderableWidget(new Button(left, y, buttonWidth, 20, copyAndOpen, button -> copyAndOpen()));
-            addRenderableWidget(new Button(left + buttonWidth + gap, y, buttonWidth, 20, withoutCrash,
+            int[] x = GuiLayout.buttonRow(this.width, 3, buttonWidth, gap);
+            addRenderableWidget(new Button(x[0], y, buttonWidth, GuiLayout.BUTTON_HEIGHT, copyAndOpen,
+                    button -> copyAndOpen()));
+            addRenderableWidget(new Button(x[1], y, buttonWidth, GuiLayout.BUTTON_HEIGHT, withoutCrash,
                     button -> open(bodyWithoutCrash, collected.report().title())));
-            addRenderableWidget(new Button(left + 2 * (buttonWidth + gap), y, buttonWidth, 20, cancel,
+            addRenderableWidget(new Button(x[2], y, buttonWidth, GuiLayout.BUTTON_HEIGHT, cancel,
                     button -> onClose()));
         } else {
             int buttonWidth = buttonWidth(2, gap, openOnly, cancel);
-            int left = this.width / 2 - (buttonWidth * 2 + gap) / 2;
-            addRenderableWidget(new Button(left, y, buttonWidth, 20, openOnly,
+            int[] x = GuiLayout.buttonRow(this.width, 2, buttonWidth, gap);
+            addRenderableWidget(new Button(x[0], y, buttonWidth, GuiLayout.BUTTON_HEIGHT, openOnly,
                     button -> open(bodyWithoutCrash, collected.report().title())));
-            addRenderableWidget(new Button(left + buttonWidth + gap, y, buttonWidth, 20, cancel,
+            addRenderableWidget(new Button(x[1], y, buttonWidth, GuiLayout.BUTTON_HEIGHT, cancel,
                     button -> onClose()));
         }
     }
@@ -95,11 +97,11 @@ public final class BugReportScreen extends Screen {
         for (Component label : labels) {
             widest = Math.max(widest, font.width(label) + 20);
         }
-        return Math.min(Math.max(100, widest), (this.width - 40 - gap * (count - 1)) / count);
+        return Math.min(Math.max(100, widest), (GuiLayout.contentWidth(this.width) - gap * (count - 1)) / count);
     }
 
     private void heading(Component text) {
-        for (FormattedCharSequence line : font.split(text.copy().withStyle(ChatFormatting.BOLD), this.width - 40)) {
+        for (FormattedCharSequence line : font.split(text.copy().withStyle(ChatFormatting.BOLD), GuiLayout.contentWidth(this.width))) {
             lines.add(new Line(line, HEADING_COLOR));
         }
     }
@@ -153,14 +155,14 @@ public final class BugReportScreen extends Screen {
         // Opaque, like the settings screen it opens from: HUD overlays drawn after a
         // translucent in-world background would show through the report text.
         renderDirtBackground(0);
-        drawCenteredString(poseStack, font, title, this.width / 2, 12, 0xFFFFFF);
+        drawCenteredString(poseStack, font, title, this.width / 2, 12, GuiLayout.TITLE_COLOR);
         int bottom = this.height - BOTTOM_SPACE;
         int first = (int) (scroll / LINE_HEIGHT);
         int y = TOP - (int) (scroll % LINE_HEIGHT);
         for (int i = first; i < lines.size() && y + LINE_HEIGHT <= bottom; i++, y += LINE_HEIGHT) {
             if (y >= TOP) {
                 Line line = lines.get(i);
-                font.draw(poseStack, line.text(), 20, y, line.color());
+                font.draw(poseStack, line.text(), GuiLayout.SCREEN_MARGIN, y, line.color());
             }
         }
         // At most two wrapped hint lines fit between the text area and the buttons.

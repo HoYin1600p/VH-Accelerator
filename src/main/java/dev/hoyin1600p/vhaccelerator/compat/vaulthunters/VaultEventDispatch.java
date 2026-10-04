@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.compat.vaulthunters;
 
+import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +89,7 @@ public final class VaultEventDispatch {
                     try {
                         ((Consumer) consumer).accept(data);
                     } catch (Exception exception) {
-                        exception.printStackTrace();
+                        VHAccelerator.LOGGER.error("Vault event consumer failed", exception);
                     }
                 }
             }

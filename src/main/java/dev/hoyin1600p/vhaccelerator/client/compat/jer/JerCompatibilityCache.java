@@ -1,21 +1,20 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.jer;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import jeresources.config.ConfigValues;
+import jeresources.entry.MobEntry;
 import jeresources.proxy.CommonProxy;
 import jeresources.registry.DungeonRegistry;
 import jeresources.registry.MobRegistry;
 import jeresources.registry.PlantRegistry;
 import jeresources.registry.VillagerRegistry;
 import jeresources.registry.WorldGenRegistry;
-import jeresources.config.ConfigValues;
-import jeresources.entry.MobEntry;
 import jeresources.util.LootTableHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.PackResources;
@@ -131,26 +130,6 @@ public final class JerCompatibilityCache {
                 && pendingReload.isDone()) {
             finishPreload();
         }
-    }
-
-    public static PreloadStatus preloadStatus() {
-        int percent = 0;
-        if (preloadPhase == PreloadPhase.RUNNING && pendingReload != null) {
-            percent = Math.max(
-                    0,
-                    Math.min(
-                            99,
-                            Math.round(pendingReload.getActualProgress() * 100.0F)
-                    )
-            );
-        } else if (preloadPhase == PreloadPhase.COMPLETED) {
-            percent = 100;
-        }
-
-        long elapsedMillis = preloadPhase == PreloadPhase.RUNNING
-                ? (System.nanoTime() - preloadStartedNanos) / 1_000_000L
-                : preloadElapsedMillis;
-        return new PreloadStatus(preloadPhase, percent, elapsedMillis);
     }
 
     public static void ensureInitialized(CommonProxy proxy) {
@@ -314,12 +293,5 @@ public final class JerCompatibilityCache {
         RUNNING,
         COMPLETED,
         FAILED
-    }
-
-    public record PreloadStatus(
-            PreloadPhase phase,
-            int percent,
-            long elapsedMillis
-    ) {
     }
 }

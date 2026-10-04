@@ -1,10 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.ConfigMigration;
+import dev.hoyin1600p.vhaccelerator.bootstrap.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.concurrent.NetworkWorkers;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.concurrent.Executor;
 import net.minecraftforge.fml.loading.FMLPaths;
 

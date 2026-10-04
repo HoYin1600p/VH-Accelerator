@@ -2,7 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
-import dev.hoyin1600p.vhaccelerator.client.ClientConnectionProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ClientConnectionProfiler;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;

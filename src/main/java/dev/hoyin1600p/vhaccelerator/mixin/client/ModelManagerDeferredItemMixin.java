@@ -2,7 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
 import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
-import dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.server.packs.resources.ResourceManager;

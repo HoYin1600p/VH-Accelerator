@@ -2,7 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.DataFixerBuilder;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.concurrent.Executor;
 import net.minecraft.util.datafix.DataFixers;
 import org.spongepowered.asm.mixin.Mixin;

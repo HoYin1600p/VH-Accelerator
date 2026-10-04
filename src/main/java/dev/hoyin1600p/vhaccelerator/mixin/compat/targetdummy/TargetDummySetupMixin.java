@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.targetdummy;
 
-import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapDebugDiagnostics;
 import dev.hoyin1600p.vhaccelerator.compat.targetdummy.TargetDummySetupFix;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
 import net.minecraft.world.level.ItemLike;

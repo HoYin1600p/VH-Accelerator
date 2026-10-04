@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
-import dev.hoyin1600p.vhaccelerator.client.LaunchEventProfiler;
-import dev.hoyin1600p.vhaccelerator.client.LaunchStackSampler;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapDebugDiagnostics;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchEventProfiler;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchStackSampler;
 import java.util.concurrent.Executor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.ClientPackSource;

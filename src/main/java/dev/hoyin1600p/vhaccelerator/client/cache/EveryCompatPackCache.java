@@ -2,7 +2,11 @@ package dev.hoyin1600p.vhaccelerator.client.cache;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LocalScriptInputs;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
+import dev.hoyin1600p.vhaccelerator.util.CacheFiles;
+import dev.hoyin1600p.vhaccelerator.util.PathNames;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -11,17 +15,17 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -185,9 +189,9 @@ public final class EveryCompatPackCache {
         }
         try (Stream<Path> paths = Files.walk(directory, depth)) {
             for (Path path : paths.filter(Files::isRegularFile)
-                    .sorted(Comparator.comparing(path -> relative(directory, path)))
+                    .sorted(Comparator.comparing(path -> PathNames.relative(directory, path)))
                     .toList()) {
-                inputs.add(label + "=" + relative(directory, path) + ":" + (content
+                inputs.add(label + "=" + PathNames.relative(directory, path) + ":" + (content
                         ? digestFile(path)
                         : Files.size(path) + ":" + Files.getLastModifiedTime(path).toMillis()));
             }
@@ -242,7 +246,7 @@ public final class EveryCompatPackCache {
             if (count < 0 || count > MAX_ENTRIES) {
                 return null;
             }
-            Map<ResourceLocation, byte[]> resources = new java.util.HashMap<>(count * 4 / 3 + 1);
+            Map<ResourceLocation, byte[]> resources = new HashMap<>(count * 4 / 3 + 1);
             for (int i = 0; i < count; i++) {
                 ResourceLocation location = new ResourceLocation(in.readUTF(), in.readUTF());
                 int length = in.readInt();
@@ -270,7 +274,7 @@ public final class EveryCompatPackCache {
 
     private static void write(String key, Set<String> namespaces, Map<ResourceLocation, byte[]> resources) {
         long started = System.nanoTime();
-        Path temporary = FILE.resolveSibling(FILE.getFileName() + ".tmp");
+        Path temporary = FILE.resolveSibling(FILE.getFileName() + CacheFiles.TEMP_SUFFIX);
         long bytes = 0;
         try {
             Files.createDirectories(FILE.getParent());
@@ -296,11 +300,7 @@ public final class EveryCompatPackCache {
                 out.flush();
                 out.writeLong(checked.getChecksum().getValue());
             }
-            try {
-                Files.move(temporary, FILE, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException unsupported) {
-                Files.move(temporary, FILE, StandardCopyOption.REPLACE_EXISTING);
-            }
+            AtomicFiles.moveIntoPlace(temporary, FILE);
             VHAccelerator.LOGGER.info(
                     "Stored Every Compat's generated client pack ({} resources, {} KB) in {} ms",
                     resources.size(),
@@ -312,16 +312,12 @@ public final class EveryCompatPackCache {
         }
     }
 
-    private static String relative(Path root, Path path) {
-        return root.relativize(path).toString().replace('\\', '/');
-    }
-
     private static String digestFile(Path path) {
         try {
             return HexFormat.of().formatHex(
                     MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)));
         } catch (IOException failure) {
-            throw new java.io.UncheckedIOException(failure);
+            throw new UncheckedIOException(failure);
         } catch (NoSuchAlgorithmException failure) {
             throw new IllegalStateException(failure);
         }

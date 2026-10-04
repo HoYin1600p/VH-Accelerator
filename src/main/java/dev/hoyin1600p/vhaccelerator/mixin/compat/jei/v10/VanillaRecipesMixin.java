@@ -2,7 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.jei.v10;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.LoginStateFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.LoginStateFingerprint;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.JeiRecoveryReload;
 import dev.hoyin1600p.vhaccelerator.client.compat.jei.PersistentRecipeValidationCache;
@@ -85,7 +85,7 @@ public abstract class VanillaRecipesMixin {
         try {
             inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
-                            dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(recipes)
+                            AdaptiveJeiWorkScheduler.stream(recipes)
                                     .filter(recipe ->
                                             VanillaRecipeValidation.isValid(
                                                     recipe,
@@ -230,7 +230,7 @@ public abstract class VanillaRecipesMixin {
         try {
             inputValid = parallel
                     ? AdaptiveJeiWorkScheduler.invokeParallel(() ->
-                            dev.hoyin1600p.vhaccelerator.client.compat.jei.AdaptiveJeiWorkScheduler.stream(recipes)
+                            AdaptiveJeiWorkScheduler.stream(recipes)
                                     .filter(recipe ->
                                             VanillaRecipeValidation.isValid(
                                                     recipe,

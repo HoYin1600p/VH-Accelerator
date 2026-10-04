@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelSelector;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;

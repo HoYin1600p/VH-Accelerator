@@ -1,9 +1,10 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.model.MutationTrackingMap;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelBakery;
@@ -28,7 +29,7 @@ public abstract class ModelRegistryOwnershipMixin {
     private void vhaccelerator$ownRegistry(ModelBakery owner, Map<ResourceLocation, BakedModel> allocated) {
         bakedTopLevelModels = VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.launchValue(VHAcceleratorClientConfig.VALUES.indexModelBakeRegistries)
-                && allocated.getClass() == java.util.HashMap.class && allocated.isEmpty()
+                && allocated.getClass() == HashMap.class && allocated.isEmpty()
                 ? MutationTrackingMap.ownFreshMap(allocated) : allocated;
         if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
             VHAccelerator.LOGGER.info("Model registry allocation ownership: {}", bakedTopLevelModels.getClass().getName());

@@ -1,8 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +71,8 @@ public final class ModelBakeRegistryIndex {
         }
         if (index != null && index.builds() > 0) {
             VHAccelerator.LOGGER.info(
-                    "Indexed {} baked-model namespaces in {} ms ({} rebuilds); served {} backed callback views and avoided {} unrelated visits",
+                    "Indexed {} baked-model namespaces in {} ms ({} rebuilds); served {} backed callback views "
+                            + "and avoided {} unrelated visits",
                     index.namespaces(), index.buildNanos() / 1_000_000L, index.builds(), filteredViews, avoidedVisits);
         }
         activeRegistry = null;

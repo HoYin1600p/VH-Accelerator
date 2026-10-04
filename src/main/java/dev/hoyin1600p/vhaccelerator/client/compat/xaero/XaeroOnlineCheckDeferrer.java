@@ -1,13 +1,13 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.xaero;
 
-import dev.hoyin1600p.vhaccelerator.client.ClientBackgroundExecutor;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.client.ClientBackgroundExecutor;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 
@@ -130,7 +130,7 @@ public final class XaeroOnlineCheckDeferrer {
     }
 
     private static final class ExecutorHolder {
-        private static final java.util.concurrent.Executor EXECUTOR =
+        private static final Executor EXECUTOR =
                 ClientBackgroundExecutor.select();
 
         private ExecutorHolder() {

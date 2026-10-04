@@ -9,8 +9,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import net.minecraft.SharedConstants;
 import net.minecraft.ChatFormatting;
+import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
@@ -18,7 +18,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -356,15 +356,17 @@ public final class UpdateNoticeService {
                 == UpdateNotice.Severity.CRITICAL
                 ? ChatFormatting.RED
                 : ChatFormatting.GOLD;
-        MutableComponent text = new TextComponent(
-                notice.displayName() + " Update Available"
+        MutableComponent text = new TranslatableComponent(
+                "vhaccelerator.update.available",
+                notice.displayName()
         ).withStyle(noticeColor);
         if (!notice.message().isBlank()) {
-            text.append(new TextComponent(
-                    " - " + notice.message()
+            text.append(new TranslatableComponent(
+                    "vhaccelerator.update.message",
+                    notice.message()
             ).withStyle(noticeColor));
         }
-        text.append(new TextComponent(" [Download on CurseForge]")
+        text.append(new TranslatableComponent("vhaccelerator.update.download")
                 .withStyle(style -> style
                         .withColor(ChatFormatting.AQUA)
                         .withUnderlined(true)
@@ -374,9 +376,9 @@ public final class UpdateNoticeService {
                         ))
                         .withHoverEvent(new HoverEvent(
                                 HoverEvent.Action.SHOW_TEXT,
-                                new TextComponent(
-                                        "Open the " + notice.displayName()
-                                                + " CurseForge page"
+                                new TranslatableComponent(
+                                        "vhaccelerator.update.download_tooltip",
+                                        notice.displayName()
                                 )
                         ))));
         minecraft.player.displayClientMessage(text, false);

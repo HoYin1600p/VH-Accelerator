@@ -1,9 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.client.cache;
 
-import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
-
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.util.AtomicFiles;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -11,10 +11,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -251,48 +249,25 @@ public final class FerriteCoreQuadCacheCapacity {
     }
 
     private static void write(CachedCapacity capacity) {
-        Path temporary = CACHE_FILE.resolveSibling(
-                CACHE_FILE.getFileName() + ".tmp"
-        );
         try {
             Files.createDirectories(DIRECTORY);
-            try (DataOutputStream output = new DataOutputStream(
-                    new BufferedOutputStream(
-                            Files.newOutputStream(temporary)
-                    )
-            )) {
-                output.writeInt(MAGIC);
-                output.writeInt(FORMAT_VERSION);
-                output.writeUTF(capacity.ferriteVersion);
-                output.writeInt(capacity.topLevelEstimate);
-                output.writeInt(capacity.quadCount);
-            }
-            try {
-                Files.move(
-                        temporary,
-                        CACHE_FILE,
-                        StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE
-                );
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(
-                        temporary,
-                        CACHE_FILE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            }
+            AtomicFiles.write(CACHE_FILE, raw -> {
+                try (DataOutputStream output = new DataOutputStream(
+                        new BufferedOutputStream(raw)
+                )) {
+                    output.writeInt(MAGIC);
+                    output.writeInt(FORMAT_VERSION);
+                    output.writeUTF(capacity.ferriteVersion);
+                    output.writeInt(capacity.topLevelEstimate);
+                    output.writeInt(capacity.quadCount);
+                }
+            });
         } catch (IOException failure) {
             VHAccelerator.LOGGER.warn(
                     "Could not save the FerriteCore baked-quad capacity "
                             + "cache",
                     failure
             );
-        } finally {
-            try {
-                Files.deleteIfExists(temporary);
-            } catch (IOException ignored) {
-                // A stale temporary file is safe to replace next launch.
-            }
         }
     }
 

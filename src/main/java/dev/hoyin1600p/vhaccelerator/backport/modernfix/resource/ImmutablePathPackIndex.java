@@ -22,11 +22,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -268,7 +269,7 @@ public final class ImmutablePathPackIndex {
                     Integer.MAX_VALUE,
                     (path, attributes) -> attributes.isRegularFile()
             )) {
-                java.util.Iterator<Path> iterator = stream.iterator();
+                Iterator<Path> iterator = stream.iterator();
                 while (iterator.hasNext()) {
                     if (++files > MAX_FILES_PER_PACK) {
                         throw new IOException(
@@ -341,8 +342,8 @@ public final class ImmutablePathPackIndex {
         private static final Node[] NO_NODES = new Node[0];
         private static final Node FILE = new Node(true);
         /** Directory names repeat across every pack; file names rarely do. */
-        private static final java.util.concurrent.ConcurrentHashMap<String, String>
-                DIRECTORY_NAMES = new java.util.concurrent.ConcurrentHashMap<>();
+        private static final ConcurrentHashMap<String, String>
+                DIRECTORY_NAMES = new ConcurrentHashMap<>();
 
         private String[] names = NO_NAMES;
         private Node[] nodes = NO_NODES;

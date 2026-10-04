@@ -1,7 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.client.compat.geckolib;
 
 import com.mojang.logging.LogUtils;
-import dev.hoyin1600p.vhaccelerator.BootstrapDebugDiagnostics;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapDebugDiagnostics;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

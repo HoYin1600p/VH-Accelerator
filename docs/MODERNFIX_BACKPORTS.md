@@ -147,7 +147,7 @@ intentionally differs from the ModernFix 1.18 provider:
   at bake time, the skipped graphs load before the bake loop instead. Once a
   new ModelManager applies, unloaded graphs of the retiring registry resolve
   to the missing model instead of reading the previous reload's packs.
-  CMA Remastered testing on 2026-09-22 skipped 6,766 graphs with no missing
+  Remastered test-instance testing on 2026-09-22 skipped 6,766 graphs with no missing
   sample item model or reload bake failure, but three warm launches differed
   from the feature-off control by only about 0.15 seconds on the test PC.
   Post-GC heap readings were inconclusive in that first test. Later

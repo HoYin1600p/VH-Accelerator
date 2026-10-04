@@ -1,12 +1,20 @@
 package dev.hoyin1600p.vhaccelerator.client.model;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
-import dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig;
-import dev.hoyin1600p.vhaccelerator.client.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.ClientAssetFingerprint;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentDeferredBlockStateManifest;
+import dev.hoyin1600p.vhaccelerator.client.cache.fingerprint.ClientAssetFingerprint;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredBlockStateManifest;
+import dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership;
+import dev.hoyin1600p.vhaccelerator.client.diagnostics.DeferredBlockStateFirstUseDiagnostics;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.ConcurrentDeferredModelRegistry;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferrableGeometry;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredBakedModelProxy;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelSelector;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredModelCompatibility;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.LazyStateModelCache;
+import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
 import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,7 +105,6 @@ public final class DeferredBlockStateBaking {
     private DeferredBlockStateBaking() {
     }
 
-    /** Evaluated on the client thread inside {@code uploadTextures}. */
     /**
      * Before mods' model-bake-event handlers run: deferred block-state keys
      * they read become stand-ins that bake on first use. FramedBlocks' model
@@ -106,9 +113,9 @@ public final class DeferredBlockStateBaking {
     public static void beginBakeEventProxies() {
         ConcurrentDeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
         if (registry == null
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.optimizationsEnabled()
-                || !dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.launchValue(
-                        dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig.VALUES.lazyBakeEventModels)) {
+                || !VHAcceleratorClientConfig.optimizationsEnabled()
+                || !VHAcceleratorClientConfig.launchValue(
+                        VHAcceleratorClientConfig.VALUES.lazyBakeEventModels)) {
             return;
         }
         BakeEventProxies.setDispatching(true);
@@ -165,15 +172,14 @@ public final class DeferredBlockStateBaking {
             return false;
         }
         String namespace = location.getNamespace();
-        if (dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.NAMESPACE.equals(namespace)
-                && !dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwnership.vhaBakes()) {
+        if (BuildScapeModelOwnership.NAMESPACE.equals(namespace)
+                && !BuildScapeModelOwnership.vhaBakes()) {
             return false;
         }
         return !EAGER_NAMESPACES.contains(namespace)
                 && !namespace.startsWith("sophisticated");
     }
 
-    /** Certified plain block-state keys; cache-only, never loads a model. */
     /** As {@link #select}, also deferring verified custom geometry (see DeferrableGeometry). */
     public static Set<ResourceLocation> selectForDeferral(
             Map<ResourceLocation, UnbakedModel> topLevelModels,

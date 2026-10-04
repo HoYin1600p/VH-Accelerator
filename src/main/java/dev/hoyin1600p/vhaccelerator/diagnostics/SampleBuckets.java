@@ -3,8 +3,10 @@ package dev.hoyin1600p.vhaccelerator.diagnostics;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 /**
@@ -21,7 +23,7 @@ public final class SampleBuckets {
     private static final int TOP_PATHS = 2;
 
     private final Map<String, Bucket> buckets = new HashMap<>();
-    private final Map<String, Long> classesLoaded = new java.util.LinkedHashMap<>();
+    private final Map<String, Long> classesLoaded = new LinkedHashMap<>();
 
     /** Adds classes loaded (JVM-wide) during a sampling interval to a window. */
     public void addClassesLoaded(String window, long classes) {
@@ -90,7 +92,7 @@ public final class SampleBuckets {
         private final Map<String, Long> ownerNanos = new HashMap<>();
         private final Map<String, Map<String, Long>> frameNanos = new HashMap<>();
         private final Map<String, Map<String, Long>> pathNanos = new HashMap<>();
-        private final Map<String, Long> categoryNanos = new java.util.TreeMap<>();
+        private final Map<String, Long> categoryNanos = new TreeMap<>();
 
         private void add(String owner, String frame, String path, String category, long nanos) {
             totalNanos += nanos;

@@ -1,6 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
-import dev.hoyin1600p.vhaccelerator.client.model.ModelBakeEventProfiler;
+import dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredItemModelBaking;
+import dev.hoyin1600p.vhaccelerator.client.profiling.ModelBakeEventProfiler;
 import java.util.Map;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.resources.ResourceLocation;
@@ -30,12 +32,12 @@ public abstract class ForgeHooksClientModelBakeProfilerMixin {
             ModLoader loader,
             Event event
     ) {
-        boolean debug = dev.hoyin1600p.vhaccelerator.VHAcceleratorConfig.debugDiagnosticsEnabled();
-        int blocksBefore = debug ? dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.bakedOnDemandNow() : 0;
-        int itemsBefore = debug ? dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.bakedOnDemandNow() : 0;
+        boolean debug = dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig.debugDiagnosticsEnabled();
+        int blocksBefore = debug ? DeferredBlockStateBaking.bakedOnDemandNow() : 0;
+        int itemsBefore = debug ? DeferredItemModelBaking.bakedOnDemandNow() : 0;
         long dispatchStarted = System.nanoTime();
         int proxies;
-        dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.beginBakeEventProxies();
+        DeferredBlockStateBaking.beginBakeEventProxies();
         try {
             if (!ModelBakeEventProfiler.isActive()) {
                 loader.postEvent((ModelBakeEvent) event);
@@ -48,15 +50,15 @@ public abstract class ForgeHooksClientModelBakeProfilerMixin {
                 }
             }
         } finally {
-            proxies = dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.endBakeEventProxies();
+            proxies = DeferredBlockStateBaking.endBakeEventProxies();
         }
         if (debug) {
             dev.hoyin1600p.vhaccelerator.VHAccelerator.LOGGER.info(
                     "[debug] Model bake event: {} ms; {} lazy stand-ins; forced {} deferred block-state and {} deferred item bakes",
                     (System.nanoTime() - dispatchStarted) / 1_000_000L,
                     proxies,
-                    dev.hoyin1600p.vhaccelerator.client.model.DeferredBlockStateBaking.bakedOnDemandNow() - blocksBefore,
-                    dev.hoyin1600p.vhaccelerator.client.model.DeferredItemModelBaking.bakedOnDemandNow() - itemsBefore
+                    DeferredBlockStateBaking.bakedOnDemandNow() - blocksBefore,
+                    DeferredItemModelBaking.bakedOnDemandNow() - itemsBefore
             );
         }
     }

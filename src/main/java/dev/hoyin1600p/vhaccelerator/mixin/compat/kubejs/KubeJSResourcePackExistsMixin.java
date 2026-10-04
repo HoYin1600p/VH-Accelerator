@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.kubejs;
 
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
 import dev.hoyin1600p.vhaccelerator.client.compat.kubejs.KubeJsPackFileIndex;
+import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import net.minecraft.client.Minecraft;
@@ -37,7 +38,7 @@ public abstract class KubeJSResourcePackExistsMixin {
         if (!VHAcceleratorClientConfig.optimizationsEnabled()
                 || !VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.indexKubeJsPackFiles, true)) {
-            return java.nio.file.Files.exists(file, options);
+            return Files.exists(file, options);
         }
         return KubeJsPackFileIndex.exists(vhaccelerator$index(file), file, options);
     }

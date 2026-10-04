@@ -2,12 +2,13 @@ package dev.hoyin1600p.vhaccelerator;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
-import java.util.function.ToIntFunction;
+import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
+import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;

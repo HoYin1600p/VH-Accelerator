@@ -1,9 +1,8 @@
 package dev.hoyin1600p.vhaccelerator.backport;
 
-import dev.hoyin1600p.vhaccelerator.BootstrapBackportConfig;
-import dev.hoyin1600p.vhaccelerator.BootstrapCompareMode;
-import java.util.EnumMap;
+import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapCompareMode;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;

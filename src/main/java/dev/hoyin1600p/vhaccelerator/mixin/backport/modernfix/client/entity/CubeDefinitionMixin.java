@@ -11,8 +11,8 @@
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.client.entity;
 
-import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.EntityModelCubeCache;
 import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.EntityModelCubeCache.CubeKey;
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.entity.EntityModelCubeCache;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.builders.CubeDefinition;
 import org.spongepowered.asm.mixin.Mixin;

@@ -11,13 +11,16 @@
  */
 package dev.hoyin1600p.vhaccelerator.mixin.backport.modernfix.recipe.dedup;
 
+import dev.hoyin1600p.vhaccelerator.backport.modernfix.recipe.IngredientItemValueView;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Ingredient.ItemValue.class)
-public interface IngredientItemValueAccess {
+public interface IngredientItemValueAccess
+        extends IngredientItemValueView {
+    @Override
     @Accessor("item")
     ItemStack vha$getItem();
 }

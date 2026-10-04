@@ -2,9 +2,9 @@ package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import com.mojang.datafixers.util.Pair;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.cache.PersistentModelMaterialCache;
-import dev.hoyin1600p.vhaccelerator.client.model.DynamicModelGuard;
+import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentModelMaterialCache;
 import dev.hoyin1600p.vhaccelerator.client.model.MaterialMemoHolder;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DynamicModelGuard;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
