@@ -85,17 +85,54 @@ repositories {
         name = 'shedaniel'
         url = 'https://maven.shedaniel.me/'
     }
+    maven {
+        // CurseMaven: any CurseForge file as curse.maven:<slug>-<projectId>:<fileId>.
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
 }
 
-def localCompileDependency = { String fileName ->
-    def dependencyFile = file("libs/${fileName}")
-    if (!dependencyFile.exists()) {
-        throw new GradleException(
-                "Missing local compile dependency ${dependencyFile.name}. " +
-                "See libs/README.md for the pinned files."
-        )
+// Each profile compiles the shared sources against one Vault Hunters + JEI pair from CurseForge.
+// Profiles whose original build is not public use the nearest public file. ForgeGradle cannot
+// remap one coordinate requested from two configurations, so each profile uses its own module
+// name; CurseMaven reads only the project and file ids.
+def compatibilityProfiles = [
+        remastered: [vault: 'curse.maven:vault-remastered-458203:8508678', jei: 'curse.maven:jei-remastered-238222:5846864', exclude: '**/compat/jei/v9/**'],  // Remastered 6883, JEI 10.2.1.1009
+        baseRemastered: [vault: 'curse.maven:vault-baseremastered-458203:8502584', jei: 'curse.maven:jei-baseremastered-238222:5846864', exclude: '**/compat/jei/v9/**'],  // nearest public: Remastered 6872
+        previousRemastered: [vault: 'curse.maven:vault-previousremastered-458203:8502584', jei: 'curse.maven:jei-previousremastered-238222:5846864', exclude: '**/compat/jei/v9/**'],  // Remastered 6872, JEI 10.2.1.1009
+        mvp: [vault: 'curse.maven:vault-mvp-458203:8508967', jei: 'curse.maven:jei-mvp-238222:4351311', exclude: '**/compat/jei/v10/**'], // nearest public: 3.21.6.6884 (3.21.62 is not public)
+        asgard: [vault: 'curse.maven:vault-asgard-458203:8508967', jei: 'curse.maven:jei-asgard-238222:4351311', exclude: '**/compat/jei/v10/**'], // nearest public: 3.21.6.6884 (Asgard 3.21.62 is not public)
+        official: [vault: 'curse.maven:vault-official-458203:8508967', jei: 'curse.maven:jei-official-238222:4351311', exclude: '**/compat/jei/v10/**'], // 3.21.6.6884, JEI 9.7.2.1001
+        currentWoldsVaults: [vault: 'curse.maven:vault-currentwoldsvaults-458203:8508967', jei: 'curse.maven:jei-currentwoldsvaults-238222:5068328', exclude: '**/compat/jei/v9/**'],  // 3.21.6.6884, JEI 10.2.1.1006
+        previousOfficial: [vault: 'curse.maven:vault-previousofficial-458203:8508674', jei: 'curse.maven:jei-previousofficial-238222:4351311', exclude: '**/compat/jei/v10/**'], // 3.21.5.6882, JEI 9.7.2.1001
+        woldsVaults: [vault: 'curse.maven:vault-woldsvaults-458203:7952001', jei: 'curse.maven:jei-woldsvaults-238222:5068328', exclude: '**/compat/jei/v9/**'],   // 3.21.5.6573, JEI 10.2.1.1006
+]
+
+// cursemaven-helper:start
+// Mod dependencies come from CurseForge through CurseMaven, so anyone can build this mod.
+// To build against a local jar while developing, pass its path, for example
+// -Pvault_jar=path/to/the_vault.jar (or set it in ~/.gradle/gradle.properties).
+// Never commit an override.
+def modDep = { String property, String coordinate ->
+    def local = findProperty(property)
+    if (local) {
+        def f = file(local)
+        if (!f.isFile()) throw new GradleException("-P${property}=${local} does not exist")
+        return files(f)
     }
-    return dependencyFile
+    return fg.deobf(coordinate)
+}
+// cursemaven-helper:end
+
+
+configurations {
+    // The Vault Hunters and JEI builds the main sources compile against. Each compatibility
+    // profile swaps these for its own pair.
+    vaultApi
+    jeiApi
+    compileOnly.extendsFrom vaultApi, jeiApi
+    compatibilityProfiles.keySet().each { create("compat${it.capitalize()}") }
 }
 
 dependencies {
@@ -105,82 +142,38 @@ dependencies {
     compileOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 
-    // Optional at runtime. These jars expose only the APIs targeted by guarded
+    // Optional at runtime. These mods expose only the APIs targeted by guarded
     // compatibility mixins and are deliberately not bundled in our output jar.
-    compileOnly files(localCompileDependency('the_vault-1.18.2-20.0.3-remastered.6883.jar'))
-    compileOnly files(localCompileDependency('jei-1.18.2-forge-10.2.1.1009.jar'))
-    compileOnly files(localCompileDependency('jei-1.18.2-9.7.2.1001.jar'))
-    compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
-    compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
-    compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
-    compileOnly files(localCompileDependency('thermal_foundation-1.18.2-9.2.2.58.jar'))
-    compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
-    compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
-    compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
-    compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
-    compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
-    compileOnly files(localCompileDependency('sophisticatedcore-1.18.2-0.6.4.604.jar'))
-    compileOnly files(localCompileDependency('ferritecore-4.2.2-forge.jar'))
-    compileOnly files(localCompileDependency('kubejs-forge-1802.5.5-build.569.jar'))
-    compileOnly files(localCompileDependency('rhino-forge-1802.2.1-build.255.jar'))
-    compileOnly files(localCompileDependency('create-1.18.2-0.5.1.i.jar'))
+    vaultApi modDep('vault_jar', "curse.maven:vault-hunters-official-mod-458203:${vault_hunters_file}")
+    jeiApi modDep('jei10_jar', "curse.maven:jei-238222:${jei10_file}")
+    // A distinct name keeps both JEI generations on one classpath; CurseMaven only reads the ids.
+    jeiApi modDep('jei9_jar', "curse.maven:jei9-238222:${jei9_file}")
+    compileOnly modDep('powah_jar', "curse.maven:powah-rearchitected-633483:${powah_file}")
+    compileOnly modDep('jeitweaker_jar', "curse.maven:jeitweaker-368718:${jeitweaker_file}")
+    compileOnly modDep('crafttweaker_jar', "curse.maven:crafttweaker-239197:${crafttweaker_file}")
+    compileOnly modDep('thermal_foundation_jar', "curse.maven:thermal-foundation-222880:${thermal_foundation_file}")
+    compileOnly modDep('jer_jar', "curse.maven:just-enough-resources-jer-240630:${jer_file}")
+    compileOnly modDep('ironfurnaces_jar', "curse.maven:iron-furnaces-237664:${ironfurnaces_file}")
+    compileOnly modDep('industrial_foregoing_jar', "curse.maven:industrial-foregoing-266515:${industrial_foregoing_file}")
+    compileOnly modDep('xaeros_minimap_jar', "curse.maven:xaeros-minimap-263420:${xaeros_minimap_file}")
+    compileOnly modDep('xaeros_world_map_jar', "curse.maven:xaeros-world-map-317780:${xaeros_world_map_file}")
+    compileOnly modDep('sophisticatedcore_jar', "curse.maven:sophisticated-core-618298:${sophisticatedcore_file}")
+    compileOnly modDep('ferritecore_jar', "curse.maven:ferritecore-429235:${ferritecore_file}")
+    compileOnly modDep('kubejs_jar', "curse.maven:kubejs-238086:${kubejs_file}")
+    compileOnly modDep('rhino_jar', "curse.maven:rhino-416294:${rhino_file}")
+    compileOnly modDep('create_jar', "curse.maven:create-328085:${create_file}")
+
+    // Each compatibility profile's Vault Hunters and JEI builds.
+    compatibilityProfiles.each { profileName, profile ->
+        add("compat${profileName.capitalize()}", modDep("${profileName}_vault_jar", profile.vault))
+        add("compat${profileName.capitalize()}", modDep("${profileName}_jei_jar", profile.jei))
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 }
 
-def compatibilityProfiles = [
-        remastered: [
-                vault  : 'the_vault-1.18.2-20.0.3-remastered.6883.jar',
-                jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
-                exclude: '**/compat/jei/v9/**'
-        ],
-        baseRemastered: [
-                vault  : 'the_vault-1.18.2-20.0.3-remastered.base.jar',
-                jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
-                exclude: '**/compat/jei/v9/**'
-        ],
-        previousRemastered: [
-                vault  : 'the_vault-1.18.2-20.0.3-remastered.6872.jar',
-                jei    : 'jei-1.18.2-forge-10.2.1.1009.jar',
-                exclude: '**/compat/jei/v9/**'
-        ],
-        mvp       : [
-                vault  : 'the_vault-1.18.2-3.21.62.jar',
-                jei    : 'jei-1.18.2-9.7.2.1001.jar',
-                exclude: '**/compat/jei/v10/**'
-        ],
-        asgard    : [
-                vault  : 'the_vault-1.18.2-3.21.62.asgard.jar',
-                jei    : 'jei-1.18.2-9.7.2.1001.jar',
-                exclude: '**/compat/jei/v10/**'
-        ],
-        official  : [
-                vault  : 'the_vault-1.18.2-3.21.6.6884.jar',
-                jei    : 'jei-1.18.2-9.7.2.1001.jar',
-                exclude: '**/compat/jei/v10/**'
-        ],
-        currentWoldsVaults: [
-                vault  : 'the_vault-1.18.2-3.21.6.6884.jar',
-                jei    : 'jei-1.18.2-forge-10.2.1.1006.jar',
-                exclude: '**/compat/jei/v9/**'
-        ],
-        previousOfficial: [
-                vault  : 'the_vault-1.18.2-3.21.5.6882.jar',
-                jei    : 'jei-1.18.2-9.7.2.1001.jar',
-                exclude: '**/compat/jei/v10/**'
-        ],
-        woldsVaults: [
-                vault  : 'the_vault-1.18.2-3.21.5.6573.jar',
-                jei    : 'jei-1.18.2-forge-10.2.1.1006.jar',
-                exclude: '**/compat/jei/v9/**'
-        ]
-]
-
-def compatibilityDependencyNames = compatibilityProfiles.values().collectMany {
-    [it.vault, it.jei]
-}.toSet()
 def compatibilityCompileTasks = []
 
 compatibilityProfiles.each { profileName, profile ->
@@ -189,15 +182,11 @@ compatibilityProfiles.each { profileName, profile ->
         group = 'verification'
         description = "Compiles the universal sources against the ${profileName} dependency profile."
 
-        source = fileTree('src/main/java') {
+        source = sourceSets.main.java.matching {
             exclude profile.exclude
         }
-        classpath = sourceSets.main.compileClasspath.filter {
-            !compatibilityDependencyNames.contains(it.name)
-        } + files(
-                localCompileDependency(profile.vault),
-                localCompileDependency(profile.jei)
-        )
+        classpath = sourceSets.main.compileClasspath - configurations.vaultApi - configurations.jeiApi +
+                configurations.getByName("compat${profileName.capitalize()}")
         destinationDirectory = layout.buildDirectory.dir(
                 "compatibility/${profileName}/classes"
         )
@@ -439,11 +428,9 @@ tasks.register('verifyMixinPackageLayout') {
     dependsOn tasks.named('classes')
 
     doLast {
-        def nestedMixinClasses = fileTree(
-                layout.buildDirectory.dir(
-                        'classes/java/main/dev/hoyin1600p/vhaccelerator/mixin'
-                )
-        ) {
+        def nestedMixinClasses = layout.buildDirectory.dir(
+                'classes/java/main/dev/hoyin1600p/vhaccelerator/mixin'
+        ).get().asFileTree.matching {
             include '**/*$*.class'
         }
 
@@ -545,7 +532,7 @@ tasks.register('verifyModernFixBackportProvenance') {
         def failures = []
 
         roots.findAll { it.isDirectory() }.each { root ->
-            fileTree(root) { include '**/*.java' }.files.each { sourceFile ->
+            root.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.java/) { sourceFile ->
                 def sourceText = sourceFile.getText('UTF-8')
                 def missing = requiredText.findAll {
                     !sourceText.contains(it)

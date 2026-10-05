@@ -9,7 +9,8 @@ Requirements:
 
 - JDK 17
 - Git
-- the compile-only jars listed in [`libs/README.md`](libs/README.md)
+- an internet connection on the first build (compile-only mods come from CurseMaven;
+  see [`libs/README.md`](libs/README.md) to use local jars instead)
 
 Build:
 
@@ -26,7 +27,7 @@ Do not commit:
 
 - original or decompiled mod jars;
 - the ignored `reference/` directory;
-- compile-only jars under `libs/`;
+- local jars under `libs/` or override paths in the repository's `gradle.properties`;
 - instance configs, caches, logs, crash reports, tokens, server addresses, or
   local absolute paths.
 

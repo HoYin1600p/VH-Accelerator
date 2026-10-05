@@ -1,54 +1,23 @@
-# Local compile dependencies
+# Local dependency overrides (optional)
 
-Binary mod dependencies are intentionally excluded from Git. Put the pinned
-files below in this directory before compiling:
+VH Accelerator downloads every mod it compiles against from CurseForge through
+[CurseMaven](https://cursemaven.com), so a clean clone builds with `./gradlew build` and no
+extra files. The CurseForge file ids are listed in `gradle.properties` (main build) and in
+`compatibilityProfiles` in `build.gradle` (compatibility checks).
 
-- `the_vault-1.18.2-20.0.3-remastered.6883.jar`
-- `the_vault-1.18.2-20.0.3-remastered.base.jar`
-- `the_vault-1.18.2-20.0.3-remastered.6872.jar`
-- `the_vault-1.18.2-3.21.62.jar`
-- `the_vault-1.18.2-3.21.62.asgard.jar`
-- `the_vault-1.18.2-3.21.5.6882.jar`
-- `the_vault-1.18.2-3.21.6.6884.jar`
-- `the_vault-1.18.2-3.21.5.6573.jar`
-- `jei-1.18.2-forge-10.2.1.1009.jar`
-- `jei-1.18.2-forge-10.2.1.1006.jar`
-- `jei-1.18.2-9.7.2.1001.jar`
-- `Powah-3.0.8.jar`
-- `JEITweaker-1.18.2-3.0.0.9.jar`
-- `CraftTweaker-forge-1.18.2-9.1.213.jar`
-- `thermal_foundation-1.18.2-9.2.2.58.jar`
-- `JustEnoughResources-1.18.2-0.14.2.206.jar`
-- `ironfurnaces-1.18.2-3.3.3.jar`
-- `industrial-foregoing-1.18.2-3.3.1.7-11.jar`
-- `Xaeros_Minimap_25.2.10_Forge_1.18.2.jar`
-- `XaerosWorldMap_1.39.12_Forge_1.18.2.jar`
-- `sophisticatedcore-1.18.2-0.6.4.604.jar`
-- `ferritecore-4.2.2-forge.jar`
-- `kubejs-forge-1802.5.5-build.569.jar`
-- `rhino-forge-1802.2.1-build.255.jar`
-- `create-1.18.2-0.5.1.i.jar`
+This folder is not needed. To build against a jar on your own disk while developing, pass its
+path as a property:
 
-The current Remastered Vault jar is CurseForge project `458203`, file
-`8508678`; its immediately previous Remastered release is file `8502584`.
-The additional `20.0.3-remastered` compatibility profile uses a local
-`.base` suffix to keep it distinct from the two numbered Remastered baselines.
-The official 3.21.6 jar is project `458203`, file `8508967`; its immediately
-previous standard release is file `8508674`. The 3.21.62 jar is the custom
-MVP target. The Asgard pack ships a different 3.21.62 build, kept under the
-local `.asgard` suffix. Wold's Vaults 0.32.2 pins Vault file `7952001` and JEI file
-`5068328`; Wolds Vaults 0.33.0 reuses official Vault file `8508967` with the
-same JEI file as a distinct build profile. These files are used only for
-compile-time compatibility checks and are not redistributed.
+```
+./gradlew build -Pvault_jar=path/to/the_vault.jar
+```
 
-JEI 10 is used by the Remastered and Wold's Vaults targets. JEI 9 is shared
-by the custom MVP and official 3.21.6 profiles. All are compile-only and are
-not bundled.
+or put the same line (`vault_jar=path/to/the_vault.jar`) in your user-level
+`~/.gradle/gradle.properties`. Never commit an override to the repository's `gradle.properties`.
 
-The Powah, JEITweaker, CraftTweaker, Thermal Foundation, Just Enough
-Resources, Iron Furnaces, Industrial Foregoing, and Sophisticated Core jars
-are optional compile-time compatibility targets and are never bundled.
-
-The Xaero's Minimap 25.2.10 and World Map 1.39.12 jars pin the exact
-client-startup hooks used to move their online checks beyond the launch
-barrier. They are compile-only and are never bundled.
+Override names for the main build: `vault_jar`, `jei10_jar`, `jei9_jar`, `powah_jar`,
+`jeitweaker_jar`, `crafttweaker_jar`, `thermal_foundation_jar`, `jer_jar`,
+`ironfurnaces_jar`, `industrial_foregoing_jar`, `xaeros_minimap_jar`, `xaeros_world_map_jar`,
+`sophisticatedcore_jar`, `ferritecore_jar`, `kubejs_jar`, `rhino_jar`, `create_jar`.
+Each compatibility profile also accepts `<profile>_vault_jar` and `<profile>_jei_jar`, for
+example `asgard_vault_jar`.

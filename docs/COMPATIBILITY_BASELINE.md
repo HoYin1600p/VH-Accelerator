@@ -23,8 +23,8 @@ Git-ignored copies of:
 | JEITweaker | `3.0.0.9` | Read-only compatibility instance | `00BEBCDF16C086504CE70422B066AE307083960313BBDB1D845D936281CEBB7D` |
 | CraftTweaker | `9.1.213` | Read-only compatibility instance | `D27B4739F7B4DA0FE92141000E4CFC5BEF617202DE6EB9BB4BB2147E9E1E9C6E` |
 
-The binary files are not redistributed. See `libs/README.md` for the expected
-local filenames.
+The binary files are not redistributed. The build downloads them from CurseForge
+through CurseMaven; the file ids are in `gradle.properties` and `build.gradle`.
 
 ### Runtime target preflight
 
