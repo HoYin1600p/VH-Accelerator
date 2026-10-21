@@ -5,7 +5,18 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.5] - 2026-10-21
+
+### Added
+
+- An optional model bakery compatibility API
+  (`dev.hoyin1600p.vhaccelerator.api.client.ModelBakeryEvents`, API version 1)
+  for mods that supply native models and blockstates through VHA, including
+  mods that keep their JSON in binary resource bundles. Providers register per
+  namespace and contribute through VHA's loading path instead of competing for
+  the same model-loading redirect; a provider that fails is set aside for that
+  reload only. BuildScape is the first user. See `Compatibility.md`.
+  Contributed by KyroXova.
 
 ### Fixed
 

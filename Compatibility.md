@@ -5,8 +5,8 @@ blockstates, including mods that keep their JSON in binary resource bundles.
 Providers contribute through VHA's loading path without competing for the same
 Mixin redirect. Bundled resources can stay bundled.
 
-This guide targets Minecraft 1.18.2, Forge, Java 17, and API version `1` in this
-modified VHA build. Do not assume an upstream VHA 1.1.4 jar includes the API.
+This guide targets Minecraft 1.18.2, Forge, Java 17, and API version `1`, which
+ships in VHA 1.1.5 and later. VHA 1.1.4 and earlier do not include the API.
 
 ## 1. Make the integration optional
 
