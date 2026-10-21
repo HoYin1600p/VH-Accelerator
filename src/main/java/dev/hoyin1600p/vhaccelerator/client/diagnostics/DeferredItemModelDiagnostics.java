@@ -1,6 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.client.diagnostics;
 
-import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredModelRegistry;
+import dev.hoyin1600p.vhaccelerator.client.model.deferred.DeferredModelMap;
 
 /**
  * Debug-only counters for deferred item models, created only when debug
@@ -101,7 +101,7 @@ public final class DeferredItemModelDiagnostics {
         return null;
     }
 
-    public Snapshot snapshot(String label, DeferredModelRegistry<?, ?> registry) {
+    public Snapshot snapshot(String label, DeferredModelMap<?, ?> registry) {
         // Bakes record while holding the registry lock, so registry counters
         // are read before, never while, holding this object's lock.
         int unresolved = registry.unresolvedDeferred();

@@ -29,8 +29,12 @@ public final class DeferrableGeometry {
     public static boolean allows(BlockModel model) {
         Object geometry = model.customData.getCustomGeometry();
         return geometry != null
-                && DECOCRAFT_BLOCKBENCH.equals(geometry.getClass().getName())
+                && allowsClass(geometry.getClass().getName())
                 && decocraftVerified();
+    }
+
+    static boolean allowsClass(String geometryClass) {
+        return DECOCRAFT_BLOCKBENCH.equals(geometryClass);
     }
 
     private static boolean decocraftVerified() {

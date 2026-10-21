@@ -10,6 +10,7 @@ import dev.hoyin1600p.vhaccelerator.client.compat.buildscape.BuildScapeModelOwne
 import dev.hoyin1600p.vhaccelerator.client.compat.ctm.CtmModelBakeOptimizer;
 import dev.hoyin1600p.vhaccelerator.client.diagnostics.DeferredItemModelDiagnostics;
 import dev.hoyin1600p.vhaccelerator.client.profiling.LaunchTimer;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelGraphLoader;
 import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
@@ -53,10 +55,11 @@ import net.minecraftforge.client.ItemModelMesherForge;
  * their certified materials are stitched and the graph loads through the
  * bakery on first use. A deferred model bakes only when a consumer
  * reads it, which may be during in-world rendering; there is no title-screen
- * warmup and no drain on level join or dimension change. Bakes run only on
- * the render thread; other threads read the missing model for an unbaked
- * item. The registry is retired at the start of the next
- * {@code ModelManager#apply}, before the atlases it bakes against close.
+ * warmup and no drain on level join or dimension change. With concurrent
+ * bakery caches, first-use bakes run on any thread and share per-key work.
+ * Confined caches keep render-thread-only baking. The registry is retired at
+ * the start of the next {@code ModelManager#apply}, before the atlases it
+ * bakes against close.
  */
 public final class DeferredItemModelBaking {
     // EveryCompat's generated item models are plain JSON like any other;
@@ -69,11 +72,11 @@ public final class DeferredItemModelBaking {
             "ctm"
     );
 
-    private static volatile DeferredModelRegistry<ResourceLocation, BakedModel> current;
+    private static volatile DeferredModelMap<ResourceLocation, BakedModel> current;
 
     /** Debug: on-demand bakes so far in the live registry, or -1 without one. */
     public static int bakedOnDemandNow() {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         return registry == null ? -1 : registry.bakedOnDemand();
     }
     /** Debug diagnostics for {@link #current}; null whenever debug is off. */
@@ -91,7 +94,7 @@ public final class DeferredItemModelBaking {
 
     /** Whether {@code location} is a deferred item model not yet baked. */
     public static boolean isUnresolved(ResourceLocation location) {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         return registry != null && registry.isUnresolvedDeferred(location);
     }
 
@@ -258,24 +261,44 @@ public final class DeferredItemModelBaking {
             Function<ResourceLocation, BakedModel> baker,
             TopLevelSession session
     ) {
+        return install(eager, deferred, baker, session, null, null);
+    }
+
+    public static Map<ResourceLocation, BakedModel> install(
+            Map<ResourceLocation, BakedModel> eager,
+            Set<ResourceLocation> deferred,
+            Function<ResourceLocation, BakedModel> baker,
+            TopLevelSession session,
+            Map<?, ?> unbakedCache,
+            Map<?, ?> bakedCache
+    ) {
         DeferredItemModelDiagnostics debug =
                 VHAcceleratorConfig.debugDiagnosticsEnabled()
                         ? new DeferredItemModelDiagnostics()
                         : null;
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry =
-                new DeferredModelRegistry<>(
-                        eager,
-                        deferred,
-                        debug == null ? baker : timed(baker, debug),
-                        eager.get(ModelBakery.MISSING_MODEL_LOCATION),
-                        (location, failure) -> VHAccelerator.LOGGER.warn(
-                                "Unable to bake deferred model {}; using "
-                                        + "the missing model",
-                                location,
-                                failure
-                        ),
-                        RenderSystem::isOnRenderThread
+        Function<ResourceLocation, BakedModel> activeBaker =
+                debug == null ? baker : timed(baker, debug);
+        BakedModel fallback = eager.get(ModelBakery.MISSING_MODEL_LOCATION);
+        DeferredModelRegistry.FailureListener<ResourceLocation> failures =
+                (location, failure) -> VHAccelerator.LOGGER.warn(
+                        "Unable to bake deferred model {}; using the missing model",
+                        location, failure
                 );
+        DeferredModelMap<ResourceLocation, BakedModel> registry =
+                unbakedCache instanceof ConcurrentMap<?, ?>
+                        && bakedCache instanceof ConcurrentMap<?, ?>
+                        ? new ConcurrentDeferredModelRegistry<>(
+                                eager, deferred, activeBaker, fallback,
+                                (location, nanos, failed, failure) -> {
+                                    if (failed) {
+                                        failures.failed(location, failure);
+                                    }
+                                }
+                        )
+                        : new DeferredModelRegistry<>(
+                                eager, deferred, activeBaker, fallback, failures,
+                                RenderSystem::isOnRenderThread
+                        );
         current = registry;
         diagnostics = debug;
         liveSession = session;
@@ -307,11 +330,12 @@ public final class DeferredItemModelBaking {
                 if (debug.recordBake(location, elapsed)) {
                     VHAccelerator.LOGGER.info(
                             "Deferred item model {} baked on first use "
-                                    + "in {} us ({}; {})",
+                                    + "in {} us ({}; {}) on {}",
                             location,
                             elapsed / 1_000L,
                             debug.phase(),
-                            model == null ? "failed" : "ok"
+                            model == null ? "failed" : "ok",
+                            Thread.currentThread().getName()
                     );
                 }
             }
@@ -320,7 +344,7 @@ public final class DeferredItemModelBaking {
 
     /** Called at the start of every ModelManager apply, before atlases close. */
     public static void retireCurrent() {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         if (registry == null) {
             return;
         }
@@ -344,12 +368,13 @@ public final class DeferredItemModelBaking {
         VHAccelerator.LOGGER.info(
                 "Retired deferred item models before reload: {} selected, "
                         + "{} baked on demand, {} failed, {} never baked, "
-                        + "{} off-thread lookups",
+                        + "{} off-thread lookups, {} shared waits",
                 registry.initialDeferred(),
                 registry.bakedOnDemand(),
                 registry.failedBakes(),
                 registry.unresolvedDeferred(),
-                registry.offThreadLookups()
+                registry.offThreadLookups(),
+                registry.sharedWaits()
         );
         if (debug != null) {
             logSnapshot(debug.snapshot("reload retirement", registry));
@@ -365,7 +390,7 @@ public final class DeferredItemModelBaking {
         if (debug == null) {
             return;
         }
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         if (registry == null) {
             return;
         }
@@ -394,7 +419,7 @@ public final class DeferredItemModelBaking {
      */
     @SuppressWarnings("unchecked")
     public static boolean rebuildItemCache(ItemModelShaper shaper) {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         if (registry == null
                 || registry.isRetired()
                 || itemCacheComplete
@@ -485,7 +510,7 @@ public final class DeferredItemModelBaking {
             ItemStack stack,
             BakedModel result
     ) {
-        DeferredModelRegistry<ResourceLocation, BakedModel> registry = current;
+        DeferredModelMap<ResourceLocation, BakedModel> registry = current;
         if (itemCacheComplete
                 || registry == null
                 || registry.isRetired()
@@ -751,10 +776,13 @@ public final class DeferredItemModelBaking {
             if (loadingClosed) {
                 return null; // The reload's packs replace this generation.
             }
-            UnbakedModel model = getter.apply(location);
-            Collection<Material> loaded =
-                    model.getMaterials(getter, new HashSet<>());
-            verifyLoaded(location, model, loaded, unbakedCache);
+            ModelGraphLoader.call(() -> {
+                UnbakedModel model = getter.apply(location);
+                Collection<Material> loaded =
+                        model.getMaterials(getter, new HashSet<>());
+                verifyLoaded(location, model, loaded, unbakedCache);
+                return null;
+            });
             return baker.apply(location);
         }
 
@@ -765,8 +793,8 @@ public final class DeferredItemModelBaking {
                 Map<ResourceLocation, UnbakedModel> unbakedCache
         ) {
             List<Material> stitched = certified.get(location.toString());
-            boolean plain = select(Map.of(location, model), unbakedCache)
-                    .contains(location);
+            boolean plain = model.getClass() == BlockModel.class
+                    && select(Map.of(location, model), unbakedCache).contains(location);
             boolean covered = stitched != null
                     && new HashSet<>(stitched).containsAll(loaded);
             if ((!plain || !covered)

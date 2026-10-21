@@ -395,8 +395,8 @@ class ConcurrentDeferredModelRegistryTest {
             }
             return "block";
         }, "missing", (k, n, f, e) -> { });
-        var items = new DeferredModelRegistry<String, String>(blocks, List.of("a:stone#inventory"),
-                key -> "item", "missing", (key, failure) -> { });
+        var items = new ConcurrentDeferredModelRegistry<String, String>(blocks, List.of("a:stone#inventory"),
+                key -> "item", "missing", (key, nanos, failed, failure) -> { });
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<String> worker = pool.submit(() -> items.get("a:stone#"));

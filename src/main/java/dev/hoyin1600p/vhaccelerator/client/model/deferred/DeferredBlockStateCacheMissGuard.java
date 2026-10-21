@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Fails a deferred block-state bake closed when it would miss the bakery's
+ * Fails a deferred model bake closed when it would miss the bakery's
  * unbaked cache.
  *
  * <p>A deferred bake may run on any thread beside other bakery users, so it
@@ -78,7 +78,7 @@ public final class DeferredBlockStateCacheMissGuard {
 
         CacheMissException(Object location) {
             super(
-                    "Deferred block-state bake needed unloaded model "
+                    "Deferred bake needed unloaded model "
                             + location
                             + "; refusing to load it off the bake pass",
                     null,

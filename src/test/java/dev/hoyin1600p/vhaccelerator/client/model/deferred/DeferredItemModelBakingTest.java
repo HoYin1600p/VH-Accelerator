@@ -2,14 +2,35 @@ package dev.hoyin1600p.vhaccelerator.client.model.deferred;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.mojang.datafixers.util.Pair;
+import dev.hoyin1600p.vhaccelerator.client.model.parse.ModelGraphLoader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.ModelBakery;
+import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.resources.model.UnbakedModel;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -31,7 +52,7 @@ class DeferredItemModelBakingTest {
 
     /** Mirrors rebuildItemCache over Forge's location map. */
     private DeferredModelRegistry.ItemCache<String, String, String> rebuild(
-            DeferredModelRegistry<String, String> registry,
+            DeferredModelMap<String, String> registry,
             Map<String, String> forgeModels
     ) {
         var cache = new DeferredModelRegistry.ItemCache<String, String, String>(
@@ -314,7 +335,7 @@ class DeferredItemModelBakingTest {
         assertEquals(List.of("a#inventory"), baked);
     }
 
-    @Test void offThreadLookupNeverBakesOrCaches() throws Exception {
+    @Test void confinedOffThreadLookupNeverBakesOrCaches() throws Exception {
         var registry = registry();
         var cache = rebuild(registry, new HashMap<>());
         AtomicReference<Object> seen = new AtomicReference<>();
@@ -333,7 +354,7 @@ class DeferredItemModelBakingTest {
         assertEquals("baked(a#inventory)", seen.get(), "baked models are visible off-thread");
     }
 
-    @Test void registryRefusesOffThreadBakesThroughEveryAccessor() throws Exception {
+    @Test void confinedRegistryRefusesOffThreadBakesThroughEveryAccessor() throws Exception {
         var registry = registry();
         List<Object> seen = new ArrayList<>();
         Thread worker = new Thread(() -> {
@@ -450,4 +471,219 @@ class DeferredItemModelBakingTest {
         assertEquals("wrapped(null)", cache.get("y"));
         assertEquals(2, cache.size());
     }
+    @Test void workerBakesAndCachesPublishedItem() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        var registry = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("a#inventory"), key -> {
+                    calls.incrementAndGet();
+                    assertNotSame(owner, Thread.currentThread());
+                    return "real";
+                }, "missing", (k, n, f, e) -> { });
+        var cache = rebuild(registry, new HashMap<>());
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            assertEquals("real", pool.submit(() -> cache.get("itemA")).get(5, TimeUnit.SECONDS));
+            assertFalse(cache.isPending("itemA"));
+            assertEquals("real", registry.get("a#inventory"));
+            assertEquals("real", cache.get("itemA"));
+            assertEquals(1, calls.get());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test void workerItemBakeSharesOneKeyWithoutBlockingRenderLookup() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger slowBakes = new AtomicInteger();
+        var registry = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("a#inventory", "b#inventory"), key -> {
+                    if (key.equals("a#inventory")) {
+                        slowBakes.incrementAndGet();
+                        started.countDown();
+                        await(release);
+                    }
+                    return "real(" + key + ")";
+                }, "missing", (k, n, f, e) -> { });
+        var cache = rebuild(registry, new HashMap<>());
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        ExecutorService render = Executors.newSingleThreadExecutor();
+        try {
+            Future<String> first = workers.submit(() -> cache.get("itemA"));
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            Future<String> second = workers.submit(() -> cache.get("itemA"));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (registry.sharedWaits() == 0) {
+                assertTrue(System.nanoTime() < deadline, "second reader must share the bake");
+                Thread.sleep(1);
+            }
+            // A bounded stand-in for the render thread: release stays closed until it returns.
+            assertEquals("real(b#inventory)",
+                    render.submit(() -> cache.get("itemB")).get(2, TimeUnit.SECONDS));
+            assertFalse(cache.isPending("itemB"));
+            release.countDown();
+            assertEquals("real(a#inventory)", first.get(5, TimeUnit.SECONDS));
+            assertEquals("real(a#inventory)", second.get(5, TimeUnit.SECONDS));
+            assertEquals(1, slowBakes.get());
+            assertEquals(1, registry.sharedWaits());
+            assertFalse(cache.isPending("itemA"));
+        } finally {
+            release.countDown();
+            workers.shutdownNow();
+            render.shutdownNow();
+        }
+    }
+
+    @Test void concurrentReentrantItemReadIsMissingAndUncached() throws Exception {
+        AtomicReference<DeferredModelRegistry.ItemCache<String, String, String>> self = new AtomicReference<>();
+        var registry = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("a#inventory"), key -> {
+                    assertEquals("manager-missing", self.get().get("itemA"));
+                    assertTrue(self.get().isPending("itemA"));
+                    return "real";
+                }, "missing", (k, n, f, e) -> { });
+        var cache = rebuild(registry, new HashMap<>());
+        self.set(cache);
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            assertEquals("real", pool.submit(() -> cache.get("itemA")).get(5, TimeUnit.SECONDS));
+            assertFalse(cache.isPending("itemA"));
+            assertEquals(1, registry.bakedOnDemand());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test void itemRetirementWaitsForWorkerPublication() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch retiring = new CountDownLatch(1);
+        var registry = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("a#inventory", "b#inventory"), key -> {
+                    started.countDown();
+                    await(release);
+                    return "real";
+                }, "missing", (k, n, f, e) -> { });
+        var cache = rebuild(registry, new HashMap<>());
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<String> worker = pool.submit(() -> cache.get("itemA"));
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            Future<?> retire = pool.submit(() -> {
+                retiring.countDown();
+                registry.retire();
+            });
+            assertTrue(retiring.await(5, TimeUnit.SECONDS));
+            assertThrows(TimeoutException.class, () -> retire.get(100, TimeUnit.MILLISECONDS));
+            release.countDown();
+            retire.get(5, TimeUnit.SECONDS);
+            assertEquals("real", worker.get(5, TimeUnit.SECONDS));
+            assertEquals("real", registry.get("a#inventory"));
+            assertEquals("missing", cache.get("itemB"));
+            assertTrue(cache.isPending("itemB"));
+            assertEquals(1, registry.bakedOnDemand());
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    @Test void guardedItemCacheMissWarnsOnceWithoutLoadingOrCachingFallback() throws Exception {
+        Object bakery = new Object();
+        Map<String, String> unbaked = new ConcurrentHashMap<>(Map.of("loaded", "graph"));
+        List<String> warnings = new ArrayList<>();
+        var registry = new ConcurrentDeferredModelRegistry<String, String>(
+                new HashMap<>(), List.of("a#inventory"),
+                location -> DeferredBlockStateCacheMissGuard.bake(bakery, location, key -> {
+                    DeferredBlockStateCacheMissGuard.check(bakery, unbaked, "unloaded");
+                    unbaked.put("unloaded", "corrupt");
+                    return "unreachable";
+                }), "missing", (key, nanos, failed, failure) -> {
+                    assertTrue(failed);
+                    assertInstanceOf(DeferredBlockStateCacheMissGuard.CacheMissException.class, failure);
+                    warnings.add(key);
+                });
+        var cache = rebuild(registry, new HashMap<>());
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            assertEquals("missing", pool.submit(() -> cache.get("itemA")).get(5, TimeUnit.SECONDS));
+            assertTrue(cache.isPending("itemA"));
+            assertEquals("missing", cache.get("itemA"));
+            assertTrue(cache.isPending("itemA"), "even a published failure never enters ItemCache");
+            assertEquals(List.of("a#inventory"), warnings);
+            assertEquals(Map.of("loaded", "graph"), unbaked);
+            assertEquals(1, registry.failedBakes());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+
+    @Test void skippedItemGraphLoadsAndBindsOnLoaderBeforeGuardedWorkerBake() throws Exception {
+        var constructor = DeferredItemModelBaking.TopLevelSession.class.getDeclaredConstructor(
+                ResourceManager.class, CompletableFuture.class);
+        constructor.setAccessible(true);
+        var session = constructor.newInstance(null, CompletableFuture.completedFuture(null));
+        ResourceLocation location = new net.minecraft.client.resources.model.ModelResourceLocation(
+                new ResourceLocation("test", "item"), "inventory");
+        Map<ResourceLocation, UnbakedModel> unbaked = new ConcurrentHashMap<>();
+        AtomicBoolean bound = new AtomicBoolean();
+        AtomicBoolean baked = new AtomicBoolean();
+        Object bakery = new Object();
+        UnbakedModel graph = new UnbakedModel() {
+            @Override public Collection<ResourceLocation> getDependencies() {
+                return List.of();
+            }
+            @Override public Collection<Material> getMaterials(
+                    Function<ResourceLocation, UnbakedModel> getter,
+                    Set<Pair<String, String>> missingTextures) {
+                assertTrue(ModelGraphLoader.isLoaderThread());
+                assertFalse(DeferredBlockStateCacheMissGuard.active(bakery));
+                bound.set(true);
+                return List.of();
+            }
+            @Override public BakedModel bake(
+                    ModelBakery owner, Function<Material, TextureAtlasSprite> sprites,
+                    ModelState state, ResourceLocation key) {
+                fail("the fake baker should handle baking");
+                return null;
+            }
+        };
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            pool.submit(() -> session.loadAndBake(location, key -> {
+                assertTrue(ModelGraphLoader.isLoaderThread());
+                unbaked.put(key, graph);
+                return graph;
+            }, unbaked, key -> DeferredBlockStateCacheMissGuard.bake(bakery, key, guarded -> {
+                assertFalse(ModelGraphLoader.isLoaderThread());
+                assertNotSame(owner, Thread.currentThread());
+                assertTrue(bound.get());
+                DeferredBlockStateCacheMissGuard.check(bakery, unbaked, guarded);
+                baked.set(true);
+                return null;
+            }))).get(5, TimeUnit.SECONDS);
+            assertTrue(baked.get());
+            session.closeLoading();
+            session.loadAndBake(location, key -> {
+                fail("a retired session must not load");
+                return null;
+            }, unbaked, key -> {
+                fail("a retired session must not bake");
+                return null;
+            });
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            assertTrue(latch.await(5, TimeUnit.SECONDS));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interrupted);
+        }
+    }
+
 }

@@ -47,7 +47,7 @@ import java.util.function.Supplier;
  * than silently completing waiting readers with the fallback.
  */
 public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, V>
-        implements StructurallyVersioned {
+        implements DeferredModelMap<K, V> {
     public interface BakeListener<K> {
         void baked(K key, long nanos, boolean failed, Throwable failure);
     }
@@ -144,6 +144,19 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
 
     @SuppressWarnings("unchecked")
     private V lookup(Object key, V absent) {
+        if (eager instanceof DeferredModelMap<?, ?>) {
+            boolean own;
+            readLock.lock();
+            try {
+                own = deferred.contains(key);
+            } finally {
+                readLock.unlock();
+            }
+            if (!own) {
+                // A lower registry may bake; never hold our lock across it.
+                return eager.getOrDefault(key, absent);
+            }
+        }
         readLock.lock();
         try {
             V value = eager.get(key);
@@ -540,6 +553,17 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
         }
     }
 
+    @Override
+    public boolean isPublished(Object key, V value) {
+        readLock.lock();
+        try {
+            return baker != null && value != fallback
+                    && resolved.containsKey(key) && resolved.get(key) == value;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
     public int initialDeferred() {
         return initialDeferred;
     }
@@ -557,6 +581,11 @@ public final class ConcurrentDeferredModelRegistry<K, V> extends AbstractMap<K, 
     }
 
     /** Lookups that waited for another thread's bake of the same key. */
+    @Override
+    public boolean allowsOffThreadBakes() {
+        return true;
+    }
+
     public int sharedWaits() {
         return sharedWaits.get();
     }

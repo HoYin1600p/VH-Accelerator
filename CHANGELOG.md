@@ -5,6 +5,13 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Framed drawers and similar blocks no longer show the missing texture with
+  deferred item models.
+
 ## [1.1.4] - 2026-10-04
 
 A maintenance release. Nothing changes in how the mod behaves, what it caches
