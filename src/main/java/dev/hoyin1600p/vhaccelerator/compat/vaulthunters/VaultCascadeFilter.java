@@ -4,8 +4,8 @@ import iskallia.vault.core.world.data.tile.OrTilePredicate;
 import iskallia.vault.core.world.data.tile.PartialBlockState;
 import iskallia.vault.core.world.data.tile.PartialTile;
 import iskallia.vault.core.world.data.tile.TilePredicate;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -34,13 +34,17 @@ public final class VaultCascadeFilter {
     private VaultCascadeFilter() {
     }
 
-    /** The positions whose block {@code filter} may accept, or {@code positions} when it cannot tell. */
+    /**
+     * The positions whose block {@code filter} may accept, in the iteration order of
+     * {@code positions}, or {@code positions} itself when it cannot tell. The order is kept
+     * because the cascade places blocks as it goes, so overlapping cascades depend on it.
+     */
     public static Set<BlockPos> candidates(TilePredicate filter, ChunkAccess chunk, Set<BlockPos> positions) {
         if (!decidedByState(filter)) {
             return positions;
         }
         Map<BlockState, Boolean> rejected = new IdentityHashMap<>();
-        Set<BlockPos> candidates = new HashSet<>();
+        Set<BlockPos> candidates = new LinkedHashSet<>();
         for (BlockPos pos : positions) {
             BlockState state = chunk.getBlockState(pos);
             Boolean reject = rejected.get(state);

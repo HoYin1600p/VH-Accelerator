@@ -283,6 +283,7 @@ class ConfigSettingCatalogTest {
         assertFalse(restart.get("checkForUpdates"), "checkForUpdates applies without a restart");
         assertFalse(restart.get("compactCraftTweakerClientReplayLogging"), "compactCraftTweakerClientReplayLogging applies without a restart");
         assertFalse(restart.get("filterVaultCascadeByState"), "filterVaultCascadeByState applies without a restart");
+        assertFalse(restart.get("filterVaultCascadeChunk"), "filterVaultCascadeChunk applies without a restart");
         assertFalse(restart.get("indexCreateBlockCuttingRecipes"), "indexCreateBlockCuttingRecipes applies without a restart");
         assertFalse(restart.get("indexKubeJsPackFiles"), "indexKubeJsPackFiles applies without a restart");
         assertFalse(restart.get("indexPowahWikiRecipes"), "indexPowahWikiRecipes applies without a restart");
