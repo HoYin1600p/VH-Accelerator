@@ -77,6 +77,11 @@ sourceSets.main.resources {
 
 repositories {
     maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
+    maven {
         name = 'Sponge'
         url = 'https://repo.spongepowered.org/maven'
     }
@@ -87,16 +92,47 @@ repositories {
     }
 }
 
-def localCompileDependency = { String fileName ->
-    def dependencyFile = file("libs/${fileName}")
-    if (!dependencyFile.exists()) {
-        throw new GradleException(
-                "Missing local compile dependency ${dependencyFile.name}. " +
-                "See libs/README.md for the pinned files."
-        )
+// cursemaven-helper:start
+def modCoordinates = [
+        'the_vault-1.18.2-20.0.3-remastered.6883.jar': ['vault_jar', 'curse.maven:vault-hunters-official-mod-458203:8508678'],
+        'the_vault-1.18.2-20.0.3-remastered.6872.jar': ['previous_remastered_vault_jar', 'curse.maven:vault-hunters-previous-458203:8502584'],
+        'the_vault-1.18.2-3.21.6.6884.jar': ['official_vault_jar', 'curse.maven:vault-hunters-official-458203:8508967'],
+        'the_vault-1.18.2-3.21.5.6882.jar': ['previous_official_vault_jar', 'curse.maven:vault-hunters-previous-official-458203:8508674'],
+        'the_vault-1.18.2-3.21.5.6573.jar': ['wolds_vault_jar', 'curse.maven:vault-hunters-wolds-458203:7952001'],
+        'the_vault-1.18.2-20.0.3-remastered.base.jar': ['base_remastered_vault_jar', null],
+        'the_vault-1.18.2-3.21.62.jar': ['mvp_vault_jar', null],
+        'the_vault-1.18.2-3.21.62.asgard.jar': ['asgard_vault_jar', null],
+        'jei-1.18.2-forge-10.2.1.1009.jar': ['jei10_jar', 'curse.maven:jei-v10-238222:5846864'],
+        'jei-1.18.2-forge-10.2.1.1006.jar': ['jei1006_jar', 'curse.maven:jei-v1006-238222:5068328'],
+        'jei-1.18.2-9.7.2.1001.jar': ['jei9_jar', 'curse.maven:jei-v9-238222:4351311'],
+        'Powah-3.0.8.jar': ['powah_jar', 'curse.maven:powah-rearchitected-633483:4525198'],
+        'JEITweaker-1.18.2-3.0.0.9.jar': ['jeitweaker_jar', 'curse.maven:jeitweaker-368718:3950183'],
+        'CraftTweaker-forge-1.18.2-9.1.213.jar': ['crafttweaker_jar', 'curse.maven:crafttweaker-239197:6256079'],
+        'thermal_foundation-1.18.2-9.2.2.58.jar': ['thermal_jar', 'curse.maven:thermal-foundation-222880:4788649'],
+        'JustEnoughResources-1.18.2-0.14.2.206.jar': ['jer_jar', 'curse.maven:just-enough-resources-jer-240630:4445746'],
+        'ironfurnaces-1.18.2-3.3.3.jar': ['ironfurnaces_jar', 'curse.maven:iron-furnaces-237664:4183356'],
+        'industrial-foregoing-1.18.2-3.3.1.7-11.jar': ['industrial_foregoing_jar', 'curse.maven:industrial-foregoing-266515:5334842'],
+        'Xaeros_Minimap_25.2.10_Forge_1.18.2.jar': ['xaero_minimap_jar', 'curse.maven:xaeros-minimap-263420:6778010'],
+        'XaerosWorldMap_1.39.12_Forge_1.18.2.jar': ['xaero_worldmap_jar', 'curse.maven:xaeros-world-map-317780:6778083'],
+        'sophisticatedcore-1.18.2-0.6.4.604.jar': ['sophisticatedcore_jar', 'curse.maven:sophisticated-core-618298:5296312'],
+        'ferritecore-4.2.2-forge.jar': ['ferritecore_jar', 'curse.maven:ferritecore-429235:4074294'],
+        'kubejs-forge-1802.5.5-build.569.jar': ['kubejs_jar', 'curse.maven:kubejs-238086:4377177'],
+        'rhino-forge-1802.2.1-build.255.jar': ['rhino_jar', 'curse.maven:rhino-416294:4069880'],
+        'create-1.18.2-0.5.1.i.jar': ['create_jar', 'curse.maven:create-328085:5797603']
+]
+def modDep = { String fileName ->
+    def pin = modCoordinates[fileName]
+    if (pin == null) throw new GradleException("No dependency pin for ${fileName}")
+    def override = findProperty(pin[0])
+    if (override) {
+        def local = file(override)
+        if (!local.isFile()) throw new GradleException("-${pin[0]}=${override} does not exist")
+        return files(local)
     }
-    return dependencyFile
+    if (pin[1] == null) throw new GradleException("Private compatibility target ${fileName} requires -P${pin[0]}=<path>")
+    return fg.deobf(pin[1])
 }
+// cursemaven-helper:end
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -107,23 +143,11 @@ dependencies {
 
     // Optional at runtime. These jars expose only the APIs targeted by guarded
     // compatibility mixins and are deliberately not bundled in our output jar.
-    compileOnly files(localCompileDependency('the_vault-1.18.2-20.0.3-remastered.6883.jar'))
-    compileOnly files(localCompileDependency('jei-1.18.2-forge-10.2.1.1009.jar'))
-    compileOnly files(localCompileDependency('jei-1.18.2-9.7.2.1001.jar'))
-    compileOnly files(localCompileDependency('Powah-3.0.8.jar'))
-    compileOnly files(localCompileDependency('JEITweaker-1.18.2-3.0.0.9.jar'))
-    compileOnly files(localCompileDependency('CraftTweaker-forge-1.18.2-9.1.213.jar'))
-    compileOnly files(localCompileDependency('thermal_foundation-1.18.2-9.2.2.58.jar'))
-    compileOnly files(localCompileDependency('JustEnoughResources-1.18.2-0.14.2.206.jar'))
-    compileOnly files(localCompileDependency('ironfurnaces-1.18.2-3.3.3.jar'))
-    compileOnly files(localCompileDependency('industrial-foregoing-1.18.2-3.3.1.7-11.jar'))
-    compileOnly files(localCompileDependency('Xaeros_Minimap_25.2.10_Forge_1.18.2.jar'))
-    compileOnly files(localCompileDependency('XaerosWorldMap_1.39.12_Forge_1.18.2.jar'))
-    compileOnly files(localCompileDependency('sophisticatedcore-1.18.2-0.6.4.604.jar'))
-    compileOnly files(localCompileDependency('ferritecore-4.2.2-forge.jar'))
-    compileOnly files(localCompileDependency('kubejs-forge-1802.5.5-build.569.jar'))
-    compileOnly files(localCompileDependency('rhino-forge-1802.2.1-build.255.jar'))
-    compileOnly files(localCompileDependency('create-1.18.2-0.5.1.i.jar'))
+    modCoordinates.keySet().findAll { name ->
+        !name.startsWith('the_vault-') || name.endsWith('remastered.6883.jar')
+    }.findAll { name -> name != 'jei-1.18.2-forge-10.2.1.1006.jar' }.each { name ->
+        compileOnly modDep(name)
+    }
 }
 
 tasks.named('test') {
@@ -192,12 +216,16 @@ compatibilityProfiles.each { profileName, profile ->
         source = fileTree('src/main/java') {
             exclude profile.exclude
         }
-        classpath = sourceSets.main.compileClasspath.filter {
-            !compatibilityDependencyNames.contains(it.name)
-        } + files(
-                localCompileDependency(profile.vault),
-                localCompileDependency(profile.jei)
-        )
+        classpath = files(providers.provider {
+            def baseline = sourceSets.main.compileClasspath.filter {
+                !compatibilityDependencyNames.contains(it.name)
+                        && !it.name.startsWith('vault-hunters-') && !it.name.startsWith('jei-v')
+            }
+            def target = configurations.detachedConfiguration(
+                    dependencies.create(modDep(profile.vault)), dependencies.create(modDep(profile.jei)))
+            target.transitive = false
+            baseline + target
+        })
         destinationDirectory = layout.buildDirectory.dir(
                 "compatibility/${profileName}/classes"
         )

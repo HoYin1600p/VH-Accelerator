@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.client;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
+import dev.hoyin1600p.vhaccelerator.api.client.ModelBakeryEvents;
 import dev.hoyin1600p.vhaccelerator.client.cache.persist.PersistentDeferredTopLevelManifest;
 import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphOwner;
 import dev.hoyin1600p.vhaccelerator.client.model.BlockGraphSkipSession;
@@ -38,17 +39,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Selects deferred inventory models for the top-level bake pass and publishes
- * the deferred registry once the eager pass finishes. The top-level bake
- * redirects exclude the selection; if neither redirect ran, nothing was
- * selected and every model was baked eagerly.
- *
- * <p>It also owns the warm top-level stage: on a validated warm launch,
- * certified inventory keys skip {@code loadTopLevel} and join the selection
- * as deferred keys whose graphs load on first use. If deferral is unavailable
- * at bake time, those graphs are loaded before the bake loop instead.
- */
 @Mixin(ModelBakery.class)
 public abstract class ModelBakeryDeferredItemMixin
         implements DeferredItemModelOwner, DeferredItemModelBaking.TopLevelOwner,
@@ -72,11 +62,9 @@ public abstract class ModelBakeryDeferredItemMixin
     @Mutable
     private Map<?, BakedModel> bakedCache;
 
-    /** Certified block-state keys whose bake is deferred; never null once selected. */
     @Unique
     private Set<ResourceLocation> vhaccelerator$deferredBlockStates;
 
-    /** Items plus block states; what the top-level bake loops skip. */
     @Unique
     private Set<ResourceLocation> vhaccelerator$deferredAll;
 
@@ -97,11 +85,9 @@ public abstract class ModelBakeryDeferredItemMixin
     @Unique
     private DeferredItemModelBaking.TopLevelSession vhaccelerator$topLevel;
 
-    /** Warm block-state graph skipping; null when inactive. */
     @Unique
     private BlockGraphSkipSession vhaccelerator$blockGraphs;
 
-    /** Set once skipped block graphs may load on first use from any thread. */
     @Unique
     private volatile boolean vhaccelerator$serializeLoads;
 
@@ -114,11 +100,6 @@ public abstract class ModelBakeryDeferredItemMixin
         throw new AssertionError("Mixin shadow was not transformed");
     }
 
-    /**
-     * Skipped blocks' model groups are restored before atlas stitching, and
-     * the model manager shares this map with render-thread chunk checks, so a
-     * post-launch graph load must not re-register (and possibly resize) it.
-     */
     @Inject(method = "registerModelGroup", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$keepRestoredModelGroups(
             Iterable<BlockState> states,
@@ -183,12 +164,15 @@ public abstract class ModelBakeryDeferredItemMixin
         }
     }
 
-    /** Skips only certified inventory keys on a validated warm launch. */
     @Inject(method = "loadTopLevel", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$skipCertifiedTopLevel(
             ModelResourceLocation location,
             CallbackInfo callback
     ) {
+        // Native providers are reload-scoped; their graphs must exist before the session closes.
+        if (ModelBakeryEvents.isRegistered(location.getNamespace())) {
+            return;
+        }
         DeferredItemModelBaking.TopLevelSession session =
                 vhaccelerator$topLevel;
         if (session != null
@@ -244,7 +228,6 @@ public abstract class ModelBakeryDeferredItemMixin
         }
     }
 
-    /** Opt-in, write-only block-state material capture; changes no state. */
     @Inject(method = "processLoading", at = @At("TAIL"), remap = false)
     private void vhaccelerator$recordBlockStateMaterials(
             ProfilerFiller profiler,
@@ -268,7 +251,6 @@ public abstract class ModelBakeryDeferredItemMixin
         }
     }
 
-    /** Refuse an off-thread load only inside a deferred block-state bake. */
     @Inject(
             method = "getModel(Lnet/minecraft/resources/ResourceLocation;)"
                     + "Lnet/minecraft/client/resources/model/UnbakedModel;",
@@ -391,10 +373,6 @@ public abstract class ModelBakeryDeferredItemMixin
         return selected;
     }
 
-    /**
-     * Settles the selection before the bake loop, so skipped keys are
-     * restored even when no top-level bake redirect asks for it.
-     */
     @Inject(method = "uploadTextures", at = @At("HEAD"))
     private void vhaccelerator$settleDeferredItems(
             TextureManager textureManager,
