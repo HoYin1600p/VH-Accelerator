@@ -86,6 +86,9 @@ Clients can use VHA without installing it on the remote server.
 See [Installation](docs/INSTALLATION.md) for placement, upgrade, conflicting
 mods, and first-launch expectations.
 
+Mod developers can use the optional [model bakery compatibility API](Compatibility.md)
+to supply native models and blockstates through VHA.
+
 ## Quick install
 
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
