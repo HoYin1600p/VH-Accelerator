@@ -191,6 +191,7 @@ public final class ConfigSettingCatalog {
         add(settings, "indexVaultModifierTicks", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "snapshotVaultEventListeners", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "filterVaultCascadeByState", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
+        add(settings, "filterVaultCascadeChunk", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "repairEmptyBookPiles", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "stagedVaultGroupLoading", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "optimizeVaultLootCdf", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);

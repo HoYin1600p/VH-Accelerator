@@ -274,7 +274,9 @@ Current compatibility details:
 Requirements:
 
 - JDK 17
-- the compile-only jars listed in [`libs/README.md`](libs/README.md)
+- an internet connection on the first build; every mod VH Accelerator compiles
+  against is downloaded from CurseForge through CurseMaven (see
+  [`libs/README.md`](libs/README.md) for building against local jars instead)
 
 Build and run all compatibility checks:
 

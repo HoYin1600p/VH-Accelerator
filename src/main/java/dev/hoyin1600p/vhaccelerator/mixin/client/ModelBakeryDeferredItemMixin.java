@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import net.minecraft.client.renderer.texture.AtlasSet;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -88,6 +89,7 @@ public abstract class ModelBakeryDeferredItemMixin
     @Unique
     private BlockGraphSkipSession vhaccelerator$blockGraphs;
 
+    /** Set once skipped block graphs may load on first use from any thread. */
     @Unique
     private volatile boolean vhaccelerator$serializeLoads;
 
@@ -389,13 +391,17 @@ public abstract class ModelBakeryDeferredItemMixin
             CallbackInfoReturnable<AtlasSet> callback
     ) {
         Set<ResourceLocation> blocks = vhaccelerator$deferredBlockStates;
-        if (blocks != null && !blocks.isEmpty()) {
+        Set<ResourceLocation> deferred = vhaccelerator$deferredItems;
+        if (blocks != null && !blocks.isEmpty()
+                || deferred != null && !deferred.isEmpty()) {
             // First-use bakes may run on chunk workers beside render-thread
             // bakery use; both caches must be concurrent before publishing.
             long copyStarted = System.nanoTime();
             bakedCache = DeferredBlockStateBaking.concurrentCopy(bakedCache);
             unbakedCache = DeferredBlockStateBaking.concurrentCopy(unbakedCache);
             DeferredBlockStateBaking.recordCacheCopy(System.nanoTime() - copyStarted);
+        }
+        if (blocks != null && !blocks.isEmpty()) {
             BlockGraphSkipSession graphs = vhaccelerator$blockGraphs;
             boolean skippedGraphs = graphs != null && !graphs.skippedKeys().isEmpty();
             bakedTopLevelModels = DeferredBlockStateBaking.install(
@@ -424,13 +430,16 @@ public abstract class ModelBakeryDeferredItemMixin
                 graphs.releaseSkippedKeys();
             }
         }
-        Set<ResourceLocation> deferred = vhaccelerator$deferredItems;
         if (deferred == null || deferred.isEmpty()) {
             return;
         }
         DeferredItemModelBaking.TopLevelSession session =
                 vhaccelerator$topLevel;
         boolean warm = session != null && !session.skipped().isEmpty();
+        vhaccelerator$serializeLoads |= warm;
+        Function<ResourceLocation, BakedModel> guardedBaker =
+                location -> DeferredBlockStateCacheMissGuard.bake(
+                        this, location, key -> bake(key, BlockModelRotation.X0_Y0));
         bakedTopLevelModels = DeferredItemModelBaking.install(
                 bakedTopLevelModels,
                 deferred,
@@ -439,10 +448,12 @@ public abstract class ModelBakeryDeferredItemMixin
                                 location,
                                 this::getModel,
                                 unbakedCache,
-                                key -> bake(key, BlockModelRotation.X0_Y0)
+                                guardedBaker
                         )
-                        : bake(location, BlockModelRotation.X0_Y0),
-                warm ? session : null
+                        : guardedBaker.apply(location),
+                warm ? session : null,
+                unbakedCache,
+                bakedCache
         );
     }
 }

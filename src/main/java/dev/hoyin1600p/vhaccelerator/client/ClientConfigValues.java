@@ -52,6 +52,7 @@ public final class ClientConfigValues {
     public final ForgeConfigSpec.BooleanValue indexVaultModifierTicks;
     public final ForgeConfigSpec.BooleanValue snapshotVaultEventListeners;
     public final ForgeConfigSpec.BooleanValue filterVaultCascadeByState;
+    public final ForgeConfigSpec.BooleanValue filterVaultCascadeChunk;
     public final ForgeConfigSpec.BooleanValue repairEmptyBookPiles;
     public final ForgeConfigSpec.BooleanValue prefetchJoinRecipeFingerprint;
     public final ForgeConfigSpec.BooleanValue prefetchCtmTextureMetadata;
@@ -354,6 +355,13 @@ public final class ClientConfigValues {
                         "filter, such as the thousands of ores in a late cake vault's mine rooms.",
                         "Same result. Singleplayer only.")
                 .define("filterVaultCascadeByState", true);
+        filterVaultCascadeChunk = builder
+                .comment(
+                        "Requires filterVaultCascadeByState. Vault Hunters 21.6+: applies the",
+                        "same filter where those builds now scan (cascadeChunk, used by both cake",
+                        "generation modes and Greed vaults). Older Vault builds use the original",
+                        "hook and ignore this. Same result. Singleplayer only.")
+                .define("filterVaultCascadeChunk", true);
         repairEmptyBookPiles = builder
                 .comment(
                         "Vault Hunters + Supplementaries: library room templates store book piles",

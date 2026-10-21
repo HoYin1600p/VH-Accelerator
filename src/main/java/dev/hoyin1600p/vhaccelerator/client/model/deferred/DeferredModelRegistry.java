@@ -51,7 +51,7 @@ import java.util.function.Supplier;
  * lookups and writes still reach the map.
  */
 public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
-        implements StructurallyVersioned {
+        implements DeferredModelMap<K, V> {
     public interface FailureListener<K> {
         void failed(K key, Throwable failure);
     }
@@ -357,6 +357,17 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
         }
     }
 
+    @Override
+    public boolean isPublished(Object key, V value) {
+        readLock.lock();
+        try {
+            return baker != null && value != fallback
+                    && resolved.containsKey(key) && resolved.get(key) == value;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
     public int initialDeferred() {
         return initialDeferred;
     }
@@ -656,13 +667,12 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
      * model.
      *
      * <p>Storage is concurrent so off-thread readers never observe a torn
-     * table while the owner (render) thread adds entries. Only the owner
-     * thread caches a resolved item; another thread receives the registry's
-     * value, which is the fallback when the model has not baked yet, and
-     * leaves the item pending.
+     * table while another thread adds entries. Concurrent registries allow
+     * any thread to cache a published real model; confined registries keep
+     * off-thread items pending. Fallbacks are never cached here.
      *
      * <p>A pending item is stored in the same map as cached items, under a
-     * {@link Pending} marker that the owner thread atomically replaces with
+     * {@link Pending} marker that a resolving thread atomically replaces with
      * the baked model. {@code containsKey}, {@code size}, {@code keySet} and
      * {@code entrySet} therefore always describe one key set, even while an
      * item resolves, and enumerating them never bakes. An entry's value is
@@ -686,7 +696,7 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
                 new ConcurrentHashMap<>();
         private final Supplier<? extends V> missing;
         private final BooleanSupplier ownerThread;
-        private volatile DeferredModelRegistry<L, V> registry;
+        private volatile DeferredModelMap<L, V> registry;
 
         public ItemCache(
                 Map<? extends I, ? extends V> initial,
@@ -707,7 +717,7 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
          * or defers every item, so earlier pending items are not cleared
          * first and readers never see an item vanish mid-rebuild.
          */
-        public void bind(DeferredModelRegistry<L, V> registry) {
+        public void bind(DeferredModelMap<L, V> registry) {
             this.registry = registry;
         }
 
@@ -760,13 +770,14 @@ public final class DeferredModelRegistry<K, V> extends AbstractMap<K, V>
 
         @SuppressWarnings("unchecked") // Only accepted keys become pending.
         private V resolve(Object item, Pending<L> marker) {
-            DeferredModelRegistry<L, V> source = registry;
+            DeferredModelMap<L, V> source = registry;
             V model = source == null ? null : source.get(marker.location);
             if (model == null) {
                 // Released for reload, a reentrant bake, or a removed key.
                 return missing.get();
             }
-            if (!ownerThread.getAsBoolean() || source.isRetired()) {
+            if ((!source.allowsOffThreadBakes() && !ownerThread.getAsBoolean())
+                    || source != registry || !source.isPublished(marker.location, model)) {
                 return model;
             }
             // Fails if a reentrant put or defer already replaced this marker.
