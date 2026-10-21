@@ -5,6 +5,21 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The Vault cascade filter (`filterVaultCascadeByState`) works again on Vault
+  Hunters 21.6, which moved the cascade scan into a new method used by both
+  cake generation modes and Greed vaults. Older Vault builds keep the
+  original hook. The new hook has its own setting, `filterVaultCascadeChunk`
+  (default on, no restart needed, also in the settings screen), so it can be
+  compared on and off.
+- The cascade filter now keeps the order in which Vault would visit the
+  remaining block entities. It used to collect them into an unordered set,
+  so where two cascades' placements overlapped, the one placed last could
+  differ from Vault's own run.
+
 ## [1.1.4] - 2026-10-04
 
 A maintenance release. Nothing changes in how the mod behaves, what it caches
