@@ -22,8 +22,15 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-// Client-only, optional integration point for native/bundled model providers.
+/**
+ * Client-only integration for native or bundled model providers.
+ * Providers register by namespace before the first resource reload. Each reload
+ * snapshots the listeners into a session that closes after baking.
+ * Callback failures quarantine that provider for the session; ordinary loading
+ * remains the fallback, but bundled-only resources need a working provider.
+ */
 public final class ModelBakeryEvents {
+    /** Version accepted by {@link #register}; pass this value when registering. */
     public static final int API_VERSION = 1;
     private static final Logger LOGGER = LogManager.getLogger("VH Accelerator Model API");
     private static final Registry REGISTRY = new Registry();
@@ -31,54 +38,101 @@ public final class ModelBakeryEvents {
     private ModelBakeryEvents() {
     }
 
-    // Register during client setup, before the first resource reload. Never loads the provider's mod itself.
+    /**
+     * Registers one listener per namespace during client setup, before the first reload.
+     * Does not load the provider's mod. Later registrations affect future sessions.
+     *
+     * @return the registration result; an existing listener is never replaced
+     */
     public static Registration register(String namespace, int version, Listener listener) {
         return REGISTRY.register(namespace, version, listener);
     }
 
+    /** Reports registration, even if the provider is quarantined in the current session. */
     public static boolean isRegistered(String namespace) {
         return namespace != null && REGISTRY.listeners.containsKey(namespace);
     }
 
+    /** Bridge implemented by the bakery mixin for reload-scoped provider access. */
     public interface Access {
+        /** Returns this bakery's session, or null outside its reload lifecycle. */
         Session vhaccelerator$modelSession();
+        /** Looks up resources through the bakery and prepares native block-state data when available. */
         List<Resource> vhaccelerator$resources(ResourceManager resources, ResourceLocation location) throws IOException;
     }
 
+    /**
+     * Uses the bakery bridge when present, otherwise reads ordinary resources.
+     * The bridge may reuse parsed resources or return an empty list for a native
+     * block state prepared in the open session; its definition is merged separately.
+     *
+     * @throws IOException if resource lookup fails
+     */
     public static List<Resource> resources(Object bakery, ResourceManager resources, ResourceLocation location)
             throws IOException {
         return bakery instanceof Access access ? access.vhaccelerator$resources(resources, location)
                 : resources.getResources(location);
     }
 
+    /**
+     * Queries this bakery's open session, or returns null if none exists.
+     * A null result also means the provider declined, failed, or lost pack precedence.
+     */
     public static BlockModel model(Object bakery, ResourceLocation location) {
         Session session = bakery instanceof Access access ? access.vhaccelerator$modelSession() : null;
         return session == null ? null : session.model(location);
     }
 
+    /** Reports a prepared provider block state only while this bakery's session is open. */
     public static boolean hasBlockState(Object bakery, ResourceLocation location) {
         Session session = bakery instanceof Access access ? access.vhaccelerator$modelSession() : null;
         return session != null && !session.closed && session.states.containsKey(
                 new ResourceLocation(location.getNamespace(), location.getPath()));
     }
 
+    /**
+     * Registration outcomes: accepted, namespace already taken, unsupported API version,
+     * or invalid namespace/listener. The version is checked before the arguments.
+     */
     public enum Registration {
         REGISTERED, DUPLICATE_NAMESPACE, UNSUPPORTED_VERSION, INVALID_ARGUMENT
     }
 
+    /**
+     * Namespace provider callbacks, serialized per provider within each session.
+     * Query callbacks return null to leave ordinary loading in charge.
+     * Exceptions quarantine the provider for that reload; cleanup is still attempted.
+     */
     public interface Listener {
+        /** Opens provider preparation when the reload session begins. */
         default void beforePreparation(ResourceManager resources) throws Exception { }
+        /** Supplies a model by logical location, or null to use ordinary resources. */
         default Model model(ResourceManager resources, ResourceLocation location) throws Exception { return null; }
+        /** Supplies a block-state definition, or null to use ordinary resources. */
         default BlockStateDefinition blockState(ResourceManager resources, ResourceLocation location,
                 StateDefinition<Block, BlockState> states) throws Exception { return null; }
+        /** Finishes preparation after the bakery has loaded its model graphs. */
         default void afterPreparation(ResourceManager resources) throws Exception { }
+        /** Runs before the bakery begins baking the prepared models. */
         default void beforeBaking(ResourceManager resources) throws Exception { }
+        /** Releases reload data after baking, including for quarantined providers. */
         default void afterBaking(ResourceManager resources) throws Exception { }
     }
 
+    /**
+     * A model contribution whose source pack must be active in this reload.
+     * @param sourcePack the source pack name used to preserve resource-pack precedence
+     * @param value the non-null model
+     */
     public record Model(String sourcePack, BlockModel value) { }
+    /**
+     * A block-state contribution whose source pack must be active in this reload.
+     * @param sourcePack the source pack name used to preserve resource-pack precedence
+     * @param value the non-null definition
+     */
     public record BlockStateDefinition(String sourcePack, BlockModelDefinition value) { }
 
+    /** Snapshots registered providers and calls their preparation hooks for one reload. */
     public static Session begin(ResourceManager resources) {
         return REGISTRY.begin(resources);
     }
@@ -105,6 +159,11 @@ public final class ModelBakeryEvents {
         }
     }
 
+    /**
+     * Provider state for one resource reload, from preparation through baking.
+     * Registrations added later are absent from this snapshot. Call {@link #afterBaking}
+     * to close the session and release prepared block-state data.
+     */
     public static final class Session {
         private final ResourceManager resources;
         private final List<String> packs;
@@ -121,6 +180,10 @@ public final class ModelBakeryEvents {
             this.listeners = Collections.unmodifiableMap(entries);
         }
 
+        /**
+         * Returns a valid provider model while open, unless an ordinary resource wins.
+         * Returns null for missing, declined, quarantined, or builtin model queries.
+         */
         public BlockModel model(ResourceLocation location) {
             Entry entry = listeners.get(location.getNamespace());
             if (entry == null || closed || location.getPath().startsWith("builtin/")) {
@@ -153,6 +216,7 @@ public final class ModelBakeryEvents {
             return contribution.value();
         }
 
+        /** Caches a valid provider definition while open; returns false when unavailable. */
         public boolean prepareBlockState(ResourceLocation location, StateDefinition<Block, BlockState> definition) {
             Entry entry = listeners.get(location.getNamespace());
             if (entry == null || closed || stateMisses.contains(location)) {
@@ -175,6 +239,10 @@ public final class ModelBakeryEvents {
             }
         }
 
+        /**
+         * Merges a prepared definition in source-pack order, replacing that pack's entry.
+         * Returns the original list when no definition exists or this session is closed.
+         */
         public List<Pair<String, BlockModelDefinition>> mergeBlockState(ResourceLocation location,
                 List<Pair<String, BlockModelDefinition>> original) {
             BlockStateDefinition contribution = states.get(location);
@@ -195,14 +263,17 @@ public final class ModelBakeryEvents {
             return merged;
         }
 
+        /** Calls preparation-complete hooks for active providers while the session is open. */
         public void afterPreparation() {
             lifecycle(listener -> listener.afterPreparation(resources));
         }
 
+        /** Calls pre-bake hooks for active providers while the session is open. */
         public void beforeBaking() {
             lifecycle(listener -> listener.beforeBaking(resources));
         }
 
+        /** Closes once, attempts cleanup for every provider, and clears prepared state. */
         public synchronized void afterBaking() {
             if (closed) {
                 return;
