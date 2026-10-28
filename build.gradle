@@ -151,6 +151,12 @@ dependencies {
     compileOnly modDep('powah_jar', "curse.maven:powah-rearchitected-633483:${powah_file}")
     compileOnly modDep('jeitweaker_jar', "curse.maven:jeitweaker-368718:${jeitweaker_file}")
     compileOnly modDep('crafttweaker_jar', "curse.maven:crafttweaker-239197:${crafttweaker_file}")
+    // The differential oracle executes CT's real sequential RecipeList loop.
+    testImplementation modDep('crafttweaker_jar', "curse.maven:crafttweaker-239197:${crafttweaker_file}")
+    // The KubeJS filter equality test evaluates KubeJS's real recipe filters on real RecipeJS objects.
+    testImplementation modDep('kubejs_jar', "curse.maven:kubejs-238086:${kubejs_file}")
+    testImplementation modDep('rhino_jar', "curse.maven:rhino-416294:${rhino_file}")
+    testImplementation modDep('architectury_jar', "curse.maven:architectury-api-419699:${architectury_file}")
     compileOnly modDep('thermal_foundation_jar', "curse.maven:thermal-foundation-222880:${thermal_foundation_file}")
     compileOnly modDep('jer_jar', "curse.maven:just-enough-resources-jer-240630:${jer_file}")
     compileOnly modDep('ironfurnaces_jar', "curse.maven:iron-furnaces-237664:${ironfurnaces_file}")
@@ -170,8 +176,293 @@ dependencies {
     }
 }
 
+// A separate non-transitive fixture keeps the original 5.0.3 oracle independent of
+// the 5.0.7 version selected by other test dependencies. Never added to the mod jar.
+def eventBusWrapperFixture = configurations.create('eventBusWrapperFixture')
+dependencies.add('eventBusWrapperFixture', 'net.minecraftforge:eventbus:5.0.3') {
+    transitive = false
+}
+
 tasks.named('test') {
-    useJUnitPlatform()
+    inputs.files(eventBusWrapperFixture).withPropertyName('eventBusWrapperOriginalJar')
+    doFirst {
+        systemProperty 'eventbus.wrapper.jar', eventBusWrapperFixture.singleFile.absolutePath
+    }
+    // Tests tagged "stress" (deliberately racy red arms) run only with -Pstress, and then alone.
+    useJUnitPlatform {
+        if (providers.gradleProperty('stress').isPresent()) {
+            includeTags 'stress'
+        } else {
+            excludeTags 'stress'
+        }
+    }
+    // Every shape-differential pass bootstraps vanilla in its own class loader; the optional furniture and Canary runs make many.
+    maxHeapSize = (providers.gradleProperty('shape_canary_jar').isPresent() || providers.gradleProperty('shape_cfm_jar').isPresent()) ? "10g" : "3g"
+    ['vault_cdf_jar': 'vault.cdf.jar', 'vault_cdf_fixture': 'vault.cdf.fixture', 'ae2things_jar': 'ae2things.jar', 'lootjs_jar': 'lootjs.jar'].each { option, property ->
+        if (providers.gradleProperty(option).isPresent()) {
+            def input = file(providers.gradleProperty(option).get())
+            if (!input.isFile()) throw new GradleException("Explicit ${option} must be a file")
+            inputs.file(input).withPropertyName(option)
+            systemProperty property, input.absolutePath
+        }
+    }
+    // Optional mod jars (files or folders, separated by the platform path separator) whose classes the mixin
+    // modifier scan resolves targets in; they are only read, never copied or committed.
+    if (providers.gradleProperty('mixin_scan_jars').isPresent()) {
+        systemProperty 'mixin.scan.jars', providers.gradleProperty('mixin_scan_jars').get()
+    }
+    // Licensed server exports stay outside the repository and never enter a production classpath.
+    if (providers.gradleProperty('real_woven_dir').isPresent()) {
+        def fixtures = file(providers.gradleProperty('real_woven_dir').get())
+        if (!fixtures.isDirectory()) throw new GradleException('real_woven_dir must be a directory')
+        inputs.dir(fixtures).withPropertyName('realWovenFixtures')
+        systemProperty 'vha.test.realWovenDir', fixtures.absolutePath
+    }
+    if (providers.gradleProperty('worldzones_woven_dir').isPresent()) {
+        def fixtures = file(providers.gradleProperty('worldzones_woven_dir').get())
+        if (!fixtures.isDirectory()) throw new GradleException('worldzones_woven_dir must be a directory')
+        inputs.dir(fixtures).withPropertyName('worldZonesWovenFixtures')
+        systemProperty 'vha.test.worldZonesWovenDir', fixtures.absolutePath
+    }
+    if (providers.gradleProperty('registry_srg_jar').isPresent()) {
+        def srgJar = file(providers.gradleProperty('registry_srg_jar').get())
+        if (!srgJar.isFile()) throw new GradleException("Explicit registry_srg_jar must be a file")
+        inputs.file(srgJar).withPropertyName('registrySrgJar')
+        systemProperty 'registry.srg.jar', srgJar.absolutePath
+    }
+    if (providers.gradleProperty('shape_cfm_jar').isPresent()) {
+        def furnitureJar = file(providers.gradleProperty('shape_cfm_jar').get())
+        if (!furnitureJar.isFile()) throw new GradleException("Explicit shape_cfm_jar must be a file")
+        inputs.file(furnitureJar).withPropertyName('shapeFurnitureJar')
+        systemProperty 'shape.cfm.jar', furnitureJar.absolutePath
+    }
+    if (providers.gradleProperty('shape_canary_jar').isPresent()) {
+        def canaryJar = file(providers.gradleProperty('shape_canary_jar').get())
+        if (!canaryJar.isFile()) throw new GradleException("Explicit shape_canary_jar must be a file")
+        inputs.file(canaryJar).withPropertyName('shapeCanaryJar')
+        systemProperty 'shape.canary.jar', canaryJar.absolutePath
+    }
+    if (providers.gradleProperty('shape_cfm_jar').isPresent() || providers.gradleProperty('shape_canary_jar').isPresent()) {
+        dependsOn tasks.named('createMcpToSrg')
+        systemProperty 'shape.mappings', layout.buildDirectory.file('createMcpToSrg/output.tsrg').get().asFile.absolutePath
+    }
+    def originalBuildingGadgets = providers.gradleProperty('bgadgets_jar')
+    if (originalBuildingGadgets.isPresent()) {
+        def originalJar = file(originalBuildingGadgets.get())
+        inputs.file(originalJar).withPropertyName('buildingGadgetsOracleJar')
+        systemProperty 'bgadgets.jar', originalJar.absolutePath
+    }
+}
+
+tasks.register('serverShapeDifferential', JavaExec) {
+    group = 'verification'
+    description = 'Compares every block state shape with the launch shape cache and flat merger woven in and out.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.tools.shapes.ServerShapeDifferential'
+    maxHeapSize = '4G'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    doFirst {
+        if (!project.findProperty('shape_output')) throw new GradleException('Supply -Pshape_output=<new report.json>')
+        def report = project.file(project.property('shape_output'))
+        def argv = ['diff', new File(report.parentFile, report.name + '.dumps').absolutePath, report.absolutePath,
+                    "a=${project.findProperty('shape_arm_a') ?: 'vanilla'}",
+                    "b=${project.findProperty('shape_arm_b') ?: 'vha'}",
+                    "repeats=${project.findProperty('shape_repeats') ?: '1'}",
+                    "mappings=${layout.buildDirectory.file('createMcpToSrg/output.tsrg').get().asFile.absolutePath}"]
+        if (project.findProperty('shape_cfm_jar')) argv += ["cfm=${project.file(project.property('shape_cfm_jar')).absolutePath}"]
+        if (project.findProperty('shape_canary_jar')) argv += ["canary=${project.file(project.property('shape_canary_jar')).absolutePath}"]
+        args argv
+    }
+    dependsOn tasks.named('createMcpToSrg')
+}
+
+// Writes the test runtime classpath so a benchmark can start many fresh JVMs without Gradle in between.
+tasks.register('shapeClasspath') {
+    group = 'verification'
+    dependsOn tasks.named('testClasses'), tasks.named('createMcpToSrg')
+    doLast {
+        if (!project.findProperty('shape_classpath_out')) throw new GradleException('Supply -Pshape_classpath_out=<file>')
+        file(project.property('shape_classpath_out')).text = sourceSets.test.runtimeClasspath.asPath
+    }
+}
+
+tasks.register('ae2ThingsStringShareHarness', JavaExec) {
+    group = 'verification'
+    description = 'Measures AE2Things disk string sharing on an explicit copy of disk_manager.dat.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.compat.ae2things.Ae2ThingsStringShareHarness'
+    maxHeapSize = '6G'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    doFirst {
+        def paths = [:]
+        ['ae2things_input', 'ae2things_output'].each { option ->
+            def value = providers.gradleProperty(option).orNull
+            if (value == null || value.trim().isEmpty()) {
+                throw new GradleException("ae2ThingsStringShareHarness requires explicit -P${option}=<path>")
+            }
+            paths[option] = file(value).absolutePath
+        }
+        def args = ['--input', paths.ae2things_input, '--output-directory', paths.ae2things_output]
+        if (providers.gradleProperty('ae2things_write_saved').isPresent()) args << '--write-saved-files'
+        setArgs(args)
+    }
+}
+
+tasks.register('vaultCdfLazyMeasure', JavaExec) {
+    group = 'verification'
+    description = 'Measures heap retained by the 583 startup Vault loot distributions, eager versus lazy and compact, and first-use cost.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.mixin.plugin.VaultLootCdfLazyMeasure'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    jvmArgs '-XX:+UseSerialGC', '-Xms512m', '-Xmx1500m'
+    doFirst {
+        def output = providers.gradleProperty('vault_cdf_measure_output').orElse(providers.environmentVariable('VAULT_CDF_MEASURE_OUTPUT'))
+        if (!output.isPresent()) {
+            throw new GradleException('Explicit -Pvault_cdf_measure_output=<new report file outside the checkout> (or VAULT_CDF_MEASURE_OUTPUT) is required')
+        }
+        args file(output.get()).absolutePath
+    }
+}
+
+tasks.register('vaultCdfOfflineTiming', JavaExec) {
+    group = 'verification'
+    description = 'Times original Vault constructors and the compiled eager hook in an isolated offline fixture.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.mixin.plugin.VaultLootCdfOfflineTiming'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    jvmArgs '-XX:+UseG1GC', '-Xms512m', '-Xmx2g'
+    doFirst {
+        def paths = [:]
+        ['vault_cdf_jar', 'vault_cdf_fixture', 'vault_cdf_timing_output'].each { option ->
+            if (!providers.gradleProperty(option).isPresent()) throw new GradleException("Explicit -P${option} is required")
+            paths[option] = file(providers.gradleProperty(option).get())
+        }
+        ['vault_cdf_jar', 'vault_cdf_fixture'].each { option ->
+            if (!paths[option].isFile()) throw new GradleException("Explicit ${option} must be a file")
+        }
+        systemProperty 'vault.cdf.jar', paths.vault_cdf_jar.absolutePath
+        systemProperty 'vault.cdf.fixture', paths.vault_cdf_fixture.absolutePath
+        args paths.vault_cdf_timing_output.absolutePath
+    }
+}
+
+tasks.register('bgadgetsInventory', JavaExec) {
+    group = 'verification'
+    description = 'Reads an explicit copied BuildingGadgets snapshot with the original offline codecs.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.tools.bgtemplates.BuildingGadgetsInventory'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+
+    doFirst {
+        def paths = [:]
+        ['bgadgets_jar', 'bgadgets_input', 'bgadgets_output'].each { propertyName ->
+            def value = providers.gradleProperty(propertyName).orNull
+            if (value == null || value.trim().isEmpty()) {
+                throw new GradleException("bgadgetsInventory requires explicit -P${propertyName}=<path>")
+            }
+            paths[propertyName] = file(value).absolutePath
+        }
+        setArgs([
+                '--snapshot-file', paths.bgadgets_input,
+                '--output', paths.bgadgets_output,
+                '--buildinggadgets-jar', paths.bgadgets_jar
+        ])
+    }
+}
+
+def bgadgetsGraphAgent = tasks.register('bgadgetsRetainedGraphAgent', Jar) {
+    group = 'verification'
+    description = 'Builds a test-only Instrumentation agent for offline map graph measurement.'
+    dependsOn tasks.named('testClasses')
+    archiveFileName = 'bgadgets-retained-graph-agent.jar'
+    destinationDirectory = layout.buildDirectory.dir('offline-tools')
+    from(sourceSets.test.output) {
+        include 'dev/hoyin1600p/vhaccelerator/tools/bgtemplates/RetainedGraphAgent.class'
+    }
+    manifest {
+        attributes 'Premain-Class': 'dev.hoyin1600p.vhaccelerator.tools.bgtemplates.RetainedGraphAgent',
+                'Can-Retransform-Classes': 'true'
+    }
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn bgadgetsGraphAgent
+    jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
+    doFirst {
+        jvmArgs "-javaagent:${bgadgetsGraphAgent.get().archiveFile.get().asFile.absolutePath}"
+    }
+}
+
+tasks.register('worldZonesMembershipMeasure', JavaExec) {
+    group = 'verification'
+    description = 'Measures the offline WorldZones membership prototype on the pinned s4 size distribution.'
+    dependsOn tasks.named('testClasses'), bgadgetsGraphAgent
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.tools.bgtemplates.WorldZonesMembershipMeasure'
+    maxHeapSize = '3G'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
+    doFirst {
+        if (!project.findProperty('worldzones_output')) throw new GradleException('Supply -Pworldzones_output=<new external JSON>')
+        jvmArgs "-javaagent:${bgadgetsGraphAgent.get().archiveFile.get().asFile.absolutePath}"
+        setArgs([file(project.property('worldzones_output')).absolutePath])
+    }
+}
+
+tasks.register('bgadgetsCompactHarness', JavaExec) {
+    group = 'verification'
+    description = 'Compares original and installed delegate raw-tag saves and measures map-root graphs on an explicit copy.'
+    dependsOn tasks.named('testClasses'), bgadgetsGraphAgent
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.tools.bgtemplates.BuildingGadgetsCompactHarness'
+    maxHeapSize = '8G'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
+    doFirst {
+        def paths = [:]
+        ['bgadgets_jar', 'bgadgets_input', 'bgadgets_output'].each { propertyName ->
+            def value = providers.gradleProperty(propertyName).orNull
+            if (value == null || value.trim().isEmpty()) {
+                throw new GradleException("bgadgetsCompactHarness requires explicit -P${propertyName}=<path>")
+            }
+            paths[propertyName] = file(value).absolutePath
+        }
+        jvmArgs "-javaagent:${bgadgetsGraphAgent.get().archiveFile.get().asFile.absolutePath}"
+        setArgs([
+                '--snapshot-file', paths.bgadgets_input,
+                '--output-directory', paths.bgadgets_output,
+                '--buildinggadgets-jar', paths.bgadgets_jar
+        ])
+    }
+}
+
+tasks.register('bgadgetsNamedGuavaProbe', JavaExec) {
+    group = 'verification'
+    description = 'Tests the actual delegate installer against an explicitly supplied named Guava automatic module.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.hoyin1600p.vhaccelerator.tools.bgtemplates.NamedGuavaCompactProbe'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    doFirst {
+        def value = providers.gradleProperty('bgadgets_guava_jar').orNull
+        if (value == null || value.trim().isEmpty()) {
+            throw new GradleException('bgadgetsNamedGuavaProbe requires explicit -Pbgadgets_guava_jar=<pinned Guava jar>')
+        }
+        def archive = file(value).absolutePath
+        jvmArgs '--module-path', archive, '--add-modules', 'com.google.common'
+        setArgs([archive])
+    }
 }
 
 def compatibilityCompileTasks = []
@@ -336,11 +627,13 @@ tasks.register('verifyUnifiedCompatibilityJar') {
                         it.name.startsWith('net/p3pp3rf1y/sophisticatedcore/') ||
                         it.name.startsWith('cofh/thermal/') ||
                         it.name.startsWith('com/blamejared/crafttweaker/') ||
-                        it.name.startsWith('xaero/')
+                        it.name.startsWith('xaero/') ||
+                        it.name.startsWith('com/direwolf20/buildinggadgets/') ||
+                        it.name.startsWith('dev/hoyin1600p/vhaccelerator/tools/bgtemplates/')
             }
             if (!bundledDependencies.isEmpty()) {
                 throw new GradleException(
-                        'The output jar must not bundle optional mod classes.'
+                        'The output jar must not bundle optional mod classes or offline inventory tools.'
                 )
             }
         } finally {

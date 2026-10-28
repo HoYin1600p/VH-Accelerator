@@ -2,6 +2,7 @@ package dev.hoyin1600p.vhaccelerator.compat.decocraft;
 
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.compat.CompatMixinGroups;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ public final class DecocraftModelData {
         Object model = REGISTRATION_MODELS.get(location);
         if (model != null) {
             SHARED.increment();
+            CompatMixinGroups.recordOptimizationUse("dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft.JsonParserModelShareMixin");
         }
         return model;
     }
@@ -119,6 +121,9 @@ public final class DecocraftModelData {
             }
             MODELS.increment();
             STRIPPED_CHARS.add(chars);
+            if (chars > 0) {
+                CompatMixinGroups.recordOptimizationUse("dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft.BBModelTextureDataMixin");
+            }
         } catch (ReflectiveOperationException | RuntimeException failure) {
             failed = true;
             VHAccelerator.LOGGER.warn(
@@ -151,7 +156,8 @@ public final class DecocraftModelData {
             value = VHAcceleratorConfig.decocraftModelTrimmingEnabled();
             enabled = value;
         }
-        return value;
+        return value && CompatMixinGroups.activationAllowed(
+                "dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft.JsonParserModelShareMixin");
     }
 
     private static synchronized void resolve(Class<?> modelClass) throws ReflectiveOperationException {

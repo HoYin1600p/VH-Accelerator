@@ -2,6 +2,8 @@ package dev.hoyin1600p.vhaccelerator.client;
 
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.compat.vaulthunters.VaultLootCdfPolicy;
+import dev.hoyin1600p.vhaccelerator.shape.ShapeLaunchPolicy;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -20,6 +22,18 @@ public final class VHAcceleratorClientConfig {
                 new ForgeConfigSpec.Builder().configure(ClientConfigValues::new);
         VALUES = pair.getLeft();
         SPEC = pair.getRight();
+        VaultLootCdfPolicy.registerClientPermission(VHAcceleratorClientConfig::optimizationsEnabled);
+        ShapeLaunchPolicy.registerClientRule(VHAcceleratorClientConfig::shapeLaunchDecision);
+    }
+
+    /** The client rule for the shape features: undecided until the launch snapshot exists. */
+    private static int shapeLaunchDecision(ShapeLaunchPolicy.Feature feature) {
+        if (!launchSnapshotCaptured()) {
+            return ShapeLaunchPolicy.UNDECIDED;
+        }
+        return optimizationsEnabled() && ShapeLaunchPolicy.configuredAtLaunch(feature)
+                ? ShapeLaunchPolicy.ON
+                : ShapeLaunchPolicy.OFF;
     }
 
     private VHAcceleratorClientConfig() {

@@ -7,6 +7,7 @@
  * Upstream commit: 4cde23f4fe2c3c8422ea21195a6f6f9125ef7dc8
  * Original copyright: Copyright (c) 2025 embeddedt and ModernFix contributors
  * VH Accelerator modifications: Copyright (C) 2026 HoYin1600p
+ * Modified: 2026-10-24; added prewarm() so a worker can build the snapshot ahead of the first query.
  * Modified: 2026-08-30; retargeted the tree index to Forge 40's PathResourcePack API,
  * restricted it to immutable filesystems, and added fail-closed scan limits and
  * Minecraft 1.18.2's server-language namespace fallback.
@@ -214,6 +215,40 @@ public final class ImmutablePathPackIndex {
         return matches;
     }
 
+    /**
+     * Builds the snapshot now if no thread has yet. Safe to call from any
+     * thread: the build is serialized per pack, a pack already built or
+     * rejected returns immediately, and a failed build leaves the pack on
+     * Forge's original path exactly as a lazy query would.
+     */
+    public void prewarm() {
+        snapshot();
+    }
+
+    /**
+     * Canonical text of the built snapshot (types in index order, children in
+     * insertion order, files marked), or null when it was rejected. Test seam
+     * for proving that two builds of one pack are identical.
+     */
+    @Nullable
+    String describeForTesting() {
+        Snapshot built = snapshot();
+        if (built == null) {
+            return null;
+        }
+        StringBuilder text = new StringBuilder();
+        for (PackType type : INDEXED_TYPES) {
+            text.append(type.getDirectory())
+                    .append(built.rootPresence().getOrDefault(type, false) ? "+" : "-")
+                    .append('\n');
+            Node root = built.root(type);
+            if (root != null) {
+                root.describe(text, 1);
+            }
+        }
+        return text.toString();
+    }
+
     @Nullable
     private Snapshot snapshot() {
         Snapshot current = this.snapshot;
@@ -248,6 +283,7 @@ public final class ImmutablePathPackIndex {
     }
 
     private Snapshot build() throws IOException {
+        dev.hoyin1600p.vhaccelerator.startup.StartupWorkObserver.enter("resource.index.path.build", this);
         long started = System.nanoTime();
         EnumMap<PackType, Node> roots = new EnumMap<>(PackType.class);
         EnumMap<PackType, Boolean> rootPresence =
@@ -299,6 +335,7 @@ public final class ImmutablePathPackIndex {
                 this.debugName,
                 (System.nanoTime() - started) / 1_000_000L
         );
+        dev.hoyin1600p.vhaccelerator.startup.ServerLaunchTimer.exitOperation("resource.index.path.build", null, (long) files);
         return complete;
     }
 
@@ -520,6 +557,16 @@ public final class ImmutablePathPackIndex {
                         filter,
                         output
                 );
+            }
+        }
+
+        private void describe(StringBuilder text, int depth) {
+            for (int slot = 0; slot < this.size; slot++) {
+                Node child = this.nodes[slot];
+                text.append("  ".repeat(depth)).append(this.names[slot])
+                        .append(child.file ? " [f]" : "")
+                        .append('\n');
+                child.describe(text, depth + 1);
             }
         }
 

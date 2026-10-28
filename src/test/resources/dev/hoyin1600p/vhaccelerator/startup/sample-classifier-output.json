@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "contract": {
+    "stackOrientation": "leaf_to_root; class names in dotted binary form; method separate",
+    "inclusiveDepth": 48,
+    "nearestOwnerDepth": 32,
+    "schemaVersion": 1,
+    "packageOwners": {
+      "com.blamejared.crafttweaker.": "CraftTweaker",
+      "iskallia.vault.": "Vault core",
+      "com.razz.decocraft.": "Decocraft",
+      "com.mrcrayfish.furniture.": "MrCrayfish Furniture",
+      "dev.hoyin1600p.vhaccelerator.": "VH Accelerator",
+      "ca.spottedleaf.starlight.": "Starlight",
+      "net.mehvahdjukaar.selene.": "Selene",
+      "dev.latvian.mods.": "dev.latvian.mods"
+    },
+    "startupFilter": "startInclusiveNanos \u003c\u003d timestampNanos \u003c doneExclusiveNanos; same reconciled clock required",
+    "fallbacks": [
+      "other_mod_or_library",
+      "platform_or_framework",
+      "missing_stack"
+    ],
+    "missingAndTruncated": "missing stacks stay in denominator; truncated stacks stay classified with explicit counts; no inferred frames",
+    "referenceReconciliation": "1514 startup samples and published phase/owner totals require the original recording, export and clock mapping; not reproduced by synthetic fixtures",
+    "excludedPlatformFrameworkPrefixes": [
+      "java.",
+      "javax.",
+      "jdk.",
+      "sun.",
+      "com.sun.",
+      "net.minecraft.",
+      "net.minecraftforge.",
+      "cpw.mods.",
+      "org.spongepowered.asm.",
+      "org.objectweb.asm.",
+      "com.mojang.",
+      "org.slf4j.",
+      "org.apache.logging."
+    ]
+  },
+  "startInclusiveNanos": 10,
+  "doneExclusiveNanos": 70,
+  "selectedSamples": 6,
+  "outsideStartupSamples": 2,
+  "missingStackSamples": 1,
+  "truncatedStackSamples": 2,
+  "nearestDepthLimitedSamples": 0,
+  "inclusiveDepthLimitedSamples": 0,
+  "nearestOwnerCounts": {
+    "CraftTweaker": 1,
+    "VH Accelerator": 1,
+    "dev.latvian.mods": 1,
+    "missing_stack": 1,
+    "platform_or_framework": 1,
+    "other_mod_or_library": 1
+  },
+  "inclusiveOwnerCounts": {
+    "CraftTweaker": 2,
+    "Vault core": 1,
+    "VH Accelerator": 1,
+    "Selene": 1,
+    "dev.latvian.mods": 1,
+    "missing_stack": 1,
+    "platform_or_framework": 1,
+    "other_mod_or_library": 1
+  },
+  "externallyAssignedPhaseCounts": {
+    "reload": 3,
+    "registries": 1,
+    "unassigned": 1,
+    "bootstrap": 1
+  },
+  "reference1514State": "unreconciled: original recording/export and timestamp mapping are not inputs to this implementation",
+  "interpretation": "nearest counts partition selected samples; inclusive owners overlap; neither is exclusive CPU or critical-path seconds"
+}

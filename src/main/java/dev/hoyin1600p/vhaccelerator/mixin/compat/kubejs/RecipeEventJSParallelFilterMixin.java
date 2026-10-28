@@ -31,13 +31,14 @@ public abstract class RecipeEventJSParallelFilterMixin {
             Consumer<RecipeJS> consumer,
             CallbackInfo callback
     ) {
-        if (filter == RecipeFilter.ALWAYS_TRUE
+        if (callback.isCancelled()
+                || filter == RecipeFilter.ALWAYS_TRUE
                 || filter == RecipeFilter.ALWAYS_FALSE
                 || originalRecipes.size() < 2_048
                 || !KubeJsParallelFilters.isParallelSafe(filter)) {
             return;
         }
-        List<RecipeJS> matches = originalRecipes.parallelStream().filter(filter).toList();
+        List<RecipeJS> matches = KubeJsParallelFilters.matchesInOrder(originalRecipes, filter);
         matches.forEach(consumer);
         callback.cancel();
     }

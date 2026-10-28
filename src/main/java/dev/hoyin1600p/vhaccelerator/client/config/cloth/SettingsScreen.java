@@ -2,6 +2,8 @@ package dev.hoyin1600p.vhaccelerator.client.config.cloth;
 
 import dev.hoyin1600p.vhaccelerator.client.bugreport.BugReportScreen;
 import dev.hoyin1600p.vhaccelerator.client.config.ScreenScale;
+import dev.hoyin1600p.vhaccelerator.client.config.ServerSettingsClient;
+import dev.hoyin1600p.vhaccelerator.config.ServerSettingsService;
 import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog.Category;
 import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog.Setting;
 import dev.hoyin1600p.vhaccelerator.client.config.catalog.ConfigSettingCatalog;
@@ -11,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
@@ -53,18 +56,41 @@ public final class SettingsScreen {
     }
 
     public static void open(Screen parent) {
-        Minecraft.getInstance().setScreen(create(parent));
+        // Fetch before controls are shown, so an async refresh cannot discard an edited local row.
+        Screen loading = loading(parent);
+        show(loading);
+        ServerSettingsClient.request(Map.of(), result -> {
+            if (Minecraft.getInstance().screen == loading) openLoaded(parent);
+        });
+    }
+
+    private static void openLoaded(Screen parent) {
+        try {
+            Minecraft.getInstance().setScreen(create(parent));
+        } catch (LinkageError incompatible) {
+            dev.hoyin1600p.vhaccelerator.VHAccelerator.LOGGER.warn("Could not open the settings screen with this Cloth Config", incompatible);
+            Minecraft minecraft = Minecraft.getInstance();
+            minecraft.setScreen(parent);
+            if (minecraft.player != null) minecraft.player.displayClientMessage(
+                    new TranslatableComponent("vhaccelerator.config.message.cloth_incompatible"), false);
+        }
     }
 
     public static Screen create(Screen parent) {
         Map<Setting, Object> current = ConfigSettingStore.currentValues();
         Map<Setting, Object> pending = new LinkedHashMap<>();
+        Map<Setting, Object> serverPending = new LinkedHashMap<>();
+        Object serverSession = ServerSettingsClient.session();
         ConfigBuilder builder = ConfigBuilder.create()
                 .setParentScreen(parent)
                 .setTitle(new TranslatableComponent("vhaccelerator.config.title"));
         ConfigEntryBuilder entries = builder.entryBuilder();
         for (Category category : Category.values()) {
-            List<Setting> settings = ConfigSettingCatalog.in(category);
+            if (category == Category.REMOTE_SERVER) {
+                addServerTab(builder, entries, serverPending, parent, serverSession);
+                continue;
+            }
+            List<Setting> settings = ConfigSettingCatalog.in(category).stream().filter(SettingsScreen::localSetting).toList();
             if (settings.isEmpty() && category != Category.DIAGNOSTICS) {
                 continue;
             }
@@ -87,9 +113,13 @@ public final class SettingsScreen {
             }
         }
         builder.setSavingRunnable(() -> {
+            pending.keySet().removeIf(setting -> !localSetting(setting));
             List<Setting> restart = ConfigSettingStore.apply(Map.copyOf(pending));
             pending.clear();
-            if (!restart.isEmpty()) {
+            Map<String, Object> changes = serverChanges(serverPending);
+            if (!changes.isEmpty()) {
+                Minecraft.getInstance().tell(() -> saveServer(changes, parent, restart, serverSession));
+            } else if (!restart.isEmpty()) {
                 // Cloth returns to the parent right after this runnable; show the notice after that.
                 Minecraft.getInstance().tell(() -> showRestartNotice(restart, parent));
             }
@@ -108,8 +138,14 @@ public final class SettingsScreen {
 
     private static AbstractConfigListEntry<?> entry(ConfigEntryBuilder entries, Setting setting, Object value,
                                                     Map<Setting, Object> pending) {
-        Component label = label(setting);
-        Object defaultValue = ConfigSettingStore.defaultValue(setting);
+        return entry(entries, setting, value, ConfigSettingStore.defaultValue(setting),
+                ConfigSettingStore.intRange(setting), ConfigSettingStore.doubleRange(setting), pending, false);
+    }
+
+    private static AbstractConfigListEntry<?> entry(ConfigEntryBuilder entries, Setting setting, Object value,
+                                                    Object defaultValue, int[] intRange, double[] doubleRange,
+                                                    Map<Setting, Object> pending, boolean server) {
+        Component label = label(setting, server);
         if (defaultValue instanceof Boolean defaultBoolean) {
             return entries.startBooleanToggle(label, (Boolean) value)
                     .setDefaultValue(defaultBoolean)
@@ -117,7 +153,7 @@ public final class SettingsScreen {
                     .build();
         }
         if (defaultValue instanceof Integer defaultInt) {
-            int[] range = ConfigSettingStore.intRange(setting);
+            int[] range = intRange;
             int min = range == null ? Integer.MIN_VALUE : range[0];
             int max = range == null ? Integer.MAX_VALUE : range[1];
             if (range != null && max - min <= MAX_SLIDER_RANGE) {
@@ -134,7 +170,7 @@ public final class SettingsScreen {
                     .build();
         }
         if (defaultValue instanceof Double defaultDouble) {
-            double[] range = ConfigSettingStore.doubleRange(setting);
+            double[] range = doubleRange;
             return entries.startDoubleField(label, (Double) value)
                     .setMin(range == null ? -Double.MAX_VALUE : range[0])
                     .setMax(range == null ? Double.MAX_VALUE : range[1])
@@ -169,9 +205,14 @@ public final class SettingsScreen {
     }
 
     static MutableComponent label(Setting setting) {
+        return label(setting, false);
+    }
+
+    private static MutableComponent label(Setting setting, boolean server) {
         MutableComponent label = new TranslatableComponent(setting.labelKey());
         if (setting.restartRequired()) {
-            label.append(" ").append(new TranslatableComponent("vhaccelerator.config.badge.restart")
+            label.append(" ").append(new TranslatableComponent(server ? "vhaccelerator.config.badge.server_restart"
+                            : "vhaccelerator.config.badge.restart")
                     .withStyle(ChatFormatting.GOLD));
         }
         return label;
@@ -186,9 +227,11 @@ public final class SettingsScreen {
         int sideWidth = Math.min(MAX_SIDE_BUTTON_WIDTH, screen.width / 2 - clothButtonWidth - 3 - 2 * FOOTER_MARGIN);
         int y = screen.height - 26;
         event.addListener(new Button(FOOTER_MARGIN, y, sideWidth, GuiLayout.BUTTON_HEIGHT,
-                new TranslatableComponent("vhaccelerator.config.button.default"), button -> confirmDefaults(screen)));
+                new TranslatableComponent(ServerSettingsClient.connected() ? "vhaccelerator.config.button.local_default"
+                        : "vhaccelerator.config.button.default"), button -> confirmDefaults(screen)));
         event.addListener(new Button(screen.width - FOOTER_MARGIN - sideWidth, y, sideWidth, GuiLayout.BUTTON_HEIGHT,
-                new TranslatableComponent("vhaccelerator.config.button.experimental"), button -> confirmExperimental(screen)));
+                new TranslatableComponent(ServerSettingsClient.connected() ? "vhaccelerator.config.button.local_experimental"
+                        : "vhaccelerator.config.button.experimental"), button -> confirmExperimental(screen)));
     }
 
     private static void confirmDefaults(Screen clothScreen) {
@@ -199,16 +242,22 @@ public final class SettingsScreen {
                         Minecraft.getInstance().setScreen(clothScreen);
                         return;
                     }
-                    applyAndReopen(ConfigSettingStore.defaults(), parent);
+                    Map<Setting, Object> defaults = new LinkedHashMap<>();
+                    ConfigSettingStore.defaults().forEach((setting, value) -> {
+                        if (localSetting(setting)) defaults.put(setting, value);
+                    });
+                    applyAndReopen(defaults, parent);
                 },
                 new TranslatableComponent("vhaccelerator.config.dialog.default.title"),
-                new TranslatableComponent("vhaccelerator.config.dialog.default.message")
+                new TranslatableComponent(ServerSettingsClient.connected() ? "vhaccelerator.config.server.local_defaults"
+                        : "vhaccelerator.config.dialog.default.message")
         ));
     }
 
     private static void confirmExperimental(Screen clothScreen) {
         Screen parent = openParent;
-        List<Setting> changes = ConfigSettingStore.experimentalChanges(ConfigSettingStore.currentValues());
+        List<Setting> changes = ConfigSettingStore.experimentalChanges(ConfigSettingStore.currentValues())
+                .stream().filter(SettingsScreen::localSetting).toList();
         if (changes.isEmpty()) {
             show(new OpaqueAlertScreen(
                     () -> Minecraft.getInstance().setScreen(clothScreen),
@@ -230,6 +279,99 @@ public final class SettingsScreen {
                 new TranslatableComponent("vhaccelerator.config.dialog.experimental.title"),
                 new TranslatableComponent("vhaccelerator.config.dialog.experimental.message", list(changes))
         ));
+    }
+
+    private static boolean localSetting(Setting setting) {
+        return ConfigSettingCatalog.localEditable(setting, ServerSettingsClient.connected());
+    }
+
+    private static void addServerTab(ConfigBuilder builder, ConfigEntryBuilder entries,
+                                     Map<Setting, Object> pending, Screen parent, Object session) {
+        ConfigCategory tab = builder.getOrCreateCategory(new TranslatableComponent(Category.REMOTE_SERVER.translationKey()));
+        tab.addEntry(new ExpandableDescriptionEntry(new TranslatableComponent("vhaccelerator.config.server.header"),
+                new TranslatableComponent("vhaccelerator.config.server.explanation")));
+        var snapshot = ServerSettingsClient.snapshot();
+        if (snapshot.status() != ServerSettingsService.Status.OK) {
+            String key = !ServerSettingsClient.connected() ? "join" : snapshot.status().name().toLowerCase(Locale.ROOT);
+            tab.addEntry(new ExpandableDescriptionEntry(new TranslatableComponent("vhaccelerator.config.server." + key),
+                    new TranslatableComponent("vhaccelerator.config.server.explanation")));
+            return;
+        }
+        tab.addEntry(new ButtonListEntry(new TranslatableComponent("vhaccelerator.config.server.defaults"),
+                button -> confirmServerDefaults(false, parent, session)));
+        tab.addEntry(new ButtonListEntry(new TranslatableComponent("vhaccelerator.config.server.experimental"),
+                button -> confirmServerDefaults(true, parent, session)));
+        for (Setting original : ConfigSettingCatalog.serverSettings()) {
+            var row = snapshot.values().get(String.join(".", original.path()));
+            if (row == null || !row.value().getClass().equals(row.defaultValue().getClass())) continue;
+            Setting setting = new Setting(original.id(), original.category(), original.storage(), original.path(),
+                    row.restartRequired(), null);
+            int[] ints = row.min() != null && row.defaultValue() instanceof Integer
+                    ? new int[] {row.min().intValue(), row.max().intValue()} : null;
+            double[] doubles = row.min() != null && row.defaultValue() instanceof Double
+                    ? new double[] {row.min().doubleValue(), row.max().doubleValue()} : null;
+            tab.addEntry(entry(entries, setting, row.value(), row.defaultValue(), ints, doubles, pending, true));
+            tab.addEntry(new ExpandableDescriptionEntry(new TranslatableComponent(setting.summaryKey()),
+                    new TranslatableComponent(setting.tooltipKey())));
+        }
+    }
+
+    private static Map<String, Object> serverChanges(Map<Setting, Object> pending) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        var snapshot = ServerSettingsClient.snapshot();
+        pending.forEach((setting, value) -> {
+            String key = String.join(".", setting.path());
+            var current = snapshot.values().get(key);
+            if (current != null && !Objects.equals(current.value(), value)) values.put(key, value);
+        });
+        return values;
+    }
+
+    private static void confirmServerDefaults(boolean experimental, Screen parent, Object session) {
+        Screen previous = Minecraft.getInstance().screen;
+        Map<String, Object> changes = new LinkedHashMap<>();
+        var snapshot = ServerSettingsClient.snapshot();
+        for (Setting setting : ConfigSettingCatalog.serverSettings()) {
+            String key = String.join(".", setting.path());
+            var row = snapshot.values().get(key);
+            if (row == null) continue;
+            if (experimental && !ConfigSettingCatalog.experimental(setting, row.defaultValue())) continue;
+            Object target = experimental ? Boolean.TRUE : row.defaultValue();
+            if (!Objects.equals(target, row.value())) changes.put(key, target);
+        }
+        show(new OpaqueConfirmScreen(confirmed -> {
+            if (confirmed) saveServer(changes, parent, List.of(), session);
+            else Minecraft.getInstance().setScreen(previous);
+        }, new TranslatableComponent("vhaccelerator.config.server." + (experimental ? "experimental" : "defaults")),
+                new TranslatableComponent("vhaccelerator.config.server." + (experimental ? "confirm_experimental" : "confirm_defaults"),
+                        changes.size(), list(ConfigSettingCatalog.all().stream().filter(setting ->
+                                changes.containsKey(String.join(".", setting.path()))).toList()))));
+    }
+
+    private static Screen loading(Screen parent) {
+        return ScreenScale.own(new OpaqueAlertScreen(() -> Minecraft.getInstance().setScreen(parent),
+                new TranslatableComponent(Category.REMOTE_SERVER.translationKey()),
+                new TranslatableComponent("vhaccelerator.config.server.loading"), false));
+    }
+
+    private static void saveServer(Map<String, Object> changes, Screen parent, List<Setting> localRestarts, Object session) {
+        Screen waiting = loading(parent);
+        show(waiting);
+        ServerSettingsClient.requestFor(session, changes, result -> {
+            if (Minecraft.getInstance().screen != waiting) return;
+            String status = result.status() == ServerSettingsService.Status.OK
+                    ? (result.restartKeys().isEmpty() ? "saved" : "saved_restart")
+                    : result.status() == ServerSettingsService.Status.UNAVAILABLE ? "unconfirmed"
+                    : result.status().name().toLowerCase(Locale.ROOT);
+            show(new OpaqueAlertScreen(() -> {
+                Screen fresh = create(parent);
+                if (localRestarts.isEmpty()) Minecraft.getInstance().setScreen(fresh);
+                else showRestartNotice(localRestarts, fresh);
+            }, new TranslatableComponent(Category.REMOTE_SERVER.translationKey()),
+                    new TranslatableComponent("vhaccelerator.config.server." + status, result.restartKeys().size(),
+                            list(ConfigSettingCatalog.serverSettings().stream().filter(setting ->
+                                    result.restartKeys().contains(String.join(".", setting.path()))).toList()))));
+        });
     }
 
     /** Saves and applies, then opens a fresh screen so every entry shows the new saved values. */
@@ -288,9 +430,17 @@ public final class SettingsScreen {
     }
 
     private static final class OpaqueAlertScreen extends AlertScreen {
+        private final boolean pause;
         OpaqueAlertScreen(Runnable callback, Component title, Component message) {
-            super(callback, title, message);
+            this(callback, title, message, true);
         }
+
+        OpaqueAlertScreen(Runnable callback, Component title, Component message, boolean pause) {
+            super(callback, title, message);
+            this.pause = pause;
+        }
+
+        @Override public boolean isPauseScreen() { return pause; }
 
         @Override
         public void renderBackground(com.mojang.blaze3d.vertex.PoseStack poseStack, int offset) {

@@ -1,7 +1,9 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.vaulthunters;
 
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
-import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.VaultLootCdfOptimizer;
+import dev.hoyin1600p.vhaccelerator.compat.CompatMixinGroups;
+import dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts;
+import dev.hoyin1600p.vhaccelerator.client.compat.vaulthunters.VaultLootCdfDiagnostics;
 import iskallia.vault.core.world.loot.generator.TieredLootTableGenerator;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import org.spongepowered.asm.mixin.Final;
@@ -46,27 +48,6 @@ public abstract class TieredLootTableGeneratorCdfMixin {
     @Shadow
     public abstract double getProbability(int[] frequencies);
 
-    @Inject(method = "compute", at = @At("HEAD"), cancellable = true)
-    private void vhaccelerator$useHashBuckets(
-            CallbackInfoReturnable<Long2DoubleMap> cir
-    ) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.launchValue(
-                        VHAcceleratorClientConfig.VALUES.optimizeVaultLootCdf
-                )) {
-            return;
-        }
-
-        cir.setReturnValue(VaultLootCdfOptimizer.compute(
-                this.samples,
-                this.weights.length,
-                this::getHeuristic,
-                this::pack,
-                this::unpack,
-                this::getProbability
-        ));
-    }
-
     /**
      * Vault builds 53 distributions per supported loot table on every config
      * load (about 110 MB in Asgard), though only loot generation reads them. A
@@ -82,7 +63,8 @@ public abstract class TieredLootTableGeneratorCdfMixin {
             )
     )
     private Long2DoubleMap vhaccelerator$deferCompute(TieredLootTableGenerator.CDF self) {
-        if (VHAcceleratorClientConfig.optimizationsEnabled()
+        if (CompatMixinGroups.activationAllowed(VaultLootCdfLayouts.MIXIN)
+                && VHAcceleratorClientConfig.optimizationsEnabled()
                 && VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES.lazyVaultLootCdf
                 )) {
@@ -118,7 +100,7 @@ public abstract class TieredLootTableGeneratorCdfMixin {
                     long started = System.nanoTime();
                     computed = this.compute();
                     vhaccelerator$lazyMap = computed;
-                    if (VaultLootCdfOptimizer.shouldLogFirstUse()) {
+                    if (VaultLootCdfDiagnostics.shouldLogFirstUse()) {
                         dev.hoyin1600p.vhaccelerator.VHAccelerator.LOGGER.info(
                                 "[debug] Computed a Vault loot distribution on first use: "
                                         + "{} rolls, {} outcomes, {} ms on {}",

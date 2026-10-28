@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.annotation.ElementType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 import java.util.Map;
 import java.util.Set;
 import net.minecraftforge.forgespi.language.ModFileScanData;
@@ -119,5 +121,72 @@ final class ModFileScanDataCompactorTest {
 
         assertNull(data.getAnnotations().iterator().next().memberName());
         assertNull(data.getClasses().iterator().next().parent());
+    }
+
+    /** Deterministic scan data for many "files"; types repeat across files. */
+    private static List<ModFileScanData> syntheticFiles(int files) {
+        Random random = new Random(7L);
+        List<ModFileScanData> all = new ArrayList<>();
+        for (int file = 0; file < files; file++) {
+            ModFileScanData data = new ModFileScanData();
+            int records = 20 + random.nextInt(400);
+            for (int record = 0; record < records; record++) {
+                Type owner = Type.getObjectType("shared/Owner" + random.nextInt(60));
+                data.getAnnotations().add(new ModFileScanData.AnnotationData(
+                        Type.getObjectType(random.nextInt(9) == 0
+                                ? "org/spongepowered/asm/mixin/Mixin"
+                                : "shared/Annotation" + random.nextInt(25)),
+                        ElementType.TYPE,
+                        owner,
+                        "member" + random.nextInt(40),
+                        Map.of("value", "v" + random.nextInt(5))
+                ));
+                data.getClasses().add(new ModFileScanData.ClassData(
+                        Type.getObjectType("file" + file + "/C" + record),
+                        random.nextBoolean() ? null : owner,
+                        Set.of(Type.getObjectType("shared/Iface" + random.nextInt(10)))
+                ));
+            }
+            all.add(data);
+        }
+        return all;
+    }
+
+    @Test
+    void parallelCompactionOfManyFilesMatchesSerialCompaction() {
+        List<ModFileScanData> serial = syntheticFiles(64);
+        List<ModFileScanData> parallel = syntheticFiles(64);
+
+        int annotationsBefore = 0;
+        for (ModFileScanData data : serial) {
+            ModFileScanDataCompactor.Statistics one =
+                    ModFileScanDataCompactor.compactForTesting(data);
+            annotationsBefore += one.annotationsBefore();
+        }
+        ModFileScanDataCompactor.Statistics merged =
+                ModFileScanDataCompactor.compactManyForTesting(parallel);
+
+        assertEquals(64, merged.filesVisited());
+        assertEquals(0, merged.failedFiles());
+        assertEquals(annotationsBefore, merged.annotationsBefore());
+        for (int file = 0; file < serial.size(); file++) {
+            assertEquals(serial.get(file).getAnnotations(), parallel.get(file).getAnnotations(),
+                    "annotations of file " + file);
+            assertEquals(serial.get(file).getClasses(), parallel.get(file).getClasses(),
+                    "classes of file " + file);
+            assertEquals(new ArrayList<>(serial.get(file).getAnnotations()),
+                    new ArrayList<>(parallel.get(file).getAnnotations()),
+                    "annotation order of file " + file);
+        }
+        // One canonical instance per distinct type across every file, whichever thread saw it first.
+        Map<Type, Type> canonical = new HashMap<>();
+        for (ModFileScanData data : parallel) {
+            for (ModFileScanData.AnnotationData annotation : data.getAnnotations()) {
+                assertSame(canonical.computeIfAbsent(annotation.clazz(), type -> type), annotation.clazz());
+                assertSame(canonical.computeIfAbsent(annotation.annotationType(), type -> type),
+                        annotation.annotationType());
+            }
+        }
+        assertTrue(merged.canonicalTypes() > 60);
     }
 }

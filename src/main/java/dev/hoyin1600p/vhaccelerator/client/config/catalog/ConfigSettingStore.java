@@ -58,9 +58,7 @@ public final class ConfigSettingStore {
      */
     public static List<Setting> experimentalTargets() {
         return ConfigSettingCatalog.all().stream()
-                .filter(setting -> !setting.diagnostics())
-                .filter(setting -> !ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS.contains(setting.id()))
-                .filter(setting -> Boolean.FALSE.equals(defaultValue(setting)))
+                .filter(setting -> ConfigSettingCatalog.experimental(setting, defaultValue(setting)))
                 .toList();
     }
 

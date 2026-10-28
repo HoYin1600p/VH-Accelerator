@@ -2,7 +2,7 @@
 
 ## Supported environment
 
-VH Accelerator 1.0.12 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
+VH Accelerator 1.2.0 targets Minecraft 1.18.2 and Forge 40.3.11 or newer in
 the 40.x line. It produces Java 17-compatible bytecode.
 
 The same jar contains guarded support for:
@@ -32,9 +32,9 @@ runtime testing.
 2. Back up the instance.
 3. Remove or disable any older VH Accelerator jar.
 4. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize.
-5. Copy `VH-Accelerator-1.1.4.jar` into the instance's `mods` directory.
+5. Copy `VH-Accelerator-1.2.0.jar` into the instance's `mods` directory.
 6. Start the client and allow the first launch to build its caches.
-7. Confirm the Mods screen reports version `1.1.4`.
+7. Confirm the Mods screen reports version `1.2.0`.
 
 VH Accelerator works client-side when connecting to a server that does not
 have the mod. This is the expected deployment for public or otherwise
@@ -42,11 +42,12 @@ uncontrolled servers.
 
 ## Dedicated-server status
 
-VH Accelerator is intended for client and dedicated-server use. Client
-behavior has been tested; dedicated-server installation and behavior have not
-yet been tested. If evaluating it on a dedicated server, use a non-production
-test server and keep a rollback path. A separate server pass and deployment
-guide will follow testing.
+Use the universal jar in the server's `mods` directory. Dedicated-server checks
+cover paired startup and heap measurements on a large production pack and Wolds, plus selected recipe
+reload and save/restart checks. See the [1.2.0 release notes](releases/1.2.0.md)
+for conditions, limits and the one-time config defaults upgrades. Validate your
+pack on a test copy and keep a rollback path before updating a production world.
+Clients do not need VHA installed to join a server using it.
 
 ## Overlap with other performance mods
 

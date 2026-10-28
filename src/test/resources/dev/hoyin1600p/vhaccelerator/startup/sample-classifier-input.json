@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "startInclusiveNanos": 10,
+  "doneExclusiveNanos": 70,
+  "samples": [
+    {"timestampNanos": 9, "classNamesLeafToRoot": ["com.razz.decocraft.Model"], "truncated": false, "phase": "bootstrap"},
+    {"timestampNanos": 10, "classNamesLeafToRoot": ["java.util.HashMap", "com.blamejared.crafttweaker.api.action.Action", "iskallia.vault.init.Registry"], "truncated": true, "phase": "reload"},
+    {"timestampNanos": 20, "classNamesLeafToRoot": ["dev.hoyin1600p.vhaccelerator.backport.modernfix.resource.ImmutablePathPackIndex", "net.mehvahdjukaar.selene.resourcepack.DynamicResourcePack"], "truncated": false, "phase": "registries"},
+    {"timestampNanos": 30, "classNamesLeafToRoot": ["dev.latvian.mods.rhino.Context"], "truncated": false, "phase": "reload"},
+    {"timestampNanos": 40, "classNamesLeafToRoot": [], "truncated": false, "phase": null},
+    {"timestampNanos": 50, "classNamesLeafToRoot": ["java.lang.Thread", "cpw.mods.modlauncher.Launcher"], "truncated": true, "phase": "bootstrap"},
+    {"timestampNanos": 60, "classNamesLeafToRoot": ["example.unmapped.Callback", "com.blamejared.crafttweaker.impl.Manager"], "truncated": false, "phase": "reload"},
+    {"timestampNanos": 70, "classNamesLeafToRoot": ["ca.spottedleaf.starlight.Engine"], "truncated": false, "phase": "spawn"}
+  ]
+}

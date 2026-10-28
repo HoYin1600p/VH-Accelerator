@@ -94,7 +94,7 @@ public final class ObjectHolderRedundantCallbackPruner {
                 if (!(value instanceof Set<?> holders)) {
                     return Statistics.unavailable();
                 }
-                return pruneHandlers(
+                Statistics result = pruneHandlers(
                         holders,
                         holderClass,
                         holderRegistryField,
@@ -105,6 +105,9 @@ public final class ObjectHolderRedundantCallbackPruner {
                         isDummied,
                         streamlined
                 );
+                // The pass edits the handler set through its iterator, behind Forge's back.
+                dev.hoyin1600p.vhaccelerator.registry.ObjectHolderDispatch.mutated();
+                return result;
             }
         } catch (LinkageError | ReflectiveOperationException exception) {
             return Statistics.unavailable();

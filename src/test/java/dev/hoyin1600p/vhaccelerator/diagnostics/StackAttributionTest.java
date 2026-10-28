@@ -15,7 +15,7 @@ class StackAttributionTest {
     void pathNamesTheModThatCalledASharedHelper() {
         StackTraceElement[] stack = {
                 frame("java.util.BitSet", "get"),
-                frame("dev.hoyin1600p.vhaccelerator.client.shape.FastCoordinateMerger", "m_6200_"),
+                frame("dev.hoyin1600p.vhaccelerator.shape.FastCoordinateMerger", "m_6200_"),
                 frame("net.minecraft.world.phys.shapes.Shapes", "m_83882_"),
                 frame("net.minecraft.world.phys.shapes.Shapes", "m_83113_"),
                 frame("net.minecraft.world.phys.shapes.Shapes", "m_83110_"),

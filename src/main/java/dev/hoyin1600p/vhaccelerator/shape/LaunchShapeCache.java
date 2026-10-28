@@ -1,5 +1,6 @@
 package dev.hoyin1600p.vhaccelerator.shape;
 
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
@@ -17,6 +18,11 @@ import java.util.function.Consumer;
  * Voxel shapes are immutable, and vanilla already shares
  * {@code Shapes.block()} and {@code Shapes.empty()} globally.</p>
  *
+ * <p>Where another mod replaces {@code Shapes.box} (Canary), the box sharing
+ * is not woven. Join and optimize keys then replace each cuboid leaf by the
+ * first instance with the same class and content ({@link #leaf}); every
+ * other shape, including every join result, is still keyed by identity.</p>
+ *
  * <p>The cache closes and is cleared when Forge mod loading completes; later
  * gameplay uses vanilla behaviour. Generic types keep this class free of
  * Minecraft types so it can be tested directly.</p>
@@ -24,15 +30,26 @@ import java.util.function.Consumer;
 public final class LaunchShapeCache {
     static final int MAX_ENTRIES = 250_000;
     private static final ConcurrentHashMap<BoxKey, Object> BOXES = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<LeafContent, Object> LEAVES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<JoinKey, Object> JOINS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<IdentityKey, Object> OPTIMIZED = new ConcurrentHashMap<>();
     private static final LongAdder BOX_HITS = new LongAdder();
+    private static final LongAdder LEAF_HITS = new LongAdder();
     private static final LongAdder JOIN_HITS = new LongAdder();
     private static final LongAdder OPTIMIZE_HITS = new LongAdder();
     private static final LongAdder STORES = new LongAdder();
     private static volatile boolean open = true;
+    private static volatile boolean boxHookRan;
 
     private LaunchShapeCache() {
+    }
+
+    /**
+     * True once the {@code Shapes.box} hook has run: equal boxes are then already one instance and
+     * cuboid leaves need no content matching.
+     */
+    public static boolean boxesShared() {
+        return boxHookRan;
     }
 
     public static boolean isOpen() {
@@ -40,6 +57,9 @@ public final class LaunchShapeCache {
     }
 
     public static Object box(double x1, double y1, double z1, double x2, double y2, double z2) {
+        if (!boxHookRan) {
+            boxHookRan = true;
+        }
         Object shape = BOXES.get(new BoxKey(x1, y1, z1, x2, y2, z2));
         if (shape != null) {
             BOX_HITS.increment();
@@ -63,19 +83,55 @@ public final class LaunchShapeCache {
         return existing;
     }
 
-    public static Object join(Object first, Object second, Object operation) {
-        Object shape = JOINS.get(new JoinKey(first, second, operation));
+    /**
+     * The first shape seen with this exact class and content, or {@code shape}
+     * itself once the cache is closed or full. {@code content} holds every
+     * value that decides how the shape behaves.
+     */
+    public static Object leaf(Class<?> type, long[] content, Object shape) {
+        LeafContent key = new LeafContent(type, content);
+        Object existing = LEAVES.get(key);
+        if (existing != null) {
+            if (existing != shape) {
+                LEAF_HITS.increment();
+            }
+            return existing;
+        }
+        if (!open || LEAVES.size() >= MAX_ENTRIES) {
+            return shape;
+        }
+        existing = LEAVES.putIfAbsent(key, shape);
+        return existing == null ? shape : existing;
+    }
+
+    /**
+     * {@code sameInstance} records whether the caller passed one object twice:
+     * {@code Shapes.joinUnoptimized} returns early for that case, so it must
+     * not share an entry with two equal but distinct leaves.
+     */
+    public static Object join(Object first, Object second, Object operation, boolean sameInstance) {
+        Object shape = JOINS.get(new JoinKey(first, second, operation, sameInstance));
         if (shape != null) {
             JOIN_HITS.increment();
         }
         return shape;
     }
 
-    public static void storeJoin(Object first, Object second, Object operation, Object result) {
+    public static void storeJoin(
+            Object first, Object second, Object operation, boolean sameInstance, Object result
+    ) {
         if (open && JOINS.size() < MAX_ENTRIES
-                && JOINS.putIfAbsent(new JoinKey(first, second, operation), result) == null) {
+                && JOINS.putIfAbsent(new JoinKey(first, second, operation, sameInstance), result) == null) {
             STORES.increment();
         }
+    }
+
+    public static Object join(Object first, Object second, Object operation) {
+        return join(first, second, operation, first == second);
+    }
+
+    public static void storeJoin(Object first, Object second, Object operation, Object result) {
+        storeJoin(first, second, operation, first == second, result);
     }
 
     public static Object optimized(Object shape) {
@@ -99,23 +155,29 @@ public final class LaunchShapeCache {
             return;
         }
         open = false;
-        long entries = BOXES.size() + JOINS.size() + OPTIMIZED.size();
+        long entries = BOXES.size() + LEAVES.size() + JOINS.size() + OPTIMIZED.size();
         BOXES.clear();
+        LEAVES.clear();
         JOINS.clear();
         OPTIMIZED.clear();
         if (statistics != null) {
             statistics.accept("Launch voxel-shape cache closed: reused " + BOX_HITS.sum()
                     + " boxes, " + JOIN_HITS.sum() + " joins and " + OPTIMIZE_HITS.sum()
-                    + " optimized shapes; released " + entries + " entries");
+                    + " optimized shapes"
+                    + (LEAF_HITS.sum() > 0 ? " (matched " + LEAF_HITS.sum() + " equal cuboid leaves)" : "")
+                    + "; released " + entries + " entries");
         }
     }
 
     static void resetForTest() {
         open = true;
+        boxHookRan = false;
         BOXES.clear();
+        LEAVES.clear();
         JOINS.clear();
         OPTIMIZED.clear();
         BOX_HITS.reset();
+        LEAF_HITS.reset();
         JOIN_HITS.reset();
         OPTIMIZE_HITS.reset();
         STORES.reset();
@@ -124,20 +186,48 @@ public final class LaunchShapeCache {
     private record BoxKey(double x1, double y1, double z1, double x2, double y2, double z2) {
     }
 
+    /** Exact class plus the raw bits of every value that defines the cuboid. */
+    private static final class LeafContent {
+        private final Class<?> type;
+        private final long[] content;
+        private final int hash;
+
+        private LeafContent(Class<?> type, long[] content) {
+            this.type = type;
+            this.content = content;
+            this.hash = 31 * type.hashCode() + Arrays.hashCode(content);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof LeafContent key
+                    && key.type == type
+                    && Arrays.equals(key.content, content);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+    }
+
     /** Compares inputs by identity; operations are compared by identity too. */
     private static final class JoinKey {
         private final Object first;
         private final Object second;
         private final Object operation;
+        private final boolean sameInstance;
         private final int hash;
 
-        private JoinKey(Object first, Object second, Object operation) {
+        private JoinKey(Object first, Object second, Object operation, boolean sameInstance) {
             this.first = first;
             this.second = second;
             this.operation = operation;
+            this.sameInstance = sameInstance;
             this.hash = 31 * (31 * System.identityHashCode(first)
                     + System.identityHashCode(second))
-                    + System.identityHashCode(operation);
+                    + System.identityHashCode(operation)
+                    + (sameInstance ? 1 : 0);
         }
 
         @Override
@@ -145,7 +235,8 @@ public final class LaunchShapeCache {
             return other instanceof JoinKey key
                     && key.first == first
                     && key.second == second
-                    && key.operation == operation;
+                    && key.operation == operation
+                    && key.sameInstance == sameInstance;
         }
 
         @Override

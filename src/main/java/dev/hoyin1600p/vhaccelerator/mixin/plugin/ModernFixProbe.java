@@ -243,6 +243,9 @@ public final class ModernFixProbe {
     }
 
     public String backportCompatibility(BackportFeature feature) {
+        if (feature == BackportFeature.EVENT_BUS_WRAPPER_CACHE_CONCURRENCY_FIX) {
+            return dev.hoyin1600p.vhaccelerator.backport.fix.EventBusWrapperCacheFix.unavailableReason();
+        }
         if (feature == BackportFeature.STATE_DEFINITION_CONSTRUCTION
                 && !facts.ferriteCoreLoaded) {
             return "FerriteCore is required for the array-first state map";
@@ -258,6 +261,10 @@ public final class ModernFixProbe {
         if (feature == BackportFeature.MODERNFIX_JEI_SEARCH_SNAPSHOT
                 && facts.jeiGeneration != 10) {
             return "the validated JEI 10 search bridge is not installed";
+        }
+        if (feature == BackportFeature.RELOAD_BARRIER_RACE_FIX
+                && facts.buildScapeReloadBarrierFix) {
+            return "deferred to BuildScape's SimpleReloadInstanceMixin";
         }
         return null;
     }

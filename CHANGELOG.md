@@ -5,7 +5,287 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.5] - 2026-10-21
+## [1.2.0] - 2026-10-28
+
+Dedicated-server startup, memory and stability improvements, plus operator-only server settings.
+See [1.2.0 release notes](docs/releases/1.2.0.md) for paired measurements, test conditions,
+configuration migrations and limits. Feature-specific savings overlap and must not be added together.
+
+### Fixed
+
+- Removed the Wolds Vaults RampageListenerFix workaround because Wolds now fixes the race upstream ([PR #260](https://github.com/iwolfking/Wolds-Vaults-Official-Mod/pull/260)); update Wolds Vaults to a release containing that fix. Forge safely removes a stale `compatibility.deferWoldsRampageListenerSetup` key during config correction.
+
+- Guarded early repair of EventBus 5.0.3's ASM listener-wrapper cache, which could return
+  null during parallel mod construction and fail a mod's startup. New common setting
+  `backports.eventBusWrapperCacheConcurrencyFix` defaults on and requires a restart.
+  It synchronizes only cache reads/writes, preserves the original atomic name counter
+  and class generator, and adds no event-dispatch locking. Exact original class/loader
+  fingerprints, field layouts and an unused-cache check are required; unsupported or
+  late installation, missing Unsafe or denied access retains original behavior with
+  one warning. Independent of Compare Mode and optimization masters. Java 24+ can
+  additionally print the JVM's one-time `sun.misc.Unsafe` deprecation warning; VHA
+  deliberately does not suppress it or require extra JVM access flags.
+
+### Added
+
+- Added a Server tab to the settings screen. Operator-level-4 players can read and edit the
+  connected server's common settings, with server-side permission, key, type and range validation
+  on every request. Defaults, Experimental and restart notices distinguish server and local changes.
+  The optional play channel keeps VHA optional on either side; unsupported servers show an explanation.
+
+- Enabled `compatibility.compactWorldZonesMemberships` by default on dedicated servers after
+  paired server checks showed about 101 MB less live heap, identical save/restart output and
+  no failures in eight off/on simultaneous pairs. Exact layout gates and original fallbacks
+  remain in place. Defaults revision 3 upgrades the old `false` once; later opt-outs are kept.
+
+- A default-on common setting, `compatibility.deferThermalConvertedFuels`, for dedicated servers with
+  Thermal Foundation (restart required, off in Compare Mode). Thermal's Stirling and Gourmand Dynamo
+  managers rebuilt a "converted fuels" list at every tag update, creating an ItemStack for every registered
+  item and querying its burn time or food value (about 0.29 s on the Wolds profile, mostly other mods'
+  burn-time event handlers); only Thermal's JEI plugin reads the list. The scan now runs, through Thermal's
+  own unchanged `createConvertedRecipes`, the first time `getConvertedFuels()` is called, and a later refresh
+  or `clear()` drops the owed build, so a reader sees the same list. The fuel map the dynamos use is not
+  touched. Guarded by the pinned calls and field accesses of both methods; clients keep the eager scan.
+  New mixin group `compat.thermalfuels`.
+
+### Changed
+
+- Enabled `optimizations.releaseMixinClassTrees` by default on dedicated servers after
+  paired sweep, reload and late-class checks. Exact Mixin 0.8.5, loaded-target and no-hot-swap
+  guards, Compare Mode veto and original fallbacks are unchanged. Defaults revision 4 upgrades
+  the old false once; later opt-outs and earlier-revision choices are kept.
+
+- Lower VHA's own startup cost on dedicated servers, with no change to which mixins or
+  options apply: the per-pack resource indexes (`indexImmutableModResources`) are now built on up to
+  8 background lanes right after the first resource query, instead of one pack after another on the
+  querying thread, and `compactModFileScanData` compacts the mod files on the shared worker lanes
+  instead of one file after another on the main thread. Results are unchanged (each pack and file is
+  independent; the shared canonical type pool is concurrent). Offline timings on 246 real mod jars:
+  first resource query of every pack 190 ms to 40 ms warm; scan-data compaction of 409 synthetic
+  files 155 ms to 18 ms warm.
+
+### Added
+
+- New `presizeBlockStateIdMap` (common `[optimizations]`, default on, both sides, restart required).
+  Forge numbers every block state by adding it to a vanilla `IdMapper` (`Block.BLOCK_STATE_REGISTRY`) whose
+  identity hash table and id list start at 512 entries and double over and over while about 1.5 million states
+  are added, re-hashing every state each time. The table and list are now sized once, right before the block
+  registry's first bake, from the number of declared states. States are added by the same calls in the same order,
+  so every id, the id order and every lookup are unchanged; the refill after Forge clears the map is untouched.
+  Applied only to an empty Forge state map of the exact reviewed layout (plain fastutil identity map with vanilla's
+  strategy and a default of -1, plain `ArrayList`), once per run; the hook is `require = 0` and any other layout or
+  error keeps Forge's fill. New mixin group `statemap`.
+
+- New `lazyBlockStatePropertyCodecs` (common `[optimizations]`, default on, dedicated servers only,
+  restart required). Vanilla `StateDefinition` builds a property codec chain for every block and fluid
+  (about 15 small objects and four lambdas per property; 22,925 definitions and 71,013 properties, 52 MB
+  retained, in a large Vault Hunters pack) although only `BlockState.CODEC` and `FluidState.CODEC` read
+  it, mainly through chunk palettes. The constructor's `appendPropertyCodec` call is redirected to record
+  each property instead, and the chain is built on first use with a copy of vanilla's own step function
+  behind a `MapCodec` that delegates every operation, so encoded forms, decoded states and error messages
+  are the eager chain's. Racing threads publish one chain through a volatile field; the build runs no
+  foreign code under a lock. Applied only with the reviewed `StateDefinition` shape and, on the woven
+  class, when no other mixin (except ModernFix 5.18's unrelated states-map hook) has changed it; the
+  call is checked against a pinned instruction fingerprint of vanilla's method. New mixin group
+  `compat.statecodec`.
+
+- New `releaseMixinClassTrees` (common `[optimizations]`, default on, dedicated servers only, restart
+  required). Mixin 0.8.5 keeps a class tree for every mixin for the whole run, about 41 MB for the
+  2,536 mixins of the Wolds pack. When the server has started, and again five minutes later, the trees
+  of mixins whose targets are all loaded are kept as deflated class bytes instead and rebuilt on demand
+  if Mixin ever reads one again, so mixin application is unchanged. It acts only on exactly Mixin 0.8.5
+  with the reviewed field layout and no hot-swap agent, skips pseudo mixins, and keeps any tree that does
+  not survive a byte round trip. Enabled after paired server checks; the Experimental button preserves opt-outs. See [Mixin class-tree release](docs/MIXIN_TREE_RELEASE.md).
+- New `indexKubeJsRecipeRemovals` (common `[optimizations]`, default on, both sides, restart required,
+  KubeJS 1802.5.5-build.569 only). KubeJS scans every recipe for each `event.remove(...)`; a pack with
+  hundreds of removes over about 41,000 recipes spends many seconds in the recipe event. A remove whose
+  filter is one recipe id or one plain output item (alone, or inside AND / OR groups) is now answered
+  from a lookup table built once per recipe event, and KubeJS's own filter then runs on those
+  candidates only, so the removed recipes, their order, the counts and the log lines are unchanged.
+  Regex, tag, mod, input, NBT, NOT and script filters, and script `forEachRecipe` callbacks, keep the
+  normal path. The table is rechecked on every call and rebuilt when a script edits recipe ids or
+  outputs (`replaceOutput`). Mixin `compat.kubejs.RecipeEventJSRemoveIndexMixin`; it runs before the
+  parallel filter, which still handles everything the table cannot narrow.
+
+- A default-on common setting, `compatibility.shortCircuitLootJsRegexFilters`, for packs with LootJS
+  and KubeJS (both sides, restart required, off in Compare Mode). LootJS asks whether a loot filter
+  ingredient is empty when a script loads; for a regular expression such as
+  `removeLoot(/.*botania.*/)` KubeJS answered by testing every item and copying every match first.
+  Only that one LootJS call on an exact KubeJS `RegexIngredientJS` is redirected, and it now stops at
+  the first matching item. The filter used for loot results is untouched, so matched items and loot
+  results are the same; any other ingredient, any failure and any unexpected LootJS or KubeJS
+  bytecode keep the original path. New mixin group `compat.lootjs`.
+
+- The indexed CraftTweaker output removals now also cover item outputs that carry NBT (every
+  damageable item's default stack does, so tools and armor fell back to CraftTweaker's full scan)
+  and tag outputs (`<tag:items:...>`), which are expanded to their items once per action. The same
+  candidate-only, original-order visiting applies; CraftTweaker still makes the final match
+  decision on every candidate. Contract version 3.
+
+- New `lazyCompactVaultLootCdf` (common `[compatibility]`, default on, dedicated servers, applies to future builds).
+  Vault builds 53 loot distributions per supported loot table at every config load and keeps all of them in hash
+  maps (about 138 MB on Wolds, 125 MB on a large production pack), although only `CDF.get` reads them. VH Accelerator now defers each
+  `compute()` from the constructor to the first `get` or `getMap` (once, thread-safe) and stores the result as a
+  `double[]` indexed by composition rank after proving every value equal bit for bit; `getMap()` returns a
+  read-only equal view. It never replaces `compute()` or `getProbability()`, so it composes with VHAPI, whose
+  arithmetic still runs. It stays off unless the Vault class hashes match, no other mixin owns the constructor,
+  `get` or `getMap`, and the final transformed layout verifies. The Vault layout gate now also accepts
+  `1.18.2-3.21.6.6884` (Wolds) by hash equality. On dedicated servers the object-holder dispatch index (about 4 MB)
+  is released at load-complete and rebuilt on demand. See [CDF validation](docs/VAULT_CDF.md).
+
+- New `indexObjectHolderDispatch` (common `[optimizations]`, default on, both sides, restart required).
+  Forge applies object-holder lookups after every registry event by visiting every handler (about
+  60,000 in a large Vault Hunters pack, nearly all for another registry). VH Accelerator now builds an
+  ordered per-registry index of the `ObjectHolderRef` and `RegistryObject` handlers whose Forge classes
+  match reviewed builds (Forge 1.18.2 40.0.52 to 40.3.12) and passes only the matching handlers, in the
+  original order, to Forge's own loop body. Any other handler, an unreviewed Forge build or repeated
+  handler changes keep the full pass. Mixins `registry.GameDataHolderAnnounceMixin` and
+  `registry.ObjectHolderRegistryIndexMixin`; the load-complete log prints one summary line.
+  The index also requires `ObjectHolderRegistry` itself to match a reviewed build, and only accepts the
+  filter Forge's `GameData` creates. With debug diagnostics on, load-complete also logs one
+  `Object-holder verifier` line comparing every holder field and registry object with its registry.
+
+- Defaults revision 2 of the existing config default-upgrade: a
+  `compatibility.compactBuildingGadgetsTemplates` that still holds the old
+  default `false` moves to the new default `true` on the first launch after the
+  upgrade, before mixin selection reads the config, so that first launch
+  already uses it. A value other than the old default is kept, each moved key
+  logs one INFO line, and a dedicated server never touches the client file.
+  Revisions now apply per change, so installs already at revision 1 only
+  receive the new rows. Caveat: a player who set `false` on purpose before this
+  mechanism existed cannot be told apart and is flipped once.
+- The launch voxel-shape cache (`cacheLaunchVoxelShapes`) and the flat-array
+  coordinate merger (`optimizeVoxelShapeMerging`) now also run on dedicated
+  servers. Both moved from the client config to the common config
+  (`[optimizations]`, default on, restart required); an existing client value
+  is imported once when the common value is unspecified, and an explicit common
+  value wins. A server needs Compare Mode off and the common master switch on;
+  a physical client keeps its former rule. The merger yields to Canary and Lithium,
+  the cache to Lithium only (see the Canary entry below), and the cache is released
+  at load-complete. Shapes stay equal; as on clients,
+  equal shapes share one object while mods load. The mixins moved from the
+  client-only list to the common list (package `mixin.shape`).
+- The existing `parallelKubeJsRecipeFilters` setting (KubeJS 1802.5.5-build.569) now also applies on
+  dedicated servers. The server blanket rule rejected every `compat` mixin that was not an audited
+  exception, so the KubeJS recipe event's `remove` / `forEachRecipe` scans ran sequentially on a
+  server (a pack with hundreds of removes over tens of thousands of recipes scans the list once per
+  call). `RecipeEventJSParallelFilterMixin` is now an exact server exception; the KubeJS resource-pack
+  listing and JEI-hiding mixins stay client-only. A server also needs the common master on and Compare
+  Mode off. The filter itself is unchanged: only filters built from KubeJS's data-only classes qualify,
+  the matches reach KubeJS's consumer on the calling thread in the original order, and anything that
+  could call a script stays sequential. A new differential test runs KubeJS's real filter classes on
+  41,000 `RecipeJS` objects and requires the parallel matches to equal the sequential scan in content
+  and order; the dedicated-side client-linkage audit and whole-group preflight cover the mixin.
+- The launch voxel-shape cache now also works beside Canary (clients and
+  dedicated servers). The `Shapes.box` sharing moved into its own mixin
+  (`ShapesBoxCacheMixin`); beside Canary it wraps Canary's specialised boxes
+  (applied after Canary's `@Overwrite` of `Shapes.box`), the join and optimize
+  reuse is unchanged, and if the box hook does not run Canary's cuboid shapes
+  are matched by content instead. Canary's own merger is used instead of the
+  flat-array merger (the two inject at the same site and are equivalent).
+  Lithium still turns the whole cache off. New gate facts `canaryLoaded` and
+  `lithiumLoaded` replace `externalShapeOptimizerLoaded`. Shapes stay equal:
+  31,246 block states, 0 mismatches against Canary alone.
+- A default-on common setting, `compatibility.shareAe2ThingsDiskStrings`, for
+  servers (and singleplayer worlds) with AE2Things. Right after AE2Things loads
+  its DISK cell data, equal `StringTag` values in the stored item NBT are
+  replaced by one shared instance (item ids, rarities and similar repeat about
+  1.5 M times for a few thousand distinct values). Only existing values are
+  re-put, so key order, list order, equality and the saved bytes are unchanged;
+  an unexpected class layout or a failure leaves the loaded data as built.
+  Restart required; off in Compare Mode.
+- The Vault loot CDF builder now uses a common setting on clients and dedicated
+  servers for the exact supported original Vault layout. VHAPI and unreviewed
+  computation transforms retain ownership. Existing client preferences migrate
+  only when no common value is set; servers retain eager complete publication.
+  Vault's config-load and cache-clear lifecycle remains unchanged.
+- A default-on dedicated-server BuildingGadgets template compaction for the
+  exact supported archive. Large templates keep their block positions as packed
+  arrays (about 9 bytes per block instead of about 58) and read exactly as
+  before: entries stream from the arrays in the original entry order with the
+  original block-data objects, without rebuilding the map. Position
+  objects are created fresh on each read (equal, not identical). The save format
+  is unchanged; unsupported layouts keep their original path or the older
+  lookup-only index. A paired server run showed lower memory use with no
+  startup or autosave cost, so it is enabled by default
+  (`compatibility.compactBuildingGadgetsTemplates`).
+- With `diagnostics.timers`, dedicated servers time every server-lifecycle and
+  mod-loading event listener, log the 10 slowest (mod, event, method, thread,
+  start offset, duration) when the started event finishes, and add a bounded
+  `lifecycleListenerLedger` section to the startup report. New
+  `diagnostics.startupJfr` (default off) records the launch with Java Flight
+  Recorder to `logs/vhaccelerator/startup-<runId>.jfr`.
+- Added the permission-level-4 server command `/vha dump blockshape` to export
+  ordered block/property domains and defaults as compressed diagnostic JSON.
+  The command is independent of WorldEdit and does not change game state.
+
+- A default-on common setting for indexed CraftTweaker 9.1.213 output removals
+  on clients and dedicated servers. Actions and removals retain their order;
+  unsupported recipes, custom ingredients and ambiguous matching use the original path.
+- Packaged compatibility inventories now cover every configured group, with
+  method-reachable helpers, version/ownership policies and configuration accessors.
+  Debug reports capture Forge-loaded settings and reject incomplete application
+  as benchmark evidence, including selected groups with zero confirmations.
+- Dedicated debug adapters observe supported CraftTweaker actions/scripts,
+  KubeJS loading/filtering, Selene generated resources and existing VHA resource
+  indexes. Bounded aggregates expose unavailable I/O/allocation evidence, and
+  an offline sample classifier separates nearest-owner and inclusive counts.
+- A bounded, versioned dedicated-server startup JSON report alongside the
+  existing started-event timer when timers or debug diagnostics are enabled.
+  Reports include clock mapping, thread identities, occupancy checkpoints and
+  explicit missing observations; debug adds VHA lifecycle proxy markers.
+- Dedicated startup diagnostics now distinguish Done and Forge event emission,
+  observe loading phases, world/spawn work and reload task/wait intervals, and
+  report compatibility selection separately from confirmed transformation and
+  callback invocation. Unavailable attribution remains explicit.
+- Exact common-side compatibility gates for Decocraft registration and
+  FerriteCore StateHolder hooks now require whole-group layout and side audits.
+  Activation waits for confirmed injectors; debug reports successful use
+  separately from callback entry and rejects unsafe partial application.
+
+### Fixed
+
+- Serialize Forge intrusive-holder creation on its owning registry monitor under the existing
+  `backports.registryWriteConcurrencyFix` setting. Concurrent insertion and resize in Forge's
+  separate `IdentityHashMap` can retain a key with a null holder and make registry freeze fail.
+  The optional redirect checks the complete reviewed Forge method body and preserves the original
+  factory, holder identity, exceptions and validation; unknown layouts keep Forge behavior.
+
+- Rare startup crash (`ConcurrentModificationException` in `MappedRegistry`) and silent registry
+  corruption when two mods create or fill registries during parallel mod construction, for example
+  Botania and Oh The Biomes You'll Go writing the root registry together. Vanilla's `MappedRegistry`
+  has no locking, so VH Accelerator now runs its `register`, `registerMapping`, `registerOrOverride`
+  and `getOrCreateHolder` under each registry's own monitor and guards `Registry.LOADERS`
+  (`backports.registryWriteConcurrencyFix`, default on, stays on in Compare Mode, applies with or
+  without ModernFix). Skipped with a log line if the registry classes do not match the reviewed
+  Forge 40.3.x layout.
+- Dedicated servers no longer hang intermittently at startup. Vanilla's reload
+  barrier removed finished listeners from a plain `HashSet` on several threads
+  at once; a lost update left the "all prepared" future incomplete forever. The
+  set is now thread-safe (`backports.reloadBarrierRaceFix`, default on, stays on in
+  Compare Mode, applies with or without ModernFix, so Compare Mode arms of a
+  startup benchmark no longer hang on this race). It defers to BuildScape
+  4.1.0+, which ships the same fix: VHA detects BuildScape's
+  SimpleReloadInstanceMixin class and leaves its own mixin off, reporting
+  "deferred to BuildScape's SimpleReloadInstanceMixin"; older or absent BuildScape
+  keeps VHA's fix.
+- Separate-start recipe comparison now handles the reviewed Botania
+  marimorphosis biome-set ordering while preserving block IDs, weights and
+  biome bonus bytes. Strict comparison is unchanged.
+- CraftTweaker output-removal indexing now selects candidate buckets and tracks
+  recipe-map mutations instead of rescanning all recipes and repeatedly
+  clearing cached output keys. Treeified or unsupported maps retain the
+  original loop. Disabling indexing again preserves the existing client-only
+  parallel-removal setting.
+- The recipe dump comparator has an explicit separate-start mode for matching
+  capture errors and stock tag/candidate ordering differences. Per-type order
+  and all unreviewed network payloads remain exact; strict mode stays default.
+- Vault Hunters' budding crystal blocks no longer freeze dedicated servers
+  (and singleplayer) by loading a neighbouring chunk while a chunk is still loading.
+- Client-only mod-loading, integrated watchdog and JEI search mixins are now
+  explicitly registered in the client mixin list.
+
+## [1.1.5] - 2026-10-21 (not published separately; included in 1.2.0)
 
 ### Added
 

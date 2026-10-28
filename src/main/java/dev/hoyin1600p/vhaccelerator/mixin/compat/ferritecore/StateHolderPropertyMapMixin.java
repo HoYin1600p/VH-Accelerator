@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.ferritecore;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import dev.hoyin1600p.vhaccelerator.compat.ferritecore.FerriteCorePropertyMaps;
+import dev.hoyin1600p.vhaccelerator.compat.CompatMixinGroups;
 import java.util.Map;
 import malte0811.ferritecore.classloading.FastImmutableMapDefiner;
 import malte0811.ferritecore.ducks.FastMapStateHolder;
@@ -33,9 +34,11 @@ public abstract class StateHolderPropertyMapMixin {
     @Inject(method = "populateNeighbours", at = @At("TAIL"))
     private void vhaccelerator$dropPropertyView(Map<?, ?> states, CallbackInfo callback) {
         if (values != null
+                && CompatMixinGroups.activationAllowed("dev.hoyin1600p.vhaccelerator.mixin.compat.ferritecore.StateHolderPropertyMapMixin")
                 && FerriteCorePropertyMaps.VIEW_CLASS.equals(values.getClass().getName())
                 && ((FastMapStateHolder<?>) (Object) this).getStateMap() != null) {
             values = null;
+            CompatMixinGroups.recordOptimizationUse("dev.hoyin1600p.vhaccelerator.mixin.compat.ferritecore.StateHolderPropertyMapMixin");
         }
     }
 

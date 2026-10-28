@@ -8,6 +8,9 @@ import dev.hoyin1600p.vhaccelerator.backport.BackportFeature;
  * interface so the rules can be exercised with scripted answers.
  */
 public interface GateInputs {
+    /** Defaults closed for callers that do not supply verified installed mod versions. */
+    default boolean startupAdapterSupported(String mixin) { return false; }
+
     boolean debugEnabled();
 
     boolean vhaOwns(BackportFeature feature);

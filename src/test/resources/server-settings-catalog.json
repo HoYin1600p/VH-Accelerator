@@ -1,0 +1,422 @@
+{
+  "backports.attachCapabilitiesDispatch": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.attributeSupplierDeduplication": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.backgroundWorkerLimit": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.blockPropertyNameDeduplication": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.compactEntityModels": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.compactModFileScanData": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.compactObjectHolderThrowables": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.compactPaletteValidation": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.debugLevelSourceStateView": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.deduplicateResourceLocationNamespaces": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.deduplicateWallShapes": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.disableTelemetry": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.dynamicClientLanguages": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.earlyStructureLocationRejection": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.eventBusWrapperCacheConcurrencyFix": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fastRegistryFreezeCheck": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fasterIngredientEmptinessCheck": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fasterIngredientExpansionCache": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fasterIngredientTagLookups": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fasterLootLoading": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.forgeHandshakeBatching": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.forgeRegistryLambdaElision": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.forgeRegistryRegistrationAcceleration": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.forgeTagConcurrencyFixes": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.ingredientItemValueDeduplication": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.mappedRegistryGrowth": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.modernFixIntegratedWatchdogCorrection": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.modernFixJeiSearchSnapshot": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.modernFixNightConfigWatcherCorrection": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.overrideModernFixDynamicResources": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.potentialSpawnCopyOnWrite": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.reduceTickingChunkAllocations": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.registryWriteConcurrencyFix": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.reloadBarrierRaceFix": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.removeRedundantObjectHolderCallbacks": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.resourceKeyInterning": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.responsiveModWorkQueue": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.serverEventLoopFix": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.stateDefinitionConstruction": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.strongholdRingEarlyRejection": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenBiomeSupplierReuse": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenDeferredClimateTree": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenDirectYConditions": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenMaterialRuleIteration": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenNoiseFunctionCache": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.worldgenSurfaceRuleIteration": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.compactBuildingGadgetsTemplates": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.compactFerriteCorePropertyMaps": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.compactWorldZonesMemberships": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.deferTargetDummyDispenserRegistration": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.deferThermalConvertedFuels": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.fixBuddingCrystalChunkLoad": {
+    "category": "vault",
+    "default": true,
+    "restart": false
+  },
+  "compatibility.lazyCompactVaultLootCdf": {
+    "category": "vault",
+    "default": true,
+    "restart": false
+  },
+  "compatibility.optimizeVaultLootCdf": {
+    "category": "vault",
+    "default": true,
+    "restart": false
+  },
+  "compatibility.releaseLevelPinningReferences": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.restoreSmoothBootThreadPriorities": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.shareAe2ThingsDiskStrings": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.shortCircuitLootJsRegexFilters": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "compatibility.trimDecocraftModels": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "diagnostics.compareMode": {
+    "category": "diagnostics",
+    "default": false,
+    "restart": true
+  },
+  "diagnostics.debug": {
+    "category": "diagnostics",
+    "default": false,
+    "restart": true
+  },
+  "diagnostics.jeiRecipeAudit": {
+    "category": "diagnostics",
+    "default": false,
+    "restart": false
+  },
+  "diagnostics.startupJfr": {
+    "category": "diagnostics",
+    "default": false,
+    "restart": true
+  },
+  "diagnostics.timers": {
+    "category": "diagnostics",
+    "default": false,
+    "restart": false
+  },
+  "optimizations.asyncChunkDiskReads": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.cacheLaunchVoxelShapes": {
+    "category": "launch",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.cacheResourceListing": {
+    "category": "launch",
+    "default": true,
+    "restart": false
+  },
+  "optimizations.enableCommonOptimizations": {
+    "category": "general",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.indexCraftTweakerRecipeRemovals": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.indexImmutableModResources": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.indexKubeJsRecipeRemovals": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.indexObjectHolderDispatch": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.lazyBlockStateCache": {
+    "category": "server",
+    "default": false,
+    "restart": true
+  },
+  "optimizations.lazyBlockStatePropertyCodecs": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.optimizeVoxelShapeMerging": {
+    "category": "launch",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.parallelBlockStateInit": {
+    "category": "server",
+    "default": false,
+    "restart": true
+  },
+  "optimizations.parallelKubeJsRecipeFilters": {
+    "category": "compat",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.parallelReloadPreparation": {
+    "category": "server",
+    "default": false,
+    "restart": false
+  },
+  "optimizations.presizeBlockStateIdMap": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.releaseMixinClassTrees": {
+    "category": "memory",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.skipRedundantRegistryValidation": {
+    "category": "server",
+    "default": false,
+    "restart": true
+  },
+  "optimizations.skipRegistryDump": {
+    "category": "server",
+    "default": false,
+    "restart": true
+  },
+  "optimizations.skipReturningPlayerSpawnSearch": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  },
+  "optimizations.streamlineObjectHolderCleanup": {
+    "category": "server",
+    "default": true,
+    "restart": true
+  }
+}

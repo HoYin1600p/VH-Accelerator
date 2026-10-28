@@ -21,25 +21,27 @@ import org.embeddedt.modernfix.core.ModernFixMixinPlugin;
 final class GateScenarios {
     static final List<String> FLAGS = List.of(
             "modernFixLoaded", "modDiscoveryFailed", "modListKnown",
-            "ferriteCoreLoaded", "externalShapeOptimizerLoaded",
-            "optifinePresent", "jeiLoaded", "vaultHuntersLoaded", "powahLoaded",
+            "ferriteCoreLoaded", "canaryLoaded", "lithiumLoaded",
+            "optifinePresent", "jeiLoaded", "vaultHuntersLoaded", "vhapiLoaded", "vaultCdfCompatible", "vaultCdfLazyCompatible", "powahLoaded",
             "jeiTweakerLoaded", "jerLoaded", "craftTweakerLoaded",
+            "craftTweakerRemovalsCompatible", "indexCraftTweakerRecipeRemovals",
             "thermalLoaded", "ironFurnacesLoaded", "industrialForegoingLoaded",
             "ae2Loaded", "elevatorLoaded", "extraStorageLoaded",
             "refinedStorageLoaded", "sophisticatedCoreLoaded",
             "supplementariesLoaded", "ctmCompatible", "ctmInstalled",
-            "buildScapeInstalled", "mekanismModelBakeCompatible",
+            "buildScapeInstalled", "buildScapeReloadBarrierFix", "mekanismModelBakeCompatible",
             "cableTiersModelBakeCompatible", "cloudStorageModelBakeCompatible",
             "megaCellsModelBakeCompatible", "everyCompatDebugDumpCompatible",
-            "decocraftCompatible", "ferriteCorePropertyMaps",
+            "decocraftCompatible", "commonMasterEnabled", "decocraftTrimmingEnabled", "ferriteCorePropertyMaps",
             "renderOptimizationLoaded", "releaseLevelPinningReferences",
-            "copycatsLoaded", "parallelKubeJsFilters", "asyncChunkDiskReads",
+            "copycatsLoaded", "parallelKubeJsFilters", "indexKubeJsRecipeRemovals", "asyncChunkDiskReads",
             "create051i", "geckoLib3057", "arsNouveauGeckoLib",
             "everyCompatPackCache", "vaultCascadeScan",
             "xaeroMinimapCompatible", "xaeroWorldMapCompatible",
             "farsightLoaded", "vroOwnsFarsightBound", "physicalClient",
             "targetDummySetupFix", "smoothBootPriorityRestore",
-            "skipReturningPlayerSpawnSearch"
+            "skipReturningPlayerSpawnSearch", "ae2ThingsStringSharing", "lootJsRegexShortCircuit", "thermalDeferredFuelLists", "indexObjectHolderDispatch", "lazyStatePropertyCodecs", "presizeBlockStateIdMap",
+            "launchShapeCache", "flatShapeMerger"
     );
 
     /** How the scripted ModernFix plugin answers option queries. */
@@ -106,6 +108,8 @@ final class GateScenarios {
                 "ferriteCoreLoaded", true)));
         variants.add(new Facts("client-buildscape", with(with(with(allFalse, "physicalClient", true),
                 "modListKnown", true), "buildScapeInstalled", true)));
+        variants.add(new Facts("server-buildscape-reload-fix", with(with(with(allFalse, "modListKnown", true),
+                "buildScapeInstalled", true), "buildScapeReloadBarrierFix", true)));
         variants.add(new Facts("client-ctm-exact", with(with(with(with(allFalse, "physicalClient", true),
                 "modListKnown", true), "ctmInstalled", true), "ctmCompatible", true)));
         variants.add(new Facts("client-ctm-unsupported", with(with(with(allFalse, "physicalClient", true),

@@ -1,0 +1,42 @@
+{
+  "s4": {
+    "releaseUrl": "https://github.com/HoYin1600p/vha-test-builds/releases/tag/results-mill-018-export",
+    "vaultVersion": "3.21.62",
+    "vhapiVersion": "5.0.0",
+    "release": "results-mill-018-export",
+    "archiveSha256": "967cb0ec3719780db44a704523eef4dcfbd6a27eb1987fa4d1b03690c756567d",
+    "iskallia/vault/core/world/loot/generator/TieredLootTableGenerator$CDF": {
+      "bytes": 14167,
+      "sha256": "ccf1a76b63de1d6f4ed6b3d452704ce601facb54a2e5b75d2356059d843766b0"
+    },
+    "net/minecraft/world/level/block/state/StateDefinition": {
+      "bytes": 19049,
+      "sha256": "de5d2130b1d0e3be228815b0f39034d3b090c7908c89d526d43bc6710b617cf1"
+    }
+  },
+  "wolds": {
+    "releaseUrl": "https://github.com/HoYin1600p/vha-test-builds/releases/tag/results-mill-018-export-wolds",
+    "vaultVersion": "3.21.6.6884",
+    "vhapiVersion": "5.8.1",
+    "release": "results-mill-018-export-wolds",
+    "archiveSha256": "04f3b8c3d0df62e23e03ff2d589c27f2fec2957ebf495327a65ecda21c4094bc",
+    "iskallia/vault/core/world/loot/generator/TieredLootTableGenerator$CDF": {
+      "bytes": 14167,
+      "sha256": "eb4eca5da338806e00ef16bb60de2cdd9b394abb20d43a333270c873dabfcd2b"
+    },
+    "net/minecraft/world/level/block/state/StateDefinition": {
+      "bytes": 16840,
+      "sha256": "cecd634a30c6da682f4edca5ca9a6fab1ddecb7c6b84c4cea7a4232c0a4699ad"
+    }
+  },
+  "s4-worldzones-024": {
+    "releaseUrl": "https://github.com/HoYin1600p/vha-test-builds/releases/tag/results-mill-024-zones-woven",
+    "vaultVersion": "3.21.62",
+    "release": "results-mill-024-zones-woven",
+    "archiveSha256": "bd19bdecfb25fff36d2713e12fb48ffef6c89e32c5a71c4c59a5926223893b59",
+    "iskallia/vault/core/world/storage/WorldZones": {
+      "bytes": 12693,
+      "sha256": "045ef5a6da12fedf0fe8a8f548d033125e1d188e8352ee51e0ad357d3c64f168"
+    }
+  }
+}

@@ -78,7 +78,7 @@ public final class BackportOwnershipResolver {
                     "ModernFix ownership could not be verified"
             );
         }
-        if (compareMode) {
+        if (compareMode && !feature.ignoresCompareMode()) {
             return decision(
                     feature,
                     BackportOwner.DISABLED,

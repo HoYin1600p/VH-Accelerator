@@ -16,10 +16,17 @@ package dev.hoyin1600p.vhaccelerator.backport.modernfix.load;
 import com.google.common.collect.ImmutableSet;
 import dev.hoyin1600p.vhaccelerator.VHAccelerator;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import dev.hoyin1600p.vhaccelerator.concurrent.SharedWorkers;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.ModFileScanData;
@@ -35,49 +42,138 @@ public final class ModFileScanDataCompactor {
     private ModFileScanDataCompactor() {
     }
 
+    /** Below this many files the hand-off to workers costs more than it saves. */
+    private static final int PARALLEL_MIN_FILES = 8;
+
     public static Statistics compactAll() {
         if (ANNOTATIONS_FIELD == null || CLASSES_FIELD == null) {
             return Statistics.unavailable();
         }
+        var files = ModList.get().getModFiles();
+        return compactMany(
+                files.size(),
+                Integer.MAX_VALUE,
+                index -> files.get(index).getFile().getScanResult(),
+                index -> files.get(index).getFile().getFileName()
+        );
+    }
 
-        ObjectOpenHashSet<Type> types = new ObjectOpenHashSet<>();
-        MutableStatistics statistics = new MutableStatistics();
-        for (var file : ModList.get().getModFiles()) {
-            ModFileScanData scanData = file.getFile().getScanResult();
-            statistics.filesVisited++;
-            try {
-                compact(scanData, types, statistics);
-            } catch (Throwable failure) {
-                statistics.failedFiles++;
-                VHAccelerator.LOGGER.error(
-                        "Could not compact Forge scan data for {}",
-                        file.getFile().getFileName(),
-                        failure
-                );
-            }
+    static Statistics compactManyForTesting(List<ModFileScanData> data) {
+        return compactManyForTesting(data, Integer.MAX_VALUE);
+    }
+
+    /** {@code maxLanes} of 1 compacts on the calling thread alone. */
+    static Statistics compactManyForTesting(List<ModFileScanData> data, int maxLanes) {
+        if (ANNOTATIONS_FIELD == null || CLASSES_FIELD == null) {
+            return Statistics.unavailable();
         }
+        return compactMany(data.size(), maxLanes, data::get, index -> "file-" + index);
+    }
 
+    private static Statistics compactMany(
+            int count,
+            int maxLanes,
+            IntFunction<ModFileScanData> data,
+            IntFunction<String> name
+    ) {
+        ConcurrentHashMap<Type, Type> types = new ConcurrentHashMap<>();
+        FileResult[] results = new FileResult[count];
+        runAll(count, maxLanes, index -> results[index] = compactFile(data, name, index, types));
+
+        MutableStatistics statistics = new MutableStatistics();
+        for (FileResult result : results) {
+            statistics.add(result);
+        }
         int canonicalTypes = types.size();
         types.clear();
-        types.trim();
         return statistics.snapshot(canonicalTypes);
+    }
+
+    /**
+     * Runs {@code action} once for every index below {@code count}. The files are
+     * independent (only the canonical type pool is shared, and it is concurrent),
+     * so workers may take them in any order; results are stored by index and
+     * merged in file order. The calling thread works too and only waits for
+     * files a worker has actually started, never for queued workers.
+     */
+    private static void runAll(int count, int maxLanes, IntConsumer action) {
+        int lanes = Math.min(Math.min(count, maxLanes), SharedWorkers.budget().compute());
+        if (count < PARALLEL_MIN_FILES || lanes < 2) {
+            for (int index = 0; index < count; index++) {
+                action.accept(index);
+            }
+            return;
+        }
+        AtomicInteger next = new AtomicInteger();
+        CountDownLatch done = new CountDownLatch(count);
+        Runnable drain = () -> {
+            int index;
+            while ((index = next.getAndIncrement()) < count) {
+                try {
+                    action.accept(index);
+                } finally {
+                    done.countDown();
+                }
+            }
+        };
+        for (int lane = 1; lane < lanes; lane++) {
+            SharedWorkers.compute().execute(drain);
+        }
+        drain.run();
+        boolean interrupted = false;
+        while (true) {
+            try {
+                done.await();
+                break;
+            } catch (InterruptedException failure) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static FileResult compactFile(
+            IntFunction<ModFileScanData> data,
+            IntFunction<String> name,
+            int index,
+            ConcurrentHashMap<Type, Type> types
+    ) {
+        try {
+            return compact(data.apply(index), types);
+        } catch (Throwable failure) {
+            VHAccelerator.LOGGER.error(
+                    "Could not compact Forge scan data for {}",
+                    name.apply(index),
+                    failure
+            );
+            return FileResult.FAILED;
+        }
     }
 
     static Statistics compactForTesting(ModFileScanData data) {
         if (ANNOTATIONS_FIELD == null || CLASSES_FIELD == null) {
             return Statistics.unavailable();
         }
-        ObjectOpenHashSet<Type> types = new ObjectOpenHashSet<>();
+        ConcurrentHashMap<Type, Type> types = new ConcurrentHashMap<>();
         MutableStatistics statistics = new MutableStatistics();
-        statistics.filesVisited = 1;
-        compact(data, types, statistics);
+        statistics.add(compact(data, types));
         return statistics.snapshot(types.size());
     }
 
-    private static void compact(
+    /** Same canonical instance for equal types; null stays null as in a fastutil set. */
+    private static Type canonical(ConcurrentHashMap<Type, Type> types, Type type) {
+        if (type == null) {
+            return null;
+        }
+        Type existing = types.putIfAbsent(type, type);
+        return existing == null ? type : existing;
+    }
+
+    private static FileResult compact(
             ModFileScanData data,
-            ObjectOpenHashSet<Type> types,
-            MutableStatistics statistics
+            ConcurrentHashMap<Type, Type> types
     ) {
         int annotationsBefore = data.getAnnotations().size();
         int classesBefore = data.getClasses().size();
@@ -87,9 +183,9 @@ public final class ModFileScanDataCompactor {
                 data.getAnnotations().stream()
                         .filter(annotation -> keep(annotation.annotationType()))
                         .map(annotation -> new ModFileScanData.AnnotationData(
-                                types.addOrGet(annotation.annotationType()),
+                                canonical(types, annotation.annotationType()),
                                 annotation.targetType(),
-                                types.addOrGet(annotation.clazz()),
+                                canonical(types, annotation.clazz()),
                                 memberNames.addOrGet(annotation.memberName()),
                                 compactValues(annotation.annotationData())
                         ))
@@ -97,10 +193,10 @@ public final class ModFileScanDataCompactor {
 
         Set<ModFileScanData.ClassData> classSet = data.getClasses().stream()
                 .map(classData -> new ModFileScanData.ClassData(
-                        types.addOrGet(classData.clazz()),
-                        types.addOrGet(classData.parent()),
+                        canonical(types, classData.clazz()),
+                        canonical(types, classData.parent()),
                         classData.interfaces().stream()
-                                .map(types::addOrGet)
+                                .map(type -> canonical(types, type))
                                 .collect(ImmutableSet.toImmutableSet())
                 ))
                 .collect(ImmutableSet.toImmutableSet());
@@ -115,10 +211,23 @@ public final class ModFileScanDataCompactor {
             );
         }
 
-        statistics.annotationsBefore += annotationsBefore;
-        statistics.annotationsAfter += annotationSet.size();
-        statistics.classesBefore += classesBefore;
-        statistics.classesAfter += classSet.size();
+        return new FileResult(
+                false,
+                annotationsBefore,
+                annotationSet.size(),
+                classesBefore,
+                classSet.size()
+        );
+    }
+
+    private record FileResult(
+            boolean failed,
+            int annotationsBefore,
+            int annotationsAfter,
+            int classesBefore,
+            int classesAfter
+    ) {
+        static final FileResult FAILED = new FileResult(true, 0, 0, 0, 0);
     }
 
     private static Map<String, Object> compactValues(Map<String, Object> values) {
@@ -188,6 +297,18 @@ public final class ModFileScanDataCompactor {
         private int annotationsAfter;
         private int classesBefore;
         private int classesAfter;
+
+        private void add(FileResult result) {
+            filesVisited++;
+            if (result.failed()) {
+                failedFiles++;
+                return;
+            }
+            annotationsBefore += result.annotationsBefore();
+            annotationsAfter += result.annotationsAfter();
+            classesBefore += result.classesBefore();
+            classesAfter += result.classesAfter();
+        }
 
         private Statistics snapshot(int canonicalTypes) {
             return new Statistics(

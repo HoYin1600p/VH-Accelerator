@@ -16,8 +16,7 @@ public final class ClientConfigValues {
     public final ForgeConfigSpec.BooleanValue parallelAtlasStitching;
     public final ForgeConfigSpec.BooleanValue serializeAtlasStitchEvents;
     public final ForgeConfigSpec.BooleanValue parallelModelBaking;
-    public final ForgeConfigSpec.BooleanValue optimizeVoxelShapeMerging;
-    public final ForgeConfigSpec.BooleanValue cacheLaunchVoxelShapes;
+
     public final ForgeConfigSpec.BooleanValue asyncCrashReportPreload;
     public final ForgeConfigSpec.BooleanValue persistentModelJsonCache;
     public final ForgeConfigSpec.BooleanValue prewarmPersistentPlainModels;
@@ -75,7 +74,6 @@ public final class ClientConfigValues {
     public final ForgeConfigSpec.BooleanValue parallelJeiTweakerMatching;
     public final ForgeConfigSpec.IntValue jeiTweakerParallelThreshold;
     public final ForgeConfigSpec.BooleanValue stagedVaultGroupLoading;
-    public final ForgeConfigSpec.BooleanValue optimizeVaultLootCdf;
     public final ForgeConfigSpec.BooleanValue lazyVaultLootCdf;
     public final ForgeConfigSpec.IntValue vaultGroupTickBudgetMillis;
     public final ForgeConfigSpec.BooleanValue asyncJeiSearchIndex;
@@ -146,21 +144,7 @@ public final class ClientConfigValues {
         parallelModelBaking = builder
                 .comment("Bakes top-level models in batches on Minecraft's background executor.")
                 .define("parallelModelBaking", true);
-        optimizeVoxelShapeMerging = builder
-                .comment(
-                        "Uses a flat-array coordinate merger for complex voxel shapes.",
-                        "The output is equivalent to Minecraft's original merger and",
-                        "can reduce block-registration time in decoration-heavy packs.",
-                        "VH Accelerator yields this patch when Canary or Lithium is present.")
-                .define("optimizeVoxelShapeMerging", true);
-        cacheLaunchVoxelShapes = builder
-                .comment(
-                        "While mods load, shares equal voxel-shape boxes and reuses identical",
-                        "shape joins, so decoration mods that build the same shapes for every",
-                        "block and wood variant stop recomputing them. Shapes are immutable.",
-                        "The cache is released when mod loading completes. Yields to Canary or",
-                        "Lithium. Restart required.")
-                .define("cacheLaunchVoxelShapes", true);
+
         asyncCrashReportPreload = builder
                 .comment(
                         "Builds Minecraft's startup throwaway crash report (which only preloads",
@@ -556,13 +540,6 @@ public final class ClientConfigValues {
                         "Builds Vault block and entity groups in bounded main-thread slices.",
                         "Only complete group maps are published; no worker ever touches live entities.")
                 .define("stagedVaultGroupLoading", true);
-        optimizeVaultLootCdf = builder
-                .comment(
-                        "Uses hash buckets while Vault Hunters builds tiered-loot",
-                        "cumulative distributions during the initial resource reload.",
-                        "The same permutations, heuristic ordering, probabilities,",
-                        "packed keys, and cumulative values are retained.")
-                .define("optimizeVaultLootCdf", true);
         lazyVaultLootCdf = builder
                 .comment(
                         "Computes each Vault Hunters tiered-loot distribution the first time",

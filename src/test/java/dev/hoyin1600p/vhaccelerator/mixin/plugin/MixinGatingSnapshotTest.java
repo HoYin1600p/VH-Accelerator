@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.embeddedt.modernfix.core.ModernFixMixinPlugin;
@@ -31,11 +33,18 @@ class MixinGatingSnapshotTest {
 
     @Test
     void gatingDecisionsMatchTheRecordedSnapshot() throws IOException {
+        List<String> actual = GateGolden.render(MixinGatingSnapshotTest::decide);
+        // Explicit renderer mode for intentional changes to the configured mixin list/rules.
+        if ("1".equals(System.getenv("VHA_REGENERATE_GATE_SNAPSHOT"))) {
+            Files.write(Path.of("src/test/resources/dev/hoyin1600p/vhaccelerator/mixin/plugin/"
+                    + SNAPSHOT), actual, StandardCharsets.UTF_8);
+            return;
+        }
         List<String> expected;
         try (InputStream stream = getClass().getResourceAsStream(SNAPSHOT)) {
             expected = List.of(new String(stream.readAllBytes(), StandardCharsets.UTF_8).split("\\R"));
         }
-        assertEquals(expected, GateGolden.render(MixinGatingSnapshotTest::decide));
+        assertEquals(expected, actual);
     }
 
     private static String decide(Facts facts, Statics statics, List<String> names) {

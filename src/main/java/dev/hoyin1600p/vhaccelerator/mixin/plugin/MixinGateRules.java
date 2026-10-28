@@ -15,9 +15,33 @@ import java.util.function.Predicate;
  */
 public final class MixinGateRules {
     private static final List<MixinGateRule> RULES = List.of(
+            rule(dev.hoyin1600p.vhaccelerator.compat.worldzones.WorldZonesLayouts.MIXIN::equals,
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && f.vaultHuntersLoaded && f.commonMasterEnabled && f.worldZonesCompaction),
+            rule(n -> n.startsWith(dev.hoyin1600p.vhaccelerator.compat.worldzones.WorldZonesLayouts.GROUP + "."),
+                    (f, in, n) -> false),
             // A correctness fix, intentionally independent of optimization Compare Mode.
             rule(endsWith(".compat.targetdummy.TargetDummySetupMixin"),
                     (f, in, n) -> f.targetDummySetupFix),
+            // Server correctness fix: select by mod presence; its common setting is read live.
+            rule(endsWith(".compat.vaulthunters.CrystalBuddingChunkLoadMixin"),
+                    (f, in, n) -> f.vaultHuntersLoaded),
+            // Both CDF hooks yield to VHAPI, including a present but inactive/pristine overwrite.
+            rule(dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.MIXIN::equals,
+                    (f, in, n) -> f.modListKnown && !f.modDiscoveryFailed
+                            && !f.vhapiLoaded && f.vaultCdfCompatible),
+            rule(n -> n.startsWith(dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.GROUP + "."),
+                    (f, in, n) -> false),
+            // Dedicated servers only. Unlike the eager hook this composes with VHAPI: it moves when
+            // compute() runs, never what it computes. Ownership is verified after Mixin application.
+            rule(dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.LAZY_MIXIN::equals,
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && f.vaultCdfLazyCompatible),
+            rule(n -> n.startsWith(dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.LAZY_GROUP + "."),
+                    (f, in, n) -> false),
+            rule(dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.LEGACY_CLIENT_MIXIN::equals,
+                    (f, in, n) -> f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && !f.vhapiLoaded && f.vaultCdfCompatible),
             // Both physical sides: Smooth Boot lowers the server's pools too.
             rule(contains(".mixin.smoothboot."), (f, in, n) -> f.smoothBootPriorityRestore),
             rule(MixinNameSets.DEBUG_ONLY_MIXINS::contains,
@@ -99,11 +123,34 @@ public final class MixinGateRules {
                             ? Boolean.FALSE
                             : in.vhaOwns(BackportFeature.RESOURCE_PACK_INDEXING)),
             owned(".backport.modernfix.recipe.", BackportFeature.FASTER_INGREDIENT_TAG_LOOKUPS),
-            rule(endsWith(".ServerMainMixin"), (f, in, n) -> !f.physicalClient),
-            rule(endsWith(".ShapesLaunchCacheMixin", ".VoxelShapeLaunchCacheMixin"),
-                    (f, in, n) -> f.physicalClient && !f.externalShapeOptimizerLoaded),
+            // Server hang fix with no ModernFix counterpart (ModernFix 5.18 leaves it unfixed).
+            // BuildScape 4.1.0+ ships the same fix (SimpleReloadInstanceMixin) and owns it when present.
+            rule(endsWith(".fix.ReloadBarrierRaceMixin"),
+                    (f, in, n) -> !f.buildScapeReloadBarrierFix
+                            && in.vhaOwns(BackportFeature.RELOAD_BARRIER_RACE_FIX)),
+            // Vanilla MappedRegistry has no write locking and Forge 40 constructs mods in parallel.
+            // No ModernFix or BuildScape counterpart; the plugin also checks the registry class layout.
+            owned(".fix.registry.", BackportFeature.REGISTRY_WRITE_CONCURRENCY_FIX),
+            rule(endsWith(".ServerMainMixin", ".DedicatedServerStartupMixin", ".ServerLifecycleStartupMixin"),
+                    (f, in, n) -> !f.physicalClient),
+            rule(endsWith(".ServerWorldStartupProfilerMixin", ".ServerModLoaderStartupMixin"),
+                    (f, in, n) -> !f.physicalClient && in.debugEnabled()),
+            // Both physical sides. A client decides at run time from its launch snapshot; a dedicated
+            // server needs a known mod list and the common setting read here. Lithium turns all of them
+            // off (its Forge port is unchecked). Canary injects at the same createIndexMerger site as the
+            // flat merger and does the same job (see the report), so Canary turns the merger off. Canary
+            // overwrites Shapes.box; the box sharing stays on and wraps Canary's boxes (priority 1500),
+            // with the content matching below as the fallback. Canary leaves the join and optimize alone.
+            rule(endsWith(".ShapesBoxCacheMixin", ".ShapesLaunchCacheMixin", ".VoxelShapeLaunchCacheMixin"),
+                    (f, in, n) -> !f.lithiumLoaded
+                            && (f.physicalClient || serverShapes(f, f.launchShapeCache))),
+            // Only beside Canary: the join and optimize hooks match Canary's cuboids by content.
+            rule(endsWith(".VoxelShapeLeafContentMixin"),
+                    (f, in, n) -> f.canaryLoaded && !f.lithiumLoaded
+                            && (f.physicalClient || serverShapes(f, f.launchShapeCache))),
             rule(endsWith(".ShapesCoordinateMergerMixin"),
-                    (f, in, n) -> f.physicalClient && !f.externalShapeOptimizerLoaded),
+                    (f, in, n) -> !f.canaryLoaded && !f.lithiumLoaded
+                            && (f.physicalClient || serverShapes(f, f.flatShapeMerger))),
             rule(endsWith(".FerriteCoreQuadCacheCapacityMixin"),
                     (f, in, n) -> f.physicalClient && f.ferriteCoreLoaded),
             // Only while VHA's own pipeline owns ModelBakery; under ModernFix
@@ -143,7 +190,74 @@ public final class MixinGateRules {
             }),
             // Server-side chunk IO: applies to the integrated and dedicated server alike.
             rule(contains(".chunkio."), (f, in, n) -> f.asyncChunkDiskReads),
+            // Both physical sides: the block-state id map is filled by Forge on a client and a server alike.
+            rule(contains(".mixin.statemap."), (f, in, n) -> f.presizeBlockStateIdMap),
+            // Both physical sides: every Forge launch applies holder lookups after each registry event.
+            rule(contains(".mixin.registry."), (f, in, n) -> f.indexObjectHolderDispatch),
+            // Exact common-safe output removals; clients may retain context only to
+            // keep legacy parallel matching out of built-in output operations.
+            rule(dev.hoyin1600p.vhaccelerator.compat.CommonCompatibilityLayouts::isCraftTweakerRemovalMixin,
+                    (f, in, n) -> f.modListKnown && !f.modDiscoveryFailed
+                            && f.craftTweakerRemovalsCompatible
+                            && ((f.commonMasterEnabled && f.indexCraftTweakerRecipeRemovals)
+                            || f.physicalClient)),
+            rule(n -> n.startsWith("dev.hoyin1600p.vhaccelerator.mixin.compat.crafttweaker.removals."),
+                    (f, in, n) -> false),
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.buildinggadgets.TemplateLookupMixin"),
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.compactBuildingGadgetsTemplates
+                            && f.buildingGadgetsTemplatesCompatible),
+            rule(n -> n.startsWith("dev.hoyin1600p.vhaccelerator.mixin.compat.buildinggadgets."),
+                    (f, in, n) -> false),
+            // Both physical sides: the integrated server loads AE2Things disks as well.
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.ae2things.StorageManagerLoadMixin"),
+                    (f, in, n) -> f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.ae2ThingsStringSharing),
+            rule(n -> n.startsWith("dev.hoyin1600p.vhaccelerator.mixin.compat.ae2things."),
+                    (f, in, n) -> false),
+            // Both physical sides: LootJS filters are built on the integrated server as well.
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.lootjs.LootJsItemFilterMixin"),
+                    (f, in, n) -> f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.lootJsRegexShortCircuit),
+            rule(n -> n.startsWith("dev.hoyin1600p.vhaccelerator.mixin.compat.lootjs."),
+                    (f, in, n) -> false),
+            // Dedicated servers only; the layout of both fuel managers is checked by the compat group.
+            rule(n -> n.equals(dev.hoyin1600p.vhaccelerator.compat.thermalfuels.ThermalConvertedFuels.STIRLING_MIXIN)
+                            || n.equals(dev.hoyin1600p.vhaccelerator.compat.thermalfuels.ThermalConvertedFuels.GOURMAND_MIXIN),
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.thermalDeferredFuelLists),
+            rule(n -> n.startsWith(dev.hoyin1600p.vhaccelerator.compat.thermalfuels.ThermalConvertedFuels.GROUP + "."),
+                    (f, in, n) -> false),
+            // Dedicated servers only; the shape check before weaving and the ownership check on the woven
+            // StateDefinition run in the compat group.
+            rule(n -> n.equals(dev.hoyin1600p.vhaccelerator.compat.statecodec.StateCodecLayouts.MIXIN),
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.lazyStatePropertyCodecs),
+            rule(n -> n.startsWith(dev.hoyin1600p.vhaccelerator.compat.statecodec.StateCodecLayouts.GROUP + "."),
+                    (f, in, n) -> false),
             // Client and compat mixins never apply on a dedicated server.
+            // Exact common-safe exceptions. Renderer hooks and future package members still reject.
+            rule(dev.hoyin1600p.vhaccelerator.compat.StartupAdapterLayouts::isMixin,
+                    (f, in, n) -> !f.physicalClient && f.modListKnown && !f.modDiscoveryFailed
+                            && in.debugEnabled() && in.startupAdapterSupported(n)),
+            rule(n -> n.startsWith("dev.hoyin1600p.vhaccelerator.mixin.compat.startup."),
+                    (f, in, n) -> false),
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft.BBModelTextureDataMixin")
+                            || n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.decocraft.JsonParserModelShareMixin"),
+                    (f, in, n) -> f.physicalClient ? null : f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.decocraftCompatible && f.decocraftTrimmingEnabled),
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.ferritecore.StateHolderPropertyMapMixin"),
+                    (f, in, n) -> f.physicalClient ? null : f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.ferriteCoreLoaded && f.ferriteCorePropertyMaps),
+            // Only the data-only recipe filter crosses; the KubeJS resource-pack and JEI mixins stay client-only.
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.kubejs.RecipeEventJSParallelFilterMixin"),
+                    (f, in, n) -> f.physicalClient ? null : f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.parallelKubeJsFilters),
+            // The id / output lookup for recipe removals: its own setting on both sides.
+            rule(n -> n.equals("dev.hoyin1600p.vhaccelerator.mixin.compat.kubejs.RecipeEventJSRemoveIndexMixin"),
+                    (f, in, n) -> f.physicalClient ? f.indexKubeJsRecipeRemovals
+                            : f.modListKnown && !f.modDiscoveryFailed
+                            && f.commonMasterEnabled && f.indexKubeJsRecipeRemovals),
             rule(n -> n.contains(".client.") || n.contains(".compat."),
                     (f, in, n) -> f.physicalClient ? null : Boolean.FALSE),
             // VRO takes this over once it declares its own bound; never weave both.
@@ -238,6 +352,10 @@ public final class MixinGateRules {
             }
         }
         return !facts.modernFixLoaded || !MixinNameSets.MODERNFIX_OVERLAPS.contains(mixinClassName);
+    }
+
+    private static boolean serverShapes(GateFacts f, boolean selected) {
+        return f.modListKnown && !f.modDiscoveryFailed && selected;
     }
 
     private static MixinGateRule rule(Predicate<String> matches, MixinGate gate) {

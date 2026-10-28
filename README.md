@@ -3,12 +3,14 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18.2-62b47a)](https://www.minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-40.3.11%2B-e04e39)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.18.2.html)
 [![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-1.1.4-7b68ee)](docs/releases/1.1.4.md)
+[![Release](https://img.shields.io/badge/Release-1.2.0-7b68ee)](docs/releases/1.2.0.md)
 
 VH Accelerator is a Forge 1.18.2 performance mod for large Vault Hunters
-packs. Its tested client paths reduce launch and multiplayer-login work while
-keeping the first reported world frame playable. Dedicated-server use is
-intended but has not yet been tested.
+packs, for clients and dedicated servers. Its tested client paths reduce launch
+and multiplayer-login work while keeping the first reported world frame
+playable. On dedicated servers, paired tests measured 24% faster startup and
+39% less heap on a large production pack, and 32% faster startup and 23% less
+heap on Wolds Vaults 0.34.3; see the [1.2.0 results and limits](docs/releases/1.2.0.md).
 
 The same jar supports the current Vault Hunters Third Edition, Remastered, and
 the custom MVP test profile. Optional integrations activate only when their
@@ -16,6 +18,15 @@ target mod and supported class layout are present.
 
 ## Highlights
 
+- Dedicated-server startup and memory work: compact Vault loot tables,
+  BuildingGadgets templates and WorldZones memberships, shared AE2Things disk
+  strings, compressed finished Mixin class trees, on-demand block-state codecs,
+  indexed Forge object-holder dispatch and KubeJS/CraftTweaker removals,
+  short-circuited LootJS regex filters, and parallel resource indexing.
+- Startup race fixes for registry writes, Forge intrusive holders, the
+  EventBus listener cache and the reload barrier, each with its own setting.
+- An operator-only **Server** tab in the settings screen (permission level 4,
+  server-authoritative, optional network channel).
 - Parallel, guarded model and blockstate preparation with automatic
   single-threaded fallback for custom or dynamic models.
 - Fingerprinted persistent caches for deterministic model, material, JEI,
@@ -29,6 +40,9 @@ target mod and supported class layout are present.
   any cached batch is published.
 - Targeted JEI cache repair that rebuilds only recipes whose live category or
   output identity no longer matches the cached plan.
+- Indexed CraftTweaker 9.1.213 output removals on clients and dedicated servers,
+  with maintained candidate buckets, sequential actions and original matching
+  for unsupported cases. See [recipe equality checks](docs/CRAFTTWEAKER_REMOVALS.md).
 - Targeted optimizations for Vault Hunters, JEITweaker, CraftTweaker, JER,
   Powah, Thermal, Iron Furnaces, Industrial Foregoing, and Xaero's maps.
 - A compact main-menu launch timer, with optional login, transfer,
@@ -53,10 +67,17 @@ target mod and supported class layout are present.
   models, with dynamic and custom models kept on their guarded eager paths.
 - Lower menu memory use in large packs through compact JEI indexes, model
   data release, and version-gated Decocraft and Every Compat caching.
+- A default-on, exact-version BuildingGadgets template compaction for
+  dedicated servers, preserving original map/key/value identities;
+  see [template validation](docs/BUILDINGGADGETS_TEMPLATES.md).
 - Reduced client DataFixerUpper warm-up contention while retaining on-demand
   migration for old client data.
-- Faster Vault tiered-loot probability setup without changing its generated
-  cumulative results.
+- Guarded Vault tiered-loot probability setup on clients and dedicated servers
+  without VHAPI. Supported original layouts keep their cumulative results and
+  eager server publication; competing owners retain control. A separate default-on
+  lazy compact path supports reviewed VHAPI layouts without replacing their
+  arithmetic. See the
+  [CDF validation boundary](docs/VAULT_CDF.md).
 
 The safety rule is simple: work may be prepared concurrently in private
 memory, but live game or mod state is published only at a defined completion
@@ -70,17 +91,17 @@ mod behavior remain on their established threads.
 | Minecraft | `1.18.2` |
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
-| Environment | Client tested; dedicated server intended but not yet tested |
+| Environment | Clients and dedicated servers; pack-specific test conditions in the release notes |
 | Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
 | Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wolds Vaults | Packs `0.32.2`, `0.33.0` and `0.34.1`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
+| Wolds Vaults | Packs `0.32.2`, `0.33.0`, `0.34.1` and `0.34.3`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
 | Custom MVP | `3.21.62` baseline |
 | Asgard | Its own `3.21.62` build baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |
 
-VH Accelerator is intended for both clients and dedicated servers. Its client
-paths have been tested; dedicated-server installation and behavior have not
-yet been tested, so use caution before deploying it to a production server.
+VH Accelerator supports clients and dedicated servers. Dedicated-server checks cover
+startup, heap, recipe reload equality and selected save/restart paths in the tested packs;
+they do not establish a general loaded-server TPS gain.
 Clients can use VHA without installing it on the remote server.
 
 See [Installation](docs/INSTALLATION.md) for placement, upgrade, conflicting
@@ -94,7 +115,7 @@ to supply native models and blockstates through VHA.
 1. Install Minecraft 1.18.2 with Forge 40.3.11 or newer in the 40.x line.
 2. Remove or disable LaunchFaster, Lightspeed, and VHClientOptimize. They
    overlap paths now owned by VH Accelerator.
-3. Place `VH-Accelerator-1.1.4.jar` in the instance's `mods` directory.
+3. Place `VH-Accelerator-1.2.0.jar` in the instance's `mods` directory.
 4. Launch once to create the configuration and validated cache directory.
 5. Keep the default configuration for the first stability test.
 
@@ -141,6 +162,10 @@ client-only; `reload_jei` must be run while connected to a world or server.
 
 The complete behavior and permission reference is in
 [Configuration and commands](docs/CONFIGURATION.md).
+
+The server-only command `/vha dump blockshape` requires permission level 4 and
+exports ordered registry metadata for offline diagnostics. See the
+[block shape dump guide](docs/BLOCKSHAPE_DUMP.md).
 
 ## Configuration
 
@@ -241,7 +266,7 @@ Current compatibility details:
 
 | Document | Purpose |
 | --- | --- |
-| [Release notes 1.1.4](docs/releases/1.1.4.md) | Maintenance: translatable messages, logo, code cleanup |
+| [Release notes 1.2.0](docs/releases/1.2.0.md) | Dedicated-server startup, memory, stability and operator settings |
 | [Release notes 1.1.3](docs/releases/1.1.3.md) | In-game settings screen (optional, needs Cloth Config) |
 | [Release notes 1.1.2](docs/releases/1.1.2.md) | Critical fix for world holes with Farsight installed |
 | [Release notes 1.1.1](docs/releases/1.1.1.md) | Critical fix for invisible blocks and vault portals in 1.1.0 |
@@ -311,3 +336,7 @@ copyright and license notices are collected in
 Minecraft is a trademark of Microsoft. Vault Hunters belongs to its respective
 authors. This project is not affiliated with Mojang, Microsoft, Forge,
 Iskallia, JEI, or the credited projects.
+
+Experimental dedicated servers can separately opt into `compatibility.compactWorldZonesMemberships`
+(default off) for the exact supported Vault zone lookup. See [scope and checks](docs/WORLDZONES_MEMBERSHIPS.md);
+remote verification is required before wider use.

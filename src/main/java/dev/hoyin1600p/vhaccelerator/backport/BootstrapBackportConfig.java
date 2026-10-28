@@ -57,6 +57,7 @@ public final class BootstrapBackportConfig {
 
     private static Map<BackportFeature, Boolean> readLaunchValues() {
         // The first config read of a launch; move stale old defaults first.
+        ConfigMigration.migrateCommon();
         ConfigDefaultsRevision.apply();
         Path configDirectory = FMLPaths.CONFIGDIR.get();
         Path configPath = configDirectory.resolve(ConfigMigration.COMMON_CONFIG);

@@ -593,6 +593,36 @@ public enum BackportFeature {
                     "org.embeddedt.modernfix.common.mixin.perf."
                             + "cache_strongholds.ConcentricRingsStructurePlacementMixin"
             )
+    ),
+    RELOAD_BARRIER_RACE_FIX(
+            "reload_barrier_race_fix",
+            "reloadBarrierRaceFix",
+            "Reload barrier race fix",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of(),
+            List.of()
+    ),
+    EVENT_BUS_WRAPPER_CACHE_CONCURRENCY_FIX(
+            "event_bus_wrapper_cache_concurrency_fix",
+            "eventBusWrapperCacheConcurrencyFix",
+            "EventBus wrapper cache concurrency fix",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of(),
+            List.of()
+    ),
+    REGISTRY_WRITE_CONCURRENCY_FIX(
+            "registry_write_concurrency_fix",
+            "registryWriteConcurrencyFix",
+            "Registry write concurrency fix",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of(),
+            List.of()
     );
 
     private final String id;
@@ -646,6 +676,15 @@ public enum BackportFeature {
 
     public boolean implemented() {
         return implemented;
+    }
+
+    /**
+     * Crash and hang fixes with no measurable speed effect. Compare Mode exists to switch optimizations
+     * off for timing, so it does not switch these off.
+     */
+    public boolean ignoresCompareMode() {
+        return this == REGISTRY_WRITE_CONCURRENCY_FIX || this == RELOAD_BARRIER_RACE_FIX
+                || this == EVENT_BUS_WRAPPER_CACHE_CONCURRENCY_FIX;
     }
 
     public List<String> modernFixMixinKeys() {

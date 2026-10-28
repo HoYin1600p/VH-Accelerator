@@ -20,7 +20,7 @@ public abstract class JsonParserModelShareMixin {
             method = "parseModel(Ljava/lang/String;Ljava/util/zip/ZipFile;)"
                     + "Lcom/razz/decocraft/models/bbmodel/BBModel;",
             at = @At("HEAD"),
-            cancellable = true
+            cancellable = true, require = 0
     )
     private static void vhaccelerator$reuseParsedModel(
             String location,
@@ -36,7 +36,7 @@ public abstract class JsonParserModelShareMixin {
     @Inject(
             method = "parseModel(Ljava/lang/String;Ljava/util/zip/ZipFile;)"
                     + "Lcom/razz/decocraft/models/bbmodel/BBModel;",
-            at = @At("RETURN")
+            at = @At("RETURN"), require = 0
     )
     private static void vhaccelerator$rememberParsedModel(
             String location,

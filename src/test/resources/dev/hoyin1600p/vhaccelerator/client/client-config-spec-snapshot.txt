@@ -6,8 +6,6 @@ value optimizations.parallelBlockStateLoading | default=true | range=null | rest
 value optimizations.parallelAtlasStitching | default=false | range=null | restart=false | translation=null | comment=Prepares independent texture atlases concurrently. Off by default:\nForge fires TextureStitchEvent.Pre inside each preparation, so mod\nlisteners would run on several threads at once. Restart required.
 value optimizations.serializeAtlasStitchEvents | default=true | range=null | restart=false | translation=null | comment=With parallelAtlasStitching: fires every atlas's TextureStitchEvent.Pre\nfirst, one at a time on the loading thread in vanilla order, and prepares\nthe atlases in parallel afterwards, so mod stitch listeners never run on\nseveral threads at once. Restart required.
 value optimizations.parallelModelBaking | default=true | range=null | restart=false | translation=null | comment=Bakes top-level models in batches on Minecraft's background executor.
-value optimizations.optimizeVoxelShapeMerging | default=true | range=null | restart=false | translation=null | comment=Uses a flat-array coordinate merger for complex voxel shapes.\nThe output is equivalent to Minecraft's original merger and\ncan reduce block-registration time in decoration-heavy packs.\nVH Accelerator yields this patch when Canary or Lithium is present.
-value optimizations.cacheLaunchVoxelShapes | default=true | range=null | restart=false | translation=null | comment=While mods load, shares equal voxel-shape boxes and reuses identical\nshape joins, so decoration mods that build the same shapes for every\nblock and wood variant stop recomputing them. Shapes are immutable.\nThe cache is released when mod loading completes. Yields to Canary or\nLithium. Restart required.
 value optimizations.asyncCrashReportPreload | default=true | range=null | restart=false | translation=null | comment=Builds Minecraft's startup throwaway crash report (which only preloads\ncrash-reporting classes) on a background thread started after\nbootstrap, instead of on the main thread before bootstrap. The\nemergency memory reservation stays synchronous. Read before Forge\nconfig loads. Restart required.
 value optimizations.persistentModelJsonCache | default=true | range=null | restart=false | translation=null | comment=Persists the resolved initial model JSON resource view as one\nchecksummed file and restores it only when the mod files,\nresource packs, relevant local configs, and pack order match.\nForge still parses every JSON and runs every custom geometry loader;\nparsed models, baked models, textures, and dynamic state are never stored.\nRuntime resource reloads always bypass this cache.
 value optimizations.prewarmPersistentPlainModels | default=true | range=null | restart=false | translation=null | comment=Parses eligible plain models from the validated persistent JSON\ncache before Minecraft reaches its initial resource-reload barrier.\nThe prewarmed objects remain memory-only and are used only when\nthe live asset fingerprint matches the cache. Forge custom loaders,\nBuildScape models, and failures keep their established loading path.
@@ -63,7 +61,6 @@ value compatibility.indexPowahWikiRecipes | default=true | range=null | restart=
 value compatibility.parallelJeiTweakerMatching | default=true | range=null | restart=false | translation=null | comment=Matches JEITweaker hidden ingredients against a stable snapshot in parallel.\nRuntime removals remain synchronous and failures retry with the original\nsingle-threaded matching behavior.
 value compatibility.jeiTweakerParallelThreshold | default=256 | range=32 ~ 100000 | restart=false | translation=null | comment=Minimum JEI ingredient count before hidden matching uses the bounded worker pool.\nRange: 32 ~ 100000
 value compatibility.stagedVaultGroupLoading | default=true | range=null | restart=false | translation=null | comment=Builds Vault block and entity groups in bounded main-thread slices.\nOnly complete group maps are published; no worker ever touches live entities.
-value compatibility.optimizeVaultLootCdf | default=true | range=null | restart=false | translation=null | comment=Uses hash buckets while Vault Hunters builds tiered-loot\ncumulative distributions during the initial resource reload.\nThe same permutations, heuristic ordering, probabilities,\npacked keys, and cumulative values are retained.
 value compatibility.lazyVaultLootCdf | default=true | range=null | restart=false | translation=null | comment=Computes each Vault Hunters tiered-loot distribution the first time\nloot generation needs it instead of on every config load. Vault\nbuilds 53 per supported loot table (about 110 MB in Asgard); a\nmultiplayer client never reads them, and each takes about 2 ms.
 value compatibility.vaultGroupTickBudgetMillis | default=4 | range=1 ~ 25 | restart=false | translation=null | comment=Maximum main-thread time used by staged Vault group loading per client tick.\nRange: 1 ~ 25
 value compatibility.asyncJeiSearchIndex | default=true | range=null | restart=false | translation=null | comment=Builds JEI's ingredient search index as a private worker-owned object.\nPlugin registration and JEI lifecycle work stay on Minecraft's main thread.\nThe complete index is published with one main-thread reference swap.\nRuntime ingredient additions are journaled and merged before publication.\nA failed worker build automatically retries on the main thread.
@@ -134,11 +131,6 @@ value updates.updateTypes | default=CRITICAL | range=null | restart=false | tran
 	#Runtime removals remain synchronous and failures retry with the original
 	#single-threaded matching behavior.
 	parallelJeiTweakerMatching = true
-	#Uses hash buckets while Vault Hunters builds tiered-loot
-	#cumulative distributions during the initial resource reload.
-	#The same permutations, heuristic ordering, probabilities,
-	#packed keys, and cumulative values are retained.
-	optimizeVaultLootCdf = true
 	#Persists validated Iron Furnaces fuel results between client launches.
 	#A cached list is used only when synchronized item tags and Forge configs,
 	#local mod versions/files, and the item registry match.
@@ -375,12 +367,6 @@ value updates.updateTypes | default=CRITICAL | range=null | restart=false | tran
 	#open pack (each resource reload) and the checks are answered from that
 	#listing, matching file names the way the platform does.
 	indexKubeJsPackFiles = true
-	#While mods load, shares equal voxel-shape boxes and reuses identical
-	#shape joins, so decoration mods that build the same shapes for every
-	#block and wood variant stop recomputing them. Shapes are immutable.
-	#The cache is released when mod loading completes. Yields to Canary or
-	#Lithium. Restart required.
-	cacheLaunchVoxelShapes = true
 	#Bakes top-level models in batches on Minecraft's background executor.
 	parallelModelBaking = true
 	#Avoids bulk copying restored material maps and repeated model-name parsing.
@@ -466,11 +452,6 @@ value updates.updateTypes | default=CRITICAL | range=null | restart=false | tran
 	releaseCacheMemoryAfterUse = true
 	#Memoizes BlockModel material dependency walks for each model instance.
 	memoizeModelMaterials = true
-	#Uses a flat-array coordinate merger for complex voxel shapes.
-	#The output is equivalent to Minecraft's original merger and
-	#can reduce block-registration time in decoration-heavy packs.
-	#VH Accelerator yields this patch when Canary or Lithium is present.
-	optimizeVoxelShapeMerging = true
 	#Persists the resolved initial model JSON resource view as one
 	#checksummed file and restores it only when the mod files,
 	#resource packs, relevant local configs, and pack order match.

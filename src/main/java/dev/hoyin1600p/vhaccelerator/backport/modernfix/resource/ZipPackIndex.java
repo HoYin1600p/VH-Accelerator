@@ -58,12 +58,17 @@ public final class ZipPackIndex {
     private final DirectoryNode root;
 
     public ZipPackIndex(Path zipPath) throws IOException {
+        dev.hoyin1600p.vhaccelerator.startup.StartupWorkObserver.enter("resource.index.zip.build", this);
         this.centralDirectory = readCentralDirectory(zipPath);
         Set<String> roots = new HashSet<>();
         roots.add(PackType.CLIENT_RESOURCES.getDirectory());
         roots.add(PackType.SERVER_DATA.getDirectory());
         this.trackedRoots = Set.copyOf(roots);
+        dev.hoyin1600p.vhaccelerator.startup.StartupWorkObserver.enter("resource.index.zip.parse", this);
         this.root = buildTree();
+        dev.hoyin1600p.vhaccelerator.startup.ServerLaunchTimer.exitOperation("resource.index.zip.parse",
+                this.centralDirectory == null ? 0L : (long) this.centralDirectory.limit());
+        dev.hoyin1600p.vhaccelerator.startup.StartupWorkObserver.exit("resource.index.zip.build");
     }
 
     public Set<String> namespaces(PackType type) {
@@ -241,6 +246,14 @@ public final class ZipPackIndex {
 
     private static ByteBuffer readCentralDirectory(Path path)
             throws IOException {
+        dev.hoyin1600p.vhaccelerator.startup.StartupWorkObserver.enter("resource.zip.directory.read_or_map", ZipPackIndex.class);
+        ByteBuffer result = readCentralDirectoryObservedBody(path);
+        dev.hoyin1600p.vhaccelerator.startup.ServerLaunchTimer.exitOperation("resource.zip.directory.read_or_map",
+                result == null ? 0L : (long) result.limit());
+        return result;
+    }
+
+    private static ByteBuffer readCentralDirectoryObservedBody(Path path) throws IOException {
         try (SeekableByteChannel channel = openChannel(path)) {
             long fileSize = channel.size();
             if (fileSize < EOCD_SIZE) {

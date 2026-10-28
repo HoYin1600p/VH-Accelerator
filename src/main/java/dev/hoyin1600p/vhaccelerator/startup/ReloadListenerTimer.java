@@ -38,6 +38,11 @@ public final class ReloadListenerTimer {
             String label,
             Runnable onFinished
     ) {
+        return StartupDiagnostics.get("reload.timer.wrap", () -> wrapUnchecked(listeners, label, onFinished), listeners);
+    }
+
+    private static List<PreparableReloadListener> wrapUnchecked(List<PreparableReloadListener> listeners,
+                                                               String label, Runnable onFinished) {
         ProfileSession session = new ProfileSession(listeners.size(), label, onFinished);
         List<PreparableReloadListener> wrapped =
                 new ArrayList<>(listeners.size());
@@ -56,7 +61,7 @@ public final class ReloadListenerTimer {
         return wrapped;
     }
 
-    private static String listenerName(PreparableReloadListener listener) {
+    static String listenerName(PreparableReloadListener listener) {
         PreparableReloadListener named = unwrapForge(listener);
         return named.getClass().getName();
     }
@@ -100,11 +105,12 @@ public final class ReloadListenerTimer {
                 Executor backgroundExecutor,
                 Executor gameExecutor
         ) {
-            ListenerTiming timing = new ListenerTiming(
-                    index,
-                    listenerName(delegate),
-                    System.nanoTime()
-            );
+            ListenerTiming timing = StartupDiagnostics.get("reload.timer.begin", () -> new ListenerTiming(
+                    index, listenerName(delegate), System.nanoTime()), null);
+            if (timing == null) {
+                return delegate.reload(barrier, resourceManager, preparationProfiler, reloadProfiler,
+                        backgroundExecutor, gameExecutor);
+            }
             PreparationBarrier observedBarrier = new PreparationBarrier() {
                 @Override
                 public <T> CompletableFuture<T> wait(T preparedValue) {
@@ -168,6 +174,10 @@ public final class ReloadListenerTimer {
         }
 
         private void complete(ListenerTiming timing) {
+            StartupDiagnostics.run("reload.timer.complete", () -> completeUnchecked(timing));
+        }
+
+        private void completeUnchecked(ListenerTiming timing) {
             timings.add(timing);
             if (completed.incrementAndGet() != expected) {
                 return;
@@ -211,7 +221,7 @@ public final class ReloadListenerTimer {
                         expected
                 );
             } finally {
-                onFinished.run();
+                StartupDiagnostics.run("reload.timer.finished", onFinished);
             }
         }
     }

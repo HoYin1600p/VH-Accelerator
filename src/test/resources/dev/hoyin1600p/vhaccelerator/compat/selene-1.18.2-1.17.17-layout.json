@@ -1,0 +1,168 @@
+{
+  "methods": [
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/server/packs/PackType;)V",
+      "access": 1,
+      "name": "\u003cinit\u003e"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/server/packs/PackType;Lnet/minecraft/server/packs/repository/Pack$Position;ZZ)V",
+      "access": 1,
+      "name": "\u003cinit\u003e"
+    },
+    {
+      "descriptor": "([Ljava/lang/String;)V",
+      "access": 129,
+      "name": "addNamespaces"
+    },
+    {
+      "descriptor": "()Lnet/minecraft/network/chat/Component;",
+      "access": 1,
+      "name": "getTitle"
+    },
+    {
+      "descriptor": "()Ljava/lang/String;",
+      "access": 1,
+      "name": "m_8017_"
+    },
+    {
+      "descriptor": "()Ljava/lang/String;",
+      "access": 1,
+      "name": "toString"
+    },
+    {
+      "descriptor": "(Lnet/minecraftforge/eventbus/api/IEventBus;)V",
+      "access": 1,
+      "name": "registerPack"
+    },
+    {
+      "descriptor": "(Lnet/minecraftforge/event/AddPackFindersEvent;)V",
+      "access": 1,
+      "name": "register"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/server/packs/PackType;)Ljava/util/Set;",
+      "access": 1,
+      "name": "m_5698_"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/server/packs/metadata/MetadataSectionSerializer;)Ljava/lang/Object;",
+      "access": 1,
+      "name": "m_5550_"
+    },
+    {
+      "descriptor": "(Ljava/lang/String;[B)V",
+      "access": 1,
+      "name": "addRootResource"
+    },
+    {
+      "descriptor": "(Ljava/lang/String;)Ljava/io/InputStream;",
+      "access": 1,
+      "name": "m_5542_"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/server/packs/PackType;Ljava/lang/String;Ljava/lang/String;ILjava/util/function/Predicate;)Ljava/util/Collection;",
+      "access": 1,
+      "name": "m_7466_"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/server/packs/PackType;Lnet/minecraft/resources/ResourceLocation;)Ljava/io/InputStream;",
+      "access": 1,
+      "name": "m_8031_"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/server/packs/PackType;Lnet/minecraft/resources/ResourceLocation;)Z",
+      "access": 1,
+      "name": "m_7211_"
+    },
+    {
+      "descriptor": "()V",
+      "access": 1,
+      "name": "close"
+    },
+    {
+      "descriptor": "(Ljava/lang/String;)Ljava/io/FileNotFoundException;",
+      "access": 1,
+      "name": "makeFileNotFoundException"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;[B)V",
+      "access": 4,
+      "name": "addBytes"
+    },
+    {
+      "descriptor": "(Lnet/mehvahdjukaar/selene/resourcepack/StaticResource;)V",
+      "access": 1,
+      "name": "addResource"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;Lcom/google/gson/JsonElement;)V",
+      "access": 2,
+      "name": "addJson"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;Lcom/google/gson/JsonElement;Lnet/mehvahdjukaar/selene/resourcepack/ResType;)V",
+      "access": 1,
+      "name": "addJson"
+    },
+    {
+      "descriptor": "(Lnet/minecraft/resources/ResourceLocation;[BLnet/mehvahdjukaar/selene/resourcepack/ResType;)V",
+      "access": 1,
+      "name": "addBytes"
+    },
+    {
+      "descriptor": "()Lnet/minecraft/server/packs/PackType;",
+      "access": 1,
+      "name": "getPackType"
+    },
+    {
+      "descriptor": "(Lnet/mehvahdjukaar/selene/resourcepack/StaticResource;Ljava/lang/String;Ljava/lang/String;)V",
+      "access": 131073,
+      "name": "addSimilarJsonResource"
+    },
+    {
+      "descriptor": "(Lnet/mehvahdjukaar/selene/resourcepack/StaticResource;Ljava/util/function/Function;)V",
+      "access": 131073,
+      "name": "addSimilarJsonResource"
+    },
+    {
+      "descriptor": "(Lnet/mehvahdjukaar/selene/resourcepack/StaticResource;Ljava/util/function/Function;Ljava/util/function/Function;)V",
+      "access": 131073,
+      "name": "addSimilarJsonResource"
+    },
+    {
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+      "access": 4106,
+      "name": "lambda$addSimilarJsonResource$4"
+    },
+    {
+      "descriptor": "(Ljava/util/function/Predicate;Lnet/minecraft/resources/ResourceLocation;)Z",
+      "access": 4106,
+      "name": "lambda$getResources$3"
+    },
+    {
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;Lnet/minecraft/resources/ResourceLocation;)Z",
+      "access": 4106,
+      "name": "lambda$getResources$2"
+    },
+    {
+      "descriptor": "(Ljava/util/function/Consumer;Lnet/minecraft/server/packs/repository/Pack$PackConstructor;)V",
+      "access": 4098,
+      "name": "lambda$register$1"
+    },
+    {
+      "descriptor": "()Lnet/minecraft/server/packs/PackResources;",
+      "access": 4098,
+      "name": "lambda$register$0"
+    },
+    {
+      "descriptor": "()V",
+      "access": 8,
+      "name": "\u003cclinit\u003e"
+    }
+  ],
+  "className": "net/mehvahdjukaar/selene/resourcepack/DynamicResourcePack",
+  "sha256": "b06590edf24f91d655bb59f585950c11ef8c72c798b7d40dc6a4c16fbf2603a3",
+  "implementationVersion": "1.18.2-1.17.17",
+  "schemaVersion": 1
+}

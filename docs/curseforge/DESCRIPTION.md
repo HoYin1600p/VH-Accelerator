@@ -1,27 +1,46 @@
 # VH Accelerator
 
-**Spend less time waiting for a large Vault Hunters client to start and become
-playable.**
+**Spend less time waiting for a large Vault Hunters client or server to start,
+and give your server back gigabytes of memory.**
 
-VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. Its tested
-client paths reduce launch and multiplayer-login work in large Vault Hunters
-Third Edition and Remastered packs. Dedicated-server use is intended but has
-not yet been tested.
+VH Accelerator is a performance mod for Minecraft 1.18.2 Forge. On clients it
+reduces launch and multiplayer-login work in large Vault Hunters Third Edition,
+Remastered and Wolds Vaults packs. On dedicated servers it cuts startup time and
+memory use. The same jar works on both, and each side works without the other.
 
-The current 1.1.4 release is a maintenance update with no gameplay changes;
-1.1.3 added an optional in-game settings screen. Both build
-on guarded deferred model loading, lower menu
-memory use, faster warm launches and world joins, and targeted fixes for JEI
-and model compatibility. It has been exercised with Remastered, Asgard and
-Wolds Vaults 0.34.1. It also includes the compatibility, startup-reliability,
-texture-safety and JEI recovery work added since the original 1.0.0 release.
+**New in 1.2.0: dedicated servers.** In paired tests, server startup was 24%
+faster on a large production pack and 32% faster on Wolds Vaults 0.34.3, with
+39% and 23% less memory used after starting. Before release it ran on five live
+servers through many restarts with no crashes. 1.2.0 also fixes rare
+startup crashes and hangs, and adds an operator-only **Server** tab to the
+settings screen. See the
+[1.2.0 release notes](https://github.com/HoYin1600p/VH-Accelerator/releases/tag/v1.2.0)
+for test conditions and limits.
+
+It builds on guarded deferred model loading, lower menu memory use, faster warm
+launches and world joins, and targeted fixes for JEI and model compatibility. It
+has been exercised with Remastered, Asgard and Wolds Vaults 0.34.1 and 0.34.3.
 
 It does not remove recipes, models, or gameplay content. Independent work is
 prepared in parallel, deterministic results are cached behind strict
 fingerprints, and completed data is published back to the game on the correct
 thread. Dynamic models and other unsafe work stay on their normal path.
 
-## What it improves
+## What it improves on servers
+
+- Dedicated-server startup time, through indexed registry and recipe-removal
+  work (KubeJS, CraftTweaker, LootJS), parallel resource indexing and
+  on-demand setup of data the server may never need.
+- Server memory: Vault loot tables, Building Gadgets templates and WorldZones
+  memberships are stored compactly, equal AE2Things disk strings are shared,
+  and finished Mixin class data is compressed.
+- Startup stability: guards against races between mods loading in parallel
+  (registry writes, Forge holders, the EventBus listener cache) and a reload
+  race that could hang startup.
+- A **Server** settings tab for operators (permission level 4), checked by the
+  server on every request.
+
+## What it improves on clients
 
 - Client startup, including model, blockstate, texture-atlas, and resource
   preparation.
@@ -88,11 +107,11 @@ activate only when the matching mod and supported class layout are present.
 
 - **Minecraft:** 1.18.2
 - **Mod loader:** Forge 40.3.11 or newer in the Forge 40.x line
-- **Environment:** Client tested; dedicated server intended but not yet tested
+- **Environment:** Clients and dedicated servers; pack-specific checks and limits in the 1.2.0 release notes
 - **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, and `.6883`;
   official `3.21.5.6882` and
-  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`), 0.33.0 and 0.34.1
-  (`3.21.6.6884`);
+  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`), 0.33.0, 0.34.1 and
+  0.34.3 (`3.21.6.6884`);
   custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
 
@@ -100,10 +119,14 @@ The Vault and JEI versions above are tested compatibility baselines, not hard
 dependencies. One VH Accelerator jar contains guarded support for both JEI
 generations and all listed Vault layouts.
 
-VH Accelerator is intended for **clients and dedicated servers**, but
-dedicated-server behavior has not yet been tested. Clients can use it without
-installing it on the remote server; test carefully before deploying it to a
-production server.
+VH Accelerator supports **clients and dedicated servers**. Dedicated-server
+checks cover startup, heap, recipe reload equality and selected save/restart
+paths in the tested packs; no general loaded-server TPS gain is claimed.
+Clients can use it without installing it on the remote server, and servers
+can use it without players installing it.
+
+If you run Wolds Vaults, update Wolds to a release with its own Rampage fix;
+VH Accelerator's old workaround for it was removed in 1.2.0.
 
 ## Installation
 
@@ -111,7 +134,7 @@ production server.
 2. Disable or remove older VH Accelerator jars.
 3. Disable **LaunchFaster**, **Lightspeed**, and **VHClientOptimize** because
    their loading changes overlap VH Accelerator.
-4. Put `VH-Accelerator-1.1.4.jar` in the instance's `mods` folder.
+4. Put `VH-Accelerator-1.2.0.jar` in the instance's or server's `mods` folder.
 5. Launch once to create the configuration and cold caches.
 6. Use later launches and connections when judging warm-cache performance.
 
@@ -127,6 +150,12 @@ settings** in Options > Controls; it is unbound by default. Settings are grouped
 plain-English explanation for each, and a (restart) badge on the ones that need a restart. Cloth
 Config is optional: without it VH Accelerator works as before and the settings stay in the
 config files.
+
+Server operators with permission level 4 also get a **Server** tab that reads and changes the
+connected server's settings. The server checks the player's permission and every value on each
+request, and logs each change. Other players do not see server controls. Servers and clients
+without the matching VHA version still connect normally; the tab then explains that server
+settings are not available.
 
 ## Timers and commands
 
@@ -155,7 +184,8 @@ Each setting also accepts `status`, and `/vha compare`, `/vha timers`,
 changing it.
 
 These are client commands in multiplayer and do not require the mod on the
-remote server. `/vha reload_jei` requires an active world or server connection
+remote server. Server operators can also run `/vha dump blockshape` to export
+block-shape diagnostics. `/vha reload_jei` requires an active world or server connection
 and may pause the client briefly while JEI rebuilds.
 
 ## First-run expectations

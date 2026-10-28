@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.hoyin1600p.vhaccelerator.backport.BackportOwnershipRegistry;
 import dev.hoyin1600p.vhaccelerator.client.update.UpdateNoticeFilter;
 import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.diagnostics.RecipeDifferentialDump;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -115,6 +116,13 @@ public final class VHAcceleratorCommand {
                                 .executes(context -> reportBackports(
                                         context.getSource()
                                 )));
+        root.then(Commands.literal("recipes")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("dump")
+                        .executes(context -> RecipeDifferentialDump.execute(context.getSource()))));
+        if (requireAdministrator) {
+            root.then(dev.hoyin1600p.vhaccelerator.diagnostics.blockshape.BlockShapeCommand.node());
+        }
         if (updateChecksEnabled != null
                 && updateChecksSetter != null
                 && updateFilter != null

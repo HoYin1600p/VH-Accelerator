@@ -15,17 +15,23 @@ import dev.hoyin1600p.vhaccelerator.bootstrap.BootstrapDebugDiagnostics;
 import dev.hoyin1600p.vhaccelerator.bootstrap.ConfigMigration;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClient;
 import dev.hoyin1600p.vhaccelerator.config.VHAcceleratorConfig;
+import dev.hoyin1600p.vhaccelerator.mixinmemory.MixinTreeReleaseHook;
 import dev.hoyin1600p.vhaccelerator.shape.LaunchShapeCache;
 import dev.hoyin1600p.vhaccelerator.startup.ServerLaunchTimer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
@@ -36,6 +42,7 @@ public final class VHAccelerator {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public VHAccelerator() {
+        ServerLaunchTimer.checkpoint("construction", "proxy:VHA constructor; other mods not covered");
         ConfigMigration.migrateCommon();
         BootstrapCompareMode.capture();
         BootstrapDebugDiagnostics.capture();
@@ -48,13 +55,23 @@ public final class VHAccelerator {
                 VHAcceleratorConfig.COMMON_SPEC,
                 ConfigMigration.COMMON_CONFIG
         );
+        dev.hoyin1600p.vhaccelerator.network.ServerSettingsNetwork.register();
         FMLJavaModLoadingContext.get().getModEventBus()
                 .addListener(this::onLoadComplete);
+        FMLJavaModLoadingContext.get().getModEventBus()
+                .addListener(this::onCommonSetup);
+        FMLJavaModLoadingContext.get().getModEventBus()
+                .addListener(this::onDedicatedSetup);
 
         // Keep every reference to client-only Minecraft classes behind this physical-side gate.
         DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> VHAcceleratorClient::initialize);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarted);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         if (FMLEnvironment.dist == Dist.DEDICATED_SERVER) {
+            // The event class is given explicitly: Forge infers a lambda's event type from the lambda's
+            // generics, and a lambda that fails to resolve is bound to the wrong type and never fires.
+            MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, TickEvent.ServerTickEvent.class,
+                    event -> MixinTreeReleaseHook.serverTick(event, LOGGER));
             MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
         }
 
@@ -63,13 +80,39 @@ public final class VHAccelerator {
 
     private void onServerStarted(ServerStartedEvent event) {
         ServerLaunchTimer.markEnd();
+        MixinTreeReleaseHook.serverStarted(LOGGER);
+    }
+
+    private void onServerStarting(ServerStartingEvent event) {
+        ServerLaunchTimer.checkpoint("server_starting", "hook:VHA ServerStartingEvent listener");
+    }
+
+    private void onCommonSetup(FMLCommonSetupEvent event) {
+        ServerLaunchTimer.checkpoint("common_setup", "proxy:VHA callback; not a global barrier");
+    }
+
+    private void onDedicatedSetup(FMLDedicatedServerSetupEvent event) {
+        ServerLaunchTimer.checkpoint("sided_setup", "proxy:VHA callback; not a global barrier");
     }
 
     private void onLoadComplete(FMLLoadCompleteEvent event) {
+        ServerLaunchTimer.checkpoint("load_complete", "proxy:VHA callback; not a global barrier");
         AttributeSupplierDeduplication.closeStartupWindow();
         LaunchShapeCache.close(VHAcceleratorConfig.debugDiagnosticsEnabled()
                 ? message -> LOGGER.info("[debug] {}", message)
                 : null);
+        String holderIndexLine =
+                dev.hoyin1600p.vhaccelerator.registry.ObjectHolderDispatch.summaryLine();
+        if (holderIndexLine != null) {
+            LOGGER.info(holderIndexLine);
+        }
+        if (FMLEnvironment.dist == Dist.DEDICATED_SERVER) {
+            dev.hoyin1600p.vhaccelerator.registry.ObjectHolderDispatch.releaseIndex();
+        }
+        if (VHAcceleratorConfig.debugDiagnosticsEnabled()) {
+            dev.hoyin1600p.vhaccelerator.registry.ObjectHolderVerifier.runAndLog(
+                    LOGGER::info, LOGGER::warn);
+        }
         AttributeInstanceTemplates.Statistics statistics =
                 AttributeInstanceTemplates.statistics();
         if (statistics.requests() != 0) {

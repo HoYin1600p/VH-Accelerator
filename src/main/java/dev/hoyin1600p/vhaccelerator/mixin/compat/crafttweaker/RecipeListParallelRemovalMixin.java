@@ -2,14 +2,18 @@ package dev.hoyin1600p.vhaccelerator.mixin.compat.crafttweaker;
 
 import com.blamejared.crafttweaker.api.recipe.RecipeList;
 import dev.hoyin1600p.vhaccelerator.client.VHAcceleratorClientConfig;
+import dev.hoyin1600p.vhaccelerator.compat.crafttweaker.removals.IndexedOutputRemovals;
+import dev.hoyin1600p.vhaccelerator.compat.CompatMixinGroups;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -34,22 +38,30 @@ public abstract class RecipeListParallelRemovalMixin<T extends Recipe<?>> {
 
     @Inject(method = "removeByRecipeTest", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$testInParallel(Predicate<T> recipePredicate, CallbackInfo callback) {
-        if (!VHAcceleratorClientConfig.optimizationsEnabled()
-                || !VHAcceleratorClientConfig.launchValue(
+        if (vhaccelerator$dispatch(recipes, byName, recipePredicate,
+                () -> IndexedOutputRemovals.tryRemove(recipes, byName, recipePredicate),
+                () -> CompatMixinGroups.legacyCraftTweakerParallelAllowed()
+                && VHAcceleratorClientConfig.optimizationsEnabled()
+                && VHAcceleratorClientConfig.launchValue(
                         VHAcceleratorClientConfig.VALUES
-                                .parallelCraftTweakerRecipeRemoval)
-                || recipes.size() < 2_048
-                || !recipePredicate.getClass().getName().startsWith("com.blamejared.crafttweaker.api.")) {
-            return;
-        }
-        List<ResourceLocation> matches = recipes.entrySet().parallelStream()
+                                .parallelCraftTweakerRecipeRemoval))) callback.cancel();
+    }
+
+    /** Both HEAD hooks offer ownership to the same dispatcher before legacy matching. */
+    @Unique
+    private static <K, R> boolean vhaccelerator$dispatch(Map<K, R> recipes, Map<K, ? super R> byName,
+            Predicate<R> recipePredicate, BooleanSupplier indexed, BooleanSupplier legacyAllowed) {
+        if (indexed.getAsBoolean()) return true;
+        if (!legacyAllowed.getAsBoolean() || recipes.size() < 2_048
+                || !recipePredicate.getClass().getName().startsWith("com.blamejared.crafttweaker.api.")) return false;
+        List<K> matches = recipes.entrySet().parallelStream()
                 .filter(entry -> recipePredicate.test(entry.getValue()))
                 .map(Map.Entry::getKey)
                 .toList();
-        for (ResourceLocation id : matches) {
+        for (K id : matches) {
             byName.remove(id);
             recipes.remove(id);
         }
-        callback.cancel();
+        return true;
     }
 }

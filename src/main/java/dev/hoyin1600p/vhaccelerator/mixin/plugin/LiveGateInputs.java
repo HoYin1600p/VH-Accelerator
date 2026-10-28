@@ -25,6 +25,18 @@ public final class LiveGateInputs implements GateInputs {
     }
 
     @Override
+    public boolean startupAdapterSupported(String mixin) {
+        return dev.hoyin1600p.vhaccelerator.compat.StartupAdapterLayouts.supports(mixin, id -> {
+            try {
+                var list = net.minecraftforge.fml.loading.LoadingModList.get();
+                if (list == null) return null;
+                return list.getMods().stream().filter(mod -> mod.getModId().equals(id))
+                        .map(mod -> mod.getVersion().toString()).findFirst().orElse(null);
+            } catch (RuntimeException unavailable) { return null; }
+        });
+    }
+
+    @Override
     public boolean vhaOwns(BackportFeature feature) {
         return BackportOwnershipRegistry.vhaOwns(feature);
     }

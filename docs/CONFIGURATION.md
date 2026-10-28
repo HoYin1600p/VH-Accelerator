@@ -8,6 +8,35 @@ VH Accelerator uses one common Forge config and one physical-client config:
 Commands save their common diagnostic setting immediately. Other file edits
 should be made while the game is stopped, followed by a restart.
 
+## EventBus wrapper-cache startup correction
+
+Common `[backports]` `eventBusWrapperCacheConcurrencyFix = true` protects the exact
+reviewed EventBus **5.0.3** wrapper cache on clients and dedicated servers. Forge can
+register annotation-based listeners on several threads during mod construction. The
+original cache checks for a Method and then reads its generated wrapper class from a
+plain HashMap; another registration resizing that map can make the second read return
+null and fail startup. The correction uses a synchronized HashMap subclass for those
+cache operations. Its original AtomicInteger name counter, bytecode generator and
+class definition remain unchanged, and event dispatch takes no additional lock.
+
+Installation happens from VHA's mixin plugin before parallel mod construction, only
+when the cache is still a plain empty HashMap and the name counter is zero. Whole-class
+SHA-256 checks cover the original cache initializer, name counter, generator and loader;
+runtime field types/modifiers are checked too. Changed versions or class bodies,
+another cache owner, an already-used cache, or unavailable/denied Unsafe access retain
+original behavior. One `Skipping backports.eventBusWrapperCacheConcurrencyFix` warning
+names the reason. Success prints `Applied backports.eventBusWrapperCacheConcurrencyFix`.
+The setting requires a restart and stays active in Compare Mode and with optimization
+masters disabled. It does not depend on `diagnostics.debug`.
+
+The static-final boot-layer cache cannot be replaced through ordinary Java reflection.
+VHA therefore uses optional reflective `sun.misc.Unsafe` access for the single early
+reference publication. **On Java 24 and later the JVM may print its one-time Unsafe
+deprecation warning.** This is expected; VHA does not suppress stderr or change JVM
+access policies. No `--add-opens` is required. If a future JVM removes or denies the
+needed API, VHA skips the correction instead of stopping loading. Disabling this
+setting also avoids VHA's use of that API and leaves the original stock race possible.
+
 ## Settings screen
 
 VH Accelerator has an in-game settings screen. Open it with the **Open VH Accelerator settings**
@@ -27,8 +56,7 @@ changed in `config/vhaccelerator-client.toml` and `config/vhaccelerator-common.t
 
 Every setting in both files is on the screen, grouped into tabs by what it affects rather than by
 `.toml` section: General, Launch & loading, Joining worlds, Vault Hunters, Mod compatibility,
-Memory, Server & engine, Backports and Diagnostics. Common-file settings only take effect in
-singleplayer, and on a dedicated server that uses the same file.
+Memory, Server & engine, Backports and Diagnostics. While disconnected, common-file controls edit this computer's file for future launches. While connected, common controls move to the Server tab.
 
 Each setting is a toggle, a slider (within the `.toml` range) or a selector. A grey line under it
 summarises it; click that line to show or hide the full explanation underneath. A `(restart)`
@@ -44,11 +72,44 @@ edits on the screen, and save and apply immediately:
 
 - **Default** resets every setting, including Diagnostics, to the shipped defaults.
 - **Experimental** turns on every setting that ships off, except those in Diagnostics and
-  `parallelAtlasStitching`, which has produced wrong textures in Vault packs. The confirmation
+  `parallelAtlasStitching`, which has produced wrong textures in Vault packs, and
+  `releaseMixinClassTrees`, whose manual opt-outs stay unchanged. The confirmation
   lists the settings it will change. Currently these are
   `persistentVanillaRecipeValidationCache`, `parallelReloadPreparation`,
   `skipRedundantRegistryValidation`, `skipRegistryDump`, `parallelBlockStateInit` and
   `lazyBlockStateCache`.
+
+### Server settings
+
+The **Server** tab loads the connected server's current common settings when you open the screen.
+It shows editable values only after the server confirms **operator level 4**. Other players see an
+explanation without the values. This also applies in singleplayer: the integrated server checks
+its normal permission rules, including cheats and LAN operator permissions, with no ownership bypass.
+The integrated server and local client share the common file, so common-side client behavior in that
+Minecraft process may change too; settings with restart badges still need a full Minecraft restart.
+
+**Save** sends only changed server values. The server checks permission again on every read and
+write, validates the exact setting key, type and range, then saves its common TOML. Successful
+changes are logged with the player, key, old value and new value. Server defaults and ranges come
+from that server. A **(server restart)** badge means the server process needs a restart; for
+singleplayer, restart Minecraft. Saving does not restart anything. Existing per-setting explanations
+still describe whether a change applies live, at the next reload, or at launch.
+
+**Server defaults** and **Server experimental** have their own confirmations in this tab. The
+latter enables default-off booleans outside Diagnostics and the existing exclusions. Each confirmation
+lists the changes. While connected, the footer's **Local defaults** and **Local experimental** affect
+only client settings. Other tabs contain local client controls; common controls appear only in Server.
+When disconnected, the original local common controls and Default/Experimental behavior remain.
+
+The allowlist and local common controls share one catalog. Tests require every common spec key to
+appear exactly once, including backports, compatibility, optimizations and diagnostics. A switch
+for a feature absent from a particular server has no effect there.
+
+The network channel is optional and uses only play packets. A client or server without VHA, or
+with older support, can still join normally; the Server tab says it is unavailable. An unknown
+channel protocol also keeps normal joining available and disables this editor. Replies are bound
+to the connection and request that opened the screen. A five-second timeout ends waiting; a missing
+save reply does not imply the save failed, so reopen to read the authoritative values before retrying.
 
 ### Report a bug
 
@@ -77,6 +138,16 @@ it would be copied. Before anything is shown, paths inside user folders (`C:\Use
 
 The link is kept under about 7,500 characters. When the report is longer, the list of changed
 settings is shortened.
+
+## Budding crystal chunk loading correction
+
+| Common config setting | Default | Effect |
+| --- | --- | --- |
+| `compatibility.fixBuddingCrystalChunkLoad` | `true` | Schedules Vault Hunters' first budding crystal growth one game tick after loading and skips neighbours in unloaded chunks, preventing synchronous chunk loads during chunk loading. |
+
+Applies on dedicated servers and in singleplayer. The setting is read live;
+no restart is required. It remains active in Compare Mode and with common
+optimizations disabled. Set it to `false` to restore Vault's original behavior.
 
 ## Target Dummy startup correction
 
@@ -188,9 +259,26 @@ VH Accelerator moves an option that still holds the old default to the new
 one on the first launch of the new version, once, and records the applied
 revision in `config/vhaccelerator-defaults-revision.txt`. A value changed
 before that launch away from the old default, or changed afterwards, is kept.
-Revision 1 covers the 1.1.0 defaults: `deduplicateResourceLocationNamespaces`,
-`deferItemModelBaking`, `deferBlockStateModelBaking` and
-`skipBlockStateGraphLoading`.
+Each change carries the revision that introduced it, so an install that already
+applied an earlier revision only receives the newer rows. A missing or unreadable
+marker counts as revision 0. Every moved key is logged once at INFO
+(`Moved <section>.<key> in <file> from the old default ... to the current
+default ...`). The move runs before the mixin selection reads the common
+config, so the first launch after the upgrade already uses the new value. A
+dedicated server never reads or writes `vhaccelerator-client.toml`. If the file
+is malformed or read-only, it is left as it is, the old value stays in effect
+and the next launch tries again.
+
+- Revision 1 (1.1.0): `deduplicateResourceLocationNamespaces`,
+  `deferItemModelBaking`, `deferBlockStateModelBaking` and
+  `skipBlockStateGraphLoading`, all `false` to `true`.
+- Revision 2: `compatibility.compactBuildingGadgetsTemplates`, `false` to `true`.
+- Revision 3: `compatibility.compactWorldZonesMemberships`, `false` to `true`.
+- Revision 4: `optimizations.releaseMixinClassTrees`, `false` to `true`.
+
+Limitation: a file that holds the old default cannot be told apart from a
+player who set that same value on purpose before this mechanism existed, so
+that choice is flipped once. Set it again afterwards and it is kept for good.
 
 ## Command reference
 
@@ -290,7 +378,16 @@ settings resume as soon as the recovery rebuild finishes.
 
 | Key | Default | Description |
 | --- | --- | --- |
+| `optimizeVaultLootCdf` | `true` | Uses hash buckets for the exact supported original Vault 3.21.62 or 3.21.6.6884 cumulative-distribution layout on clients and dedicated servers. VHAPI and changed computation layouts keep their original path. Compare Mode/common master disable it; client master also vetoes client use. No restart required: applies to future builds/reloads, with complete eager server publication. Existing client false migrates when common is unspecified; explicit common wins. See [CDF validation](VAULT_CDF.md). |
+| `lazyCompactVaultLootCdf` | `true` | Dedicated servers with the exact supported Vault 3.21.62 or 3.21.6.6884 archive (class SHA-256 pins; only the version string differs between them). Moves `CDF.compute()` out of the constructor to the first `get` or `getMap` (once, under a per-distribution lock), then keeps the result as one `double[]` indexed by composition rank, about four times smaller than Vault's hash map, after proving every value equal bit for bit. Never replaces or wraps `compute()` or `getProbability()`, so it composes with VHAPI, whose arithmetic still runs, only later. `getMap()` returns a read-only view with the same keys and values. Keeps the original eager hash map when the common master or Compare Mode is off, the application is unconfirmed or revoked, another mixin owns the constructor, `get` or `getMap` or a competing owner overwrites `compute`/`getProbability`, or the layout differs. No restart required: applies to future builds/reloads. See [CDF validation](VAULT_CDF.md). |
 | `deferTargetDummyDispenserRegistration` | `true` | Queues Target Dummy `1.18-1.5.2` dispenser registration after parallel setup. Restart required; independent of Compare Mode. |
+| `trimDecocraftModels` | `true` | Decocraft `3.0.4-1.18.2` registration hooks are eligible on both physical sides after whole-group layout, side and injector checks. Dedicated servers also require the common master and Compare Mode off. Restart required. |
+| `compactFerriteCorePropertyMaps` | `true` | FerriteCore `4.2.2` StateHolder view compaction is eligible on both physical sides after whole-group dependency and injector checks. Dedicated servers also require the common master and Compare Mode off. Restart required. |
+| `compactBuildingGadgetsTemplates` | `true` | Compaction of template position maps for the exact supported BuildingGadgets `3.13.2-build.21+mc1.18.2` archive on dedicated servers. Stores positions as packed arrays and streams the original entries (same order and block-data objects) from them; the saved data is unchanged; unsupported layouts keep the original maps (or the older lookup-only index). Requires the common master and Compare Mode off. Restart required; excluded from the Experimental button. A paired server run showed lower memory use with no startup or autosave cost. See [template checks](BUILDINGGADGETS_TEMPLATES.md). |
+| `compactWorldZonesMemberships` | `true` | Dedicated-server compact derived Vault zone lookup, only for exact reviewed 1.18.2-3.21.62 / 1.18.2-3.21.6.6884 classes. Inlines pristine singleton memberships after load; other sets and authoritative/diff data stay original. Paired server checks showed about 101 MB less live heap and identical save/restart output. Requires common master and Compare Mode off, restart; excluded from Experimental so opt-outs are kept. Defaults revision 3 upgrades the old false once. See [zone lookup checks](WORLDZONES_MEMBERSHIPS.md). |
+| `shareAe2ThingsDiskStrings` | `true` | With AE2Things installed, shares equal `StringTag` values across the item data its DISK cells hold in memory, once, right after the cell data loads and before it is published (about 1.5 M copies of 8 k distinct values in a large server). Values, key and list order and saved bytes are unchanged; only the mod's own `StorageManager.readNbt` result is touched, and an unexpected class layout or a failure leaves the loaded data as built. Eligible on both physical sides; requires the common master and Compare Mode off. Restart required. |
+| `shortCircuitLootJsRegexFilters` | `true` | With LootJS and KubeJS installed, a loot script filter written as a regular expression (`removeLoot(/.*botania.*/)`) only checks whether any item matches when the script loads, instead of KubeJS first copying every matching item. The check stops at the first match; the filter used for loot results, and so every loot result, is unchanged. Only LootJS's own `ofItemFilter` check on an exact KubeJS `RegexIngredientJS` is redirected, guarded by the exact bytecode of both mods; anything else, any failure and Compare Mode keep the original path. Eligible on both physical sides; requires the common master. Restart required. |
+| `deferThermalConvertedFuels` | `true` | Dedicated servers with Thermal Foundation only. Thermal's Stirling and Gourmand Dynamo managers rebuild a "converted fuels" list at every tag update by creating an ItemStack for every registered item and asking Forge for its burn time or its food value (about 0.25 s and 0.04 s on a Wolds-sized pack, with the burn-time event handlers of other mods running for each item). Only Thermal Expansion's JEI plugin reads that list; the fuels a dynamo really accepts come from a separate map that is not touched. With this on, `createConvertedRecipes` is skipped at refresh and run unchanged, once, the first time `getConvertedFuels()` is called; the next refresh or `clear()` drops the owed build, so any reader sees the list the eager refresh would have made. Guarded by the exact calls and field accesses of both managers' `createConvertedRecipes` (reviewed: Thermal Foundation 1.18.2-9.2.2.58); anything else keeps the original behavior. Not applied on clients or the integrated server. Requires the common master and Compare Mode off. Restart required. |
 | `restoreSmoothBootThreadPriorities` | `true` | With Smooth Boot installed, restores normal priority (5) for the Bootstrap, Main, IO and `modloading-worker` threads it lowers; keeps its thread counts. Restart required; off in Compare Mode. |
 
 ### `[diagnostics]`
@@ -298,24 +395,77 @@ settings resume as soon as the recovery rebuild finishes.
 | Key | Default | Description |
 | --- | --- | --- |
 | `compareMode` | `false` | Disables all optimizations without disabling selected instrumentation. |
-| `timers` | `false` | Enables routine chat timer notices and timing summaries. The main-menu launch time remains visible. |
-| `debug` | `false` | Enables detailed profiling and diagnostic-only mixins. Restart after changing it. |
+| `timers` | `false` | Enables routine chat timer notices and timing summaries, plus the dedicated startup JSON report. The main-menu launch time remains visible. |
+| `debug` | `false` | Enables detailed profiling and diagnostic-only mixins, including dedicated startup occupancy checkpoints, bounded script/generated-resource/index measurements and exact-version server observers. Records reference the packaged compatibility inventory and capture Forge-loaded raw settings without treating them as successful use. The report embeds the offline sample-classifier rules and explicit coverage limits; see [dedicated startup diagnostics](SERVER_STARTUP_DIAGNOSTICS.md). Restart after changing it. |
 | `jeiRecipeAudit` | `false` | Logs exact recipe IDs, role changes, and output UIDs when the persistent JEI index repairs a plan. Controlled independently by `/vha jei_audit`. |
+| `startupJfr` | `false` | Dedicated servers only. Starts a Java Flight Recorder recording at server main (JDK `profile` settings, 10 ms execution samples, 5 ms thresholds for parks, sleeps, monitor waits and file/socket I/O; at most 256 MB and 30 minutes) and writes `logs/vhaccelerator/startup-<runId>.jfr` 30 seconds after the started event finishes, or at JVM exit. The file name matches the startup JSON report. It does nothing, and logs one warning, when the JVM has no Flight Recorder. Restart required. See the lifecycle listener ledger under `timers`. |
+
+Dedicated servers retain the existing JVM-start-to-`ServerStartedEvent` timer.
+When `timers` or `debug` is enabled, that event writes one schema-v1 JSON report
+to `logs/vhaccelerator/server-startup-<runId>.json` and logs it with the
+`VHA_SERVER_STARTUP` prefix. Compare Mode keeps this instrumentation. The
+physical-client launch timer and its profiling setting are independent.
+
+The report maps JVM wall-clock start to an uptime-derived monotonic estimate
+(millisecond resolution), records UTC timestamps and thread identities, and
+lists missing checkpoints explicitly. Debug mode adds VHA construction, common
+setup, dedicated setup and load-completion proxy markers; these callbacks do
+not establish barriers for other mods. At each recorded checkpoint, heap and
+metaspace occupancy, collection counters and class counts come from JVM
+management beans. They do not trigger collection and are not live-set sizes or
+class-loading durations. Early discovery requires external recording.
+
+The report buffer is capped at 4,096 records and is released after the started
+event. Truncation, failed spans and unfinished spans make a report incomplete.
+`Done` is recorded immediately before its logger invocation; the started-event
+timestamp is captured before Forge posts the event, independently of VHA's
+existing started-event summary. Debug also observes Forge loading phases,
+level construction, spawn preparation, reload listeners, tasks and waits.
+Unavailable observations must not be treated as zero-duration work or measured
+optimizations. See [dedicated startup diagnostics](SERVER_STARTUP_DIAGNOSTICS.md)
+for schema, coverage and compatibility application semantics.
+With diagnostics off there are no per-resource records, polling threads or
+stack walks. Diagnostic overhead still requires paired measurement.
+
+With `timers` enabled a dedicated server also keeps a lifecycle listener
+ledger: each listener of the server lifecycle events (`ServerAboutToStartEvent`,
+`ServerStartingEvent`, `ServerStartedEvent`, `RegisterCommandsEvent`,
+`AddReloadListenerEvent`) and of the mod-bus loading events
+(`FMLCommonSetupEvent`, `FMLDedicatedServerSetupEvent`, `InterModEnqueueEvent`,
+`InterModProcessEvent`, `FMLLoadCompleteEvent`) is timed. When the started
+event has finished, the log shows one `Lifecycle listener ledger` block naming
+the 10 slowest listeners with mod, event, class and method, thread, start
+offset from JVM start and duration, and the startup JSON report gains a
+bounded `lifecycleListenerLedger` section (64 slowest listeners plus totals per
+mod). Names come from the listener's registered object; a lambda listener
+shows the class that owns it and `lambda`. The ledger only sees listeners that
+exist when each event family is wrapped (before common setup for mod-bus
+events, at server initialization for Forge-bus events), and times wall-clock
+duration including waits. With `timers` off nothing is wrapped.
 
 ### `[optimizations]`
 
 | Key | Default | Description |
 | --- | --- | --- |
 | `enableCommonOptimizations` | `true` | Master switch for paths safe on both physical sides. |
+| `optimizeVoxelShapeMerging` | `true` | Restart required. Uses an equivalent flat-array coordinate merger for complex voxel shapes on clients and dedicated servers; yields to Lithium and to Canary, whose `shape_merging` mixin injects at the same `createIndexMerger` site and builds an equivalent merger. Moved from the client config: an existing client value is imported into the common config once when the common value is unspecified (an explicit common value wins). A dedicated server also needs Compare Mode off and the common master on; a client keeps its former rule (client master and launch snapshot). |
+| `cacheLaunchVoxelShapes` | `true` | Restart required. While mods load, equal `Shapes.box` bounds share one instance and identical `Shapes.joinUnoptimized` and `VoxelShape#optimize` results are reused by input identity, so decoration mods that build the same shapes for every block and wood variant (MrCrayfish's Furniture, including its Every Compat variants) stop recomputing them. Voxel shapes are immutable. Clients and dedicated servers; the cache closes and is released when Forge mod loading completes, and gameplay uses vanilla behaviour. Beside Canary the `Shapes.box` sharing wraps Canary's specialised boxes (VHA's mixin is applied after Canary's `@Overwrite`; if that hook does not run, Canary's cuboid shapes are matched by content instead) and the join and optimize reuse is unchanged; Lithium turns the whole cache off. Same migration and side rules as `optimizeVoxelShapeMerging`. With debug diagnostics on, the load-complete log reports reused boxes, joins and optimized shapes. |
 | `streamlineObjectHolderCleanup` | `true` | Refines the object-holder cleanup backport with early safety exits and pass-local override-owner snapshots. Disable for previous per-holder checks. Restart required. |
 | `parallelReloadPreparation` | `false` | Uses the instrumented reload coordinator. Primarily diagnostic on 1.18.2. |
+| `releaseMixinClassTrees` | `true` | Dedicated servers only, restart required. Mixin 0.8.5 keeps a class tree for every mixin for the whole run (about 41 MB for 2,536 mixins on the Wolds pack). When the server has started, and once more five minutes later, the trees of mixins that are not pseudo and whose targets are all loaded are stored as deflated class bytes and rebuilt on demand if Mixin ever reads one again. Acts only on exactly Mixin 0.8.5 with the reviewed field layout and no hot-swap agent. Disabled by Compare Mode and the common master switch; the settings screen's Experimental button preserves an opt-out. Defaults revision 4 upgrades the old false once; later choices and earlier-revision opt-outs are kept. See [Mixin class-tree release](MIXIN_TREE_RELEASE.md). |
 | `skipRedundantRegistryValidation` | `false` | Experimental LaunchFaster parity behavior; unsafe probabilistic validation skipping. |
 | `skipRegistryDump` | `false` | Suppresses Forge registry dumps when explicitly enabled. Normally no measurable gain. |
 | `parallelBlockStateInit` | `false` | Experimental concurrent eager BlockState cache initialization. |
 | `lazyBlockStateCache` | `false` | Experimental first-use BlockState cache creation. |
 | `cacheResourceListing` | `true` | Reuses identical resource-list results until the next reload. |
-| `indexImmutableModResources` | `true` | Indexes immutable jar/union-backed mod resources; mutable packs stay live. |
+| `indexImmutableModResources` | `true` | Indexes immutable jar/union-backed mod resources; mutable packs stay live. The first resource query of any mod pack also hands every other known mod pack to up to 8 background lanes (small daemon threads, not the shared pool) (`-Dvhaccelerator.packIndexLanes=N`, 0 turns the overlap off) so their indexes are built while the reload runs instead of one after another on the querying thread; each pack is still indexed whole and independently, a pack a worker has not reached is built by the querying thread, and a failed build leaves that pack on Forge's original path. |
+| `indexCraftTweakerRecipeRemovals` | `true` | CraftTweaker 9.1.213 only. Maintains output candidate buckets while keeping script actions and removals sequential and ordered; item outputs that carry NBT (every damageable item) and tag outputs (expanded to their items once per action) use the same buckets. Custom recipes retain CraftTweaker matching; unsupported maps and requests keep the original dispatch. Disabling indexing, the common master, or enabling Compare Mode leaves the existing client-only parallel-removal setting in control on clients; servers retain the sequential loop. Restart required. |
+| `parallelKubeJsRecipeFilters` | `true` | KubeJS 1802.5.5-build.569 only. A recipe script's `remove` / `forEachRecipe` filter is evaluated across the common worker pool when it is built only from KubeJS's data-only filters and ingredients (IDs, types, groups, mods, regexes, items, tags and their and/or/not groups) and the pack has at least 2,048 recipes; the matches are then handed to KubeJS's own consumer on the calling thread in the original order, so the same recipes are removed and the same callbacks run in the same order. A filter or ingredient that may call back into a script (a JavaScript function, a custom predicate) stays sequential. `replaceInput` and `replaceOutput` are not touched (KubeJS already runs those in parallel). Clients and dedicated servers (the recipe event runs inside the data reload, including `/reload`); only this one KubeJS hook crosses to servers, the resource-pack listing and JEI hooks stay client-only. A dedicated server also needs the common master on and Compare Mode off. Restart required. |
+| `indexKubeJsRecipeRemovals` | `true` | KubeJS 1802.5.5-build.569 only. A `remove` / `stage` filter that names one recipe id (`{id: 'mod:recipe'}`) or one plain output item (`{output: 'mod:item'}`), alone or inside AND / OR groups, is answered from a per-event lookup table (id to recipe, output item to recipes) instead of a scan of every recipe. KubeJS's own filter still decides on the candidates, in the original order, so the removed recipes, counts and log lines are unchanged. Regex, tag, mod, input, type, group, NOT, NBT-qualified and script filters, and script `forEachRecipe` callbacks, keep the normal path (or the parallel filter above). The table is rechecked on every call and rebuilt if a script changed recipe ids or outputs. Clients and dedicated servers. Restart required. |
 | `asyncChunkDiskReads` | `true` | Reads chunk region data on the chunk IO thread before the server thread deserializes it, instead of blocking the server thread on every chunk's disk read and inflate. Deserialization, POI updates, Forge's `ChunkDataEvent.Load` and all error paths stay on the server thread in vanilla order. Integrated and dedicated server. Restart required. |
+| `lazyBlockStatePropertyCodecs` | `true` | Dedicated servers only. Vanilla builds a property codec chain for every block and fluid state definition when it is constructed (22,925 of them, about 52 MB retained, in a large Vault Hunters pack), though only `BlockState.CODEC` and `FluidState.CODEC` read it: chunk palette saving and loading, worldgen and datapack JSON. This builds each definition's chain on first use, with a copy of vanilla's own step function, behind a wrapper that delegates every `MapCodec` operation, so encoded forms, decoded states and error messages are the eager chain's. It is woven only when `StateDefinition` has the reviewed shape and, on the woven class, when no mixin other than this one and ModernFix 5.18's unrelated states-map hook has changed it; otherwise the original eager chains stay. Both are verified before the first state is built. Disabled by Compare Mode and the common master switch. Restart required. |
+| `presizeBlockStateIdMap` | `true` | Forge numbers every block state (about 1.5 million in a large Vault Hunters pack) by adding it to `Block.BLOCK_STATE_REGISTRY`, a vanilla `IdMapper` whose hash table and id list start with room for 512 entries and double repeatedly while it fills, re-hashing every state each time. This sizes both once, before the first fill, from the number of states the blocks declare. States are still added by the same `add` calls in the same order, so every id, the id order and every lookup are the ones Forge's own fill produces. It acts only on an empty Forge state map whose table is a plain fastutil identity map with vanilla's strategy and whose list is a plain `ArrayList`, and only once per run, so the refill after Forge clears the map (which keeps its capacity) is untouched; any other layout, or any error, keeps Forge's fill. Both sides. Disabled by Compare Mode and the common master switch. Restart required. |
+| `indexObjectHolderDispatch` | `true` | Forge applies object-holder lookups after every registry event by visiting every handler (about 60,000 in a large Vault Hunters pack, almost all for another registry). This visits only the handlers that can act for the announced registry, in the original order, running Forge's own loop body so exceptions are collected the same way. Handlers it cannot classify, an unreviewed Forge build, or repeated handler changes keep the original full pass. Both sides. Disabled by Compare Mode and the common master switch. Restart required. |
 | `skipReturningPlayerSpawnSearch` | `true` | Skips the `ServerPlayer` constructor's world-spawn search when vanilla discards its result: on login when saved player data exists, and on respawn when a valid bed or anchor position was found. Every other construction keeps the vanilla search. Restart required. |
 
 The four experimental switches default to `false` because they can remove
@@ -341,7 +491,7 @@ and are no longer configured or implemented by VH Accelerator.
 | `forgeHandshakeBatching` | client + server | `true` | Implemented; accelerates the server-owned Forge login payload queue without requiring an optimized peer. |
 | `attributeSupplierDeduplication` | client + server | `true` | Implemented; canonicalizes identical vanilla attribute templates during mod loading and replaces each supplier's private immutable-map wrapper with a compact fastutil map. Subclassed templates are excluded and interning stops at Forge load completion. |
 | `attachCapabilitiesDispatch` | client + server | `true` | Implemented; supplies Forge's missing constant non-cancelable event override so repeated capability-attachment dispatch avoids the EventBus cancelability slow path. Event order, listener filtering, and capability contents remain unchanged. |
-| `compactModFileScanData` | client + server | `true` | Implemented; after every Forge load-complete listener finishes, canonicalizes repeated ASM types/member names, compacts retained scan sets/maps, and discards build-time-only Mixin, Kotlin, Scala, nullability, and `OnlyIn` annotations. Per-file failures are isolated. |
+| `compactModFileScanData` | client + server | `true` | Implemented; after every Forge load-complete listener finishes, canonicalizes repeated ASM types/member names, compacts retained scan sets/maps, and discards build-time-only Mixin, Kotlin, Scala, nullability, and `OnlyIn` annotations. Per-file failures are isolated. Files are compacted on the shared worker lanes (the calling thread works too); the canonical type pool is shared, so the result is the same as a serial pass. |
 | `responsiveModWorkQueue` | client | `true` | Implemented; the main-thread queue Forge polls while it waits for each mod-loading stage parks 250 microseconds when empty instead of ModernFix 5.18's 25 ms (ModernFix's current line made the same change), and keeps the loading screen redrawing every 50 ms. Installed when client mod loading begins, after ModernFix's own queue. Measured in the Remastered test instance: launch-to-menu median 33.44 -> 33.12 s and Forge mod-loading phases 12.43 -> 12.19 s over three alternating pairs, faster in every pair. |
 | `overrideModernFixDynamicResources` | client | `true` | VHA claims ModernFix's `mixin.perf.dynamic_resources` (and so its sub-options) even when a pack's ModernFix config enables it, so VHA's guarded model pipeline owns `ModelBakery`. ModernFix's lazy single-thread loading breaks Vault Hunters models. Wolds 0.34.1 ships it enabled: warm launch to menu 83.7 -> 60.7-60.9 s (model loading 46.7 -> 24 s), menu heap 1,571 -> about 2,985 MB because every model is baked up front unless deferred baking covers it. |
 | `takeOverBuildScapeModelLoading` | `true` | With BuildScape installed and VHA owning the model bakery, VHA answers BuildScape's `LaunchFasterInterop` checks so BuildScape skips its own parallel model parse and bake, and VHA parses, defers and skips BuildScape's plain block-state models like any other. Without VHA, under ModernFix dynamic resources, or with this off, BuildScape keeps its own launch optimizations. The Remastered test instance with BuildScape 4.0.3: deferred block-state models 780,519 -> 973,152, warm launch 32.70 -> 30.69 s, heap 1,497 -> 1,427 MB at the menu and 2,846 -> 2,717 MB in world. Restart required. |
@@ -365,6 +515,8 @@ and are no longer configured or implemented by VH Accelerator.
 | `debugLevelSourceStateView` | client + server | `true` | On every block-registry bake (launch, each world join's registry injection, each world exit's restore), Forge rebuilds the debug generator's list of all block states by streaming the whole registry again. VHA hands it an ID-ordered view of the block-state ID map Forge filled a moment earlier in the same bake, which has identical order and contents. |
 | `fastRegistryFreezeCheck` | client + server | `true` | Forge freezes every registry's holder helper at load completion and around each world's registry injection and restore; the check for unbound holders streams, sorts and joins names only to build a failure message. VHA runs the same checks as plain loops and returns early when every holder is bound; an unbound holder still reaches Forge's original code and exception. |
 | `strongholdRingEarlyRejection` | client + server | `true` | Answers "no stronghold here" for chunks outside the radial band any concentric-ring position can reach, before `isFeatureChunk` blocks on the asynchronous ring computation that new worlds and dimensions start at their first structure check. The band is derived from vanilla's placement math with slack for rounding and the 112-block biome snap, so a real stronghold chunk is never rejected; chunks inside the band keep the vanilla lookup. Composes with ModernFix 5.18's stronghold cache. |
+| `reloadBarrierRaceFix` | client + server | `true` | Vanilla's reload barrier removes finished listeners from a plain `HashSet` and completes the "all prepared" future when it is empty. On a dedicated server those callbacks run on whichever worker thread arrives, so a lost update can leave the set non-empty forever and hang startup with every thread idle and no error. Replaces the set with a thread-safe copy as the constructor stores it; completion stays idempotent. Independent of ModernFix (5.18 does not fix this) and of `parallelReloadPreparation`; stays on in Compare Mode because it is a correctness fix (a hung server cannot be benchmarked). Defers to BuildScape 4.1.0+, which ships the same fix (detected by its `SimpleReloadInstanceMixin` class); the startup report then shows `UNAVAILABLE - deferred to BuildScape's SimpleReloadInstanceMixin`. Older or absent BuildScape keeps VHA's fix. |
+| `registryWriteConcurrencyFix` | client + server | `true` | Forge 40 constructs mods on several threads, and vanilla's `MappedRegistry` has no locking: two mods creating or filling registries at the same time (for example Botania's `registerDefaulted` and BYG's `registerSimple`, both writing the root registry) can corrupt its hash maps, hand two entries one id, or fail startup with a `ConcurrentModificationException` (seen on a Vault Hunters server in about 1 boot in 13). Runs `register`, the four-argument `registerMapping`, `registerOrOverride` and `getOrCreateHolder` under each registry's own monitor and guards the static `Registry.LOADERS` map. It also serializes Forge's separate `NamespacedHolderHelper.createIntrusiveHolder` map update on the same owning registry monitor: concurrent `IdentityHashMap` insertion and resize can otherwise leave a null holder that fails freeze validation. The Forge redirect requires the reviewed complete Forge 40.3.11 method body and fields; a mismatch leaves the original method in place, with one warning. Bodies are vanilla's; the private five-argument `registerMapping` is untouched, so the registry-growth redirects keep working. Independent of ModernFix (5.18 does not fix this) and of the tag concurrency backport; stays on in Compare Mode because it is a correctness fix. BuildScape does not ship a counterpart. Skipped, with one warning in the log, if the `Registry` or `MappedRegistry` class does not have the reviewed Forge 40.3.x shape. |
 | `fasterIngredientTagLookups` | common | `true` | Experimental recipe-lab stage one. Single vanilla tag ingredients test membership and build sorted stacking IDs directly from the item registry, avoiding temporary ItemStack arrays. The shortcut is disabled throughout server-data reloads, and `Ingredient#getItems()` remains unchanged. |
 | `deduplicateWallShapes` | client + server | `true` | Reuses compatible vanilla-generated voxel shapes across wall blocks with identical dimensions and state properties. Subclasses may consume a cache but never seed one. |
 | `potentialSpawnCopyOnWrite` | client + server | `true` | Avoids copying Forge potential-spawn lists unless an event listener mutates them, then preserves Forge's mutable-list and read-only-view behavior. |
@@ -405,8 +557,7 @@ or an implementation that has not landed also prevents VHA ownership.
 | `filterVaultCascadeChunk` | `true` | Requires `filterVaultCascadeByState`. Vault Hunters 21.6 moved the cascade scan out of `onGenerate` into the static `cascadeChunk`, which both cake generation modes (`vaultCakeGen` legacy and modern) and Greed vaults call. This applies the same filter there, using the filter Vault passes in. Older Vault builds keep the original hook and ignore this setting. Separate so the 21.6 hook can be compared on and off without a restart. Singleplayer only. |
 | `snapshotVaultEventListeners` | `true` | Vault's own event system (`iskallia.vault.core.event.Event`) runs listeners from a snapshot rebuilt when a listener is registered or released, instead of copying every listener list on every post. Same order and error handling; a listener added or removed mid-post is seen exactly as before. Client render events (`event.client`) are left to Vault Render Optimization. |
 | `parallelModelBaking` | `true` | Bakes eligible top-level models in bounded batches with whole-pass sequential recovery. |
-| `optimizeVoxelShapeMerging` | `true` | Uses an equivalent flat-array coordinate merger for complex voxel shapes; automatically yields to Lithium or Canary. |
-| `cacheLaunchVoxelShapes` | `true` | Restart required. While mods load, equal `Shapes.box` bounds share one instance and identical `Shapes.joinUnoptimized` and `VoxelShape#optimize` results are reused by input identity, so decoration mods that build the same shapes for every block and wood variant stop recomputing them. Voxel shapes are immutable. The cache closes and is released when Forge mod loading completes; gameplay uses vanilla behaviour. Yields to Canary and Lithium. With debug diagnostics on, the load-complete log reports reused boxes, joins and optimized shapes. |
+
 | `asyncCrashReportPreload` | `true` | Restart required; read from the client config file before Forge loads it. `Main.main` builds and discards a crash report before bootstrap only to preload crash-reporting classes. VHA keeps the emergency memory reservation synchronous and builds that report on a daemon thread started right after `Bootstrap.validate()`, so it overlaps the Minecraft constructor and mod loading instead of delaying bootstrap. It is never started during bootstrap. Measured at ~0.8 s of the main thread in the Remastered test instance (Patchouli's crash-report hook and OSHI hardware queries). Compare Mode keeps vanilla behaviour. |
 | `persistentModelJsonCache` | `true` | Stores fingerprinted raw model JSON; never stores parsed custom geometry or baked models. |
 | `prewarmPersistentPlainModels` | `true` | Parses eligible cached plain models before the initial reload barrier. |
@@ -460,8 +611,7 @@ When experimental block-state deferral is enabled, an attempted first-use model 
 | `parallelJeiTweakerMatching` | `true` | Matches hidden ingredients against stable snapshots in a bounded pool. |
 | `jeiTweakerParallelThreshold` | `256` | Minimum ingredient count for parallel JEITweaker matching; range `32..100000`. |
 | `stagedVaultGroupLoading` | `true` | Builds Vault block/entity groups in bounded main-thread slices and publishes complete maps only. |
-| `optimizeVaultLootCdf` | `true` | Uses hash buckets for Vault's tiered-loot cumulative distribution while retaining its exact ordering and values. |
-| `lazyVaultLootCdf` | `true` | Computes each Vault Hunters tiered-loot cumulative distribution on its first use by loot generation (under a per-distribution lock), instead of eagerly on every config load: Vault builds 53 per supported loot table, about 110 MB in Asgard, which a multiplayer client never reads. Each takes 0-9 ms when first needed (logged for the first eight with debug diagnostics). Uses `optimizeVaultLootCdf`'s builder when that is on. |
+| `lazyVaultLootCdf` | `true` | Computes each Vault Hunters tiered-loot cumulative distribution on its first use by loot generation (under a per-distribution lock), instead of eagerly on every config load: Vault builds 53 per supported loot table, about 110 MB in Asgard, which a multiplayer client never reads. Each takes 0-9 ms when first needed (logged for the first eight with debug diagnostics). Uses the common `optimizeVaultLootCdf` builder when enabled and compatible. Constructor deferral requires confirmed supported application; VHAPI and changed layouts keep eager construction. |
 | `vaultGroupTickBudgetMillis` | `4` | Main-thread budget per client tick for Vault group construction; range `1..25`. |
 | `asyncJeiSearchIndex` | `true` | Builds an unpublished JEI search index on workers, then swaps it on the client thread. |
 | `parallelJeiSearchPrefixes` | `true` | Populates independent search-prefix stores in parallel inside the private JEI index. |
@@ -530,9 +680,11 @@ compareMode = false
 timers = false
 debug = false
 jeiRecipeAudit = false
+startupJfr = false
 
 [optimizations]
 parallelReloadPreparation = false
+releaseMixinClassTrees = true
 skipRedundantRegistryValidation = false
 skipRegistryDump = false
 parallelBlockStateInit = false
@@ -541,3 +693,10 @@ lazyBlockStateCache = false
 
 Do not enable the experimental common switches as a general performance
 preset.
+
+## Block registry shape diagnostics
+
+`/vha dump blockshape` is a server command for permission level 4. It writes
+a new compressed JSON dump under `logs/vhaccelerator/` for offline property
+layout experiments. It does not change configuration or game state and has no
+WorldEdit dependency. See [format and usage](BLOCKSHAPE_DUMP.md).

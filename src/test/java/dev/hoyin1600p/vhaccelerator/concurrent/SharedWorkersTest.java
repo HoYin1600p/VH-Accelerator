@@ -13,6 +13,19 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class SharedWorkersTest {
+    @Test void ownedComputeAndIoWorkersCannotKeepAFailedLaunchAlive() throws Exception {
+        try (var lanes = new SharedWorkers.Lanes(WorkerBudget.forProcessors(4))) {
+            Thread compute = CompletableFuture.supplyAsync(Thread::currentThread, lanes.computeExecutor())
+                    .get(5, TimeUnit.SECONDS);
+            Thread io = CompletableFuture.supplyAsync(Thread::currentThread, lanes.ioExecutor())
+                    .get(5, TimeUnit.SECONDS);
+            assertTrue(compute.isDaemon());
+            assertTrue(io.isDaemon());
+            assertTrue(compute.getName().startsWith("VH Accelerator compute-"));
+            assertEquals("VH Accelerator shared I/O", io.getName());
+        }
+    }
+
     @Test void hardwareBudgetUsesAllAvailableProcessorsAcrossSharedLanes() {
         for (int processors = 0; processors <= 256; processors++) {
             WorkerBudget budget = WorkerBudget.forProcessors(processors);

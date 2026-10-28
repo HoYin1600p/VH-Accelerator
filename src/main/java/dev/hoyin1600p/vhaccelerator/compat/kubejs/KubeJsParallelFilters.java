@@ -3,6 +3,7 @@ package dev.hoyin1600p.vhaccelerator.compat.kubejs;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -48,6 +49,15 @@ public final class KubeJsParallelFilters {
     );
 
     private KubeJsParallelFilters() {
+    }
+
+    /**
+     * The elements {@code filter} accepts, in list order, evaluated on the common pool. The caller
+     * applies its consumer to the result on its own thread, so the consumer sees what the sequential
+     * {@code stream().filter(filter).forEach(consumer)} would hand it.
+     */
+    public static <T> List<T> matchesInOrder(List<T> items, Predicate<? super T> filter) {
+        return items.parallelStream().filter(filter).toList();
     }
 
     /** True when every filter and ingredient reachable from {@code filter} is data-only. */

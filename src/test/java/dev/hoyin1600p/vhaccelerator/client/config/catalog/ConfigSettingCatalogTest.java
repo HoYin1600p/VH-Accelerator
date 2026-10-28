@@ -41,6 +41,45 @@ class ConfigSettingCatalogTest {
         }
     }
 
+    @Test
+    void indexedCraftTweakerRemovalsHaveOneCommonServerRowAndNeedRestart() {
+        Setting setting = ConfigSettingCatalog.all().stream()
+                .filter(value -> value.id().equals("indexCraftTweakerRecipeRemovals"))
+                .findFirst().orElseThrow();
+        assertEquals(Category.SERVER, setting.category());
+        assertEquals(ConfigSettingCatalog.Storage.COMMON_TOML, setting.storage());
+        assertEquals(List.of("optimizations", "indexCraftTweakerRecipeRemovals"), setting.path());
+        assertTrue(setting.restartRequired());
+        assertFalse(EXPERIMENTAL_IDS.contains(setting.id()));
+    }
+
+    @Test
+    void worldZonesCatalogDefaultsOnAndExperimentalPreservesOptOuts() {
+        Setting setting = ConfigSettingCatalog.all().stream()
+                .filter(value -> value.id().equals("compactWorldZonesMemberships"))
+                .findFirst().orElseThrow();
+        assertEquals(Category.MEMORY, setting.category());
+        assertEquals(ConfigSettingCatalog.Storage.COMMON_TOML, setting.storage());
+        assertEquals(Boolean.TRUE, ConfigSettingStore.defaultValue(setting));
+        assertTrue(setting.restartRequired());
+        assertTrue(ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS.contains(setting.id()));
+        assertFalse(ConfigSettingStore.experimentalTargets().contains(setting));
+    }
+
+    @Test
+    void mixinTreesCatalogDefaultsOnAndExperimentalPreservesOptOuts() {
+        Setting setting = ConfigSettingCatalog.all().stream()
+                .filter(value -> value.id().equals("releaseMixinClassTrees"))
+                .findFirst().orElseThrow();
+        assertEquals(Category.MEMORY, setting.category());
+        assertEquals(ConfigSettingCatalog.Storage.COMMON_TOML, setting.storage());
+        assertEquals(List.of("optimizations", "releaseMixinClassTrees"), setting.path());
+        assertEquals(Boolean.TRUE, ConfigSettingStore.defaultValue(setting));
+        assertTrue(setting.restartRequired());
+        assertTrue(ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS.contains(setting.id()));
+        assertFalse(ConfigSettingStore.experimentalTargets().contains(setting));
+    }
+
     private static void assertCovered(ConfigSettingCatalog.Storage storage) {
         List<String> specPaths = new ArrayList<>();
         collectValuePaths(ConfigSettingStore.spec(storage).getValues(), specPaths);
@@ -62,7 +101,8 @@ class ConfigSettingCatalogTest {
     @Test
     void unlistedAndExclusionSetsAreTheReviewedOnes() {
         assertEquals(Set.of(), ConfigSettingCatalog.UNLISTED_PATHS);
-        assertEquals(Set.of("parallelAtlasStitching"), ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS);
+        assertEquals(Set.of("parallelAtlasStitching", "compactBuildingGadgetsTemplates", "releaseMixinClassTrees", "compactWorldZonesMemberships"),
+                ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS);
         Set<String> ids = ConfigSettingCatalog.all().stream().map(Setting::id).collect(Collectors.toSet());
         assertTrue(ids.containsAll(ConfigSettingCatalog.EXPERIMENTAL_EXCLUSIONS), "exclusion names no setting");
     }
@@ -168,6 +208,7 @@ class ConfigSettingCatalogTest {
         Map<String, Boolean> restart = new HashMap<>();
         ConfigSettingCatalog.all().forEach(setting -> restart.put(setting.id(), setting.restartRequired()));
         assertTrue(restart.get("asyncChunkDiskReads"), "asyncChunkDiskReads needs a restart");
+        assertTrue(restart.get("indexObjectHolderDispatch"), "indexObjectHolderDispatch needs a restart");
         assertTrue(restart.get("asyncCrashReportPreload"), "asyncCrashReportPreload needs a restart");
         assertTrue(restart.get("asyncUserApiService"), "asyncUserApiService needs a restart");
         assertTrue(restart.get("attachCapabilitiesDispatch"), "attachCapabilitiesDispatch needs a restart");
@@ -179,6 +220,7 @@ class ConfigSettingCatalogTest {
         assertTrue(restart.get("cacheLaunchVoxelShapes"), "cacheLaunchVoxelShapes needs a restart");
         assertTrue(restart.get("compactEntityModels"), "compactEntityModels needs a restart");
         assertTrue(restart.get("compactFerriteCorePropertyMaps"), "compactFerriteCorePropertyMaps needs a restart");
+        assertTrue(restart.get("compactBuildingGadgetsTemplates"), "compactBuildingGadgetsTemplates needs a restart");
         assertTrue(restart.get("compactModFileScanData"), "compactModFileScanData needs a restart");
         assertTrue(restart.get("compactModelFaceLists"), "compactModelFaceLists needs a restart");
         assertTrue(restart.get("compactObjectHolderThrowables"), "compactObjectHolderThrowables needs a restart");
@@ -231,6 +273,7 @@ class ConfigSettingCatalogTest {
         assertTrue(restart.get("parallelBlockStateInit"), "parallelBlockStateInit needs a restart");
         assertTrue(restart.get("parallelBlockStateLoading"), "parallelBlockStateLoading needs a restart");
         assertTrue(restart.get("parallelBlockStateModelLocations"), "parallelBlockStateModelLocations needs a restart");
+        assertTrue(restart.get("indexCraftTweakerRecipeRemovals"), "indexCraftTweakerRecipeRemovals needs a restart");
         assertTrue(restart.get("parallelKubeJsRecipeFilters"), "parallelKubeJsRecipeFilters needs a restart");
         assertTrue(restart.get("parallelModelBaking"), "parallelModelBaking needs a restart");
         assertTrue(restart.get("parallelModelLoading"), "parallelModelLoading needs a restart");
@@ -248,8 +291,14 @@ class ConfigSettingCatalogTest {
         assertTrue(restart.get("recordBlockStateMaterialManifest"), "recordBlockStateMaterialManifest needs a restart");
         assertTrue(restart.get("reduceTickingChunkAllocations"), "reduceTickingChunkAllocations needs a restart");
         assertTrue(restart.get("releaseBakeryLoadMaps"), "releaseBakeryLoadMaps needs a restart");
+        assertTrue(restart.get("releaseMixinClassTrees"), "releaseMixinClassTrees needs a restart");
         assertTrue(restart.get("releaseCacheMemoryAfterUse"), "releaseCacheMemoryAfterUse needs a restart");
         assertTrue(restart.get("releaseLevelPinningReferences"), "releaseLevelPinningReferences needs a restart");
+        assertTrue(restart.get("shareAe2ThingsDiskStrings"), "shareAe2ThingsDiskStrings needs a restart");
+        assertTrue(restart.get("shortCircuitLootJsRegexFilters"), "shortCircuitLootJsRegexFilters needs a restart");
+        assertTrue(restart.get("deferThermalConvertedFuels"), "deferThermalConvertedFuels needs a restart");
+        assertTrue(restart.get("lazyBlockStatePropertyCodecs"), "lazyBlockStatePropertyCodecs needs a restart");
+        assertTrue(restart.get("presizeBlockStateIdMap"), "presizeBlockStateIdMap needs a restart");
         assertTrue(restart.get("removeRedundantObjectHolderCallbacks"), "removeRedundantObjectHolderCallbacks needs a restart");
         assertTrue(restart.get("resourceKeyInterning"), "resourceKeyInterning needs a restart");
         assertTrue(restart.get("responsiveModWorkQueue"), "responsiveModWorkQueue needs a restart");
@@ -262,9 +311,12 @@ class ConfigSettingCatalogTest {
         assertTrue(restart.get("skipRegistryDump"), "skipRegistryDump needs a restart");
         assertTrue(restart.get("skipReturningPlayerSpawnSearch"), "skipReturningPlayerSpawnSearch needs a restart");
         assertTrue(restart.get("stageModelCacheSizing"), "stageModelCacheSizing needs a restart");
+        assertTrue(restart.get("startupJfr"), "startupJfr needs a restart");
         assertTrue(restart.get("stateDefinitionConstruction"), "stateDefinitionConstruction needs a restart");
         assertTrue(restart.get("streamlineObjectHolderCleanup"), "streamlineObjectHolderCleanup needs a restart");
         assertTrue(restart.get("strongholdRingEarlyRejection"), "strongholdRingEarlyRejection needs a restart");
+        assertTrue(restart.get("reloadBarrierRaceFix"), "reloadBarrierRaceFix needs a restart");
+        assertTrue(restart.get("registryWriteConcurrencyFix"), "registryWriteConcurrencyFix needs a restart");
         assertTrue(restart.get("takeOverBuildScapeModelLoading"), "takeOverBuildScapeModelLoading needs a restart");
         assertTrue(restart.get("trimDecocraftModels"), "trimDecocraftModels needs a restart");
         assertTrue(restart.get("worldgenBiomeSupplierReuse"), "worldgenBiomeSupplierReuse needs a restart");
@@ -295,6 +347,7 @@ class ConfigSettingCatalogTest {
         assertFalse(restart.get("jeiTweakerParallelThreshold"), "jeiTweakerParallelThreshold applies without a restart");
         assertFalse(restart.get("lazyGeckoLibResources"), "lazyGeckoLibResources applies without a restart");
         assertFalse(restart.get("lazyVaultLootCdf"), "lazyVaultLootCdf applies without a restart");
+        assertFalse(restart.get("lazyCompactVaultLootCdf"), "lazyCompactVaultLootCdf applies without a restart");
         assertFalse(restart.get("optimizeIndustrialForegoingStoneWorkJeiRecipes"), "optimizeIndustrialForegoingStoneWorkJeiRecipes applies without a restart");
         assertFalse(restart.get("optimizeJeiIngredientFilterConstruction"), "optimizeJeiIngredientFilterConstruction applies without a restart");
         assertFalse(restart.get("optimizeVaultAtlasValidation"), "optimizeVaultAtlasValidation applies without a restart");

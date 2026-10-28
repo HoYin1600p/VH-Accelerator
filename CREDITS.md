@@ -162,6 +162,20 @@ requirement to inspect dynamic models in-world and in JEI. BuildScape remains
 an explicit protected namespace where its custom behavior requires the
 established path.
 
+BuildScape's synchronized listener-set replacement also informed the use of a
+synchronized collection subclass for EventBus's existing declared collection type.
+The EventBus wrapper-cache correction is independently written and uses a different
+early-publication mechanism; it does not copy BuildScape's game-layer mixin.
+
+### Forge EventBus cache research
+
+The [MinecraftForge EventBus contributors](https://github.com/MinecraftForge/EventBus)
+provided the original library and later thread-safe listener-factory cache designs.
+Review of the 5.0.3 implementation and the later factory changes established the
+wrapper-cache resize race and the need to preserve the atomic name counter and
+class-definition behavior. VHA's optional early cache installer is independently
+written; no original EventBus classes are redistributed.
+
 ### Loading Profiler
 
 - Source:
@@ -221,6 +235,31 @@ licenses and copyrights remain with their authors.
 
 ## Compatibility behavior studied
 
+BuildingGadgets by [Direwolf20 and contributors](https://github.com/Direwolf20-MC/BuildingGadgets)
+informed the template ownership and saved-format discovery tools. The offline
+inventory invokes selected registry-free methods from the explicitly supplied
+original `3.13.2-build.21+mc1.18.2` archive for differential verification. The
+inspected release declares MIT; its
+[license](https://github.com/Direwolf20-MC/BuildingGadgets/blob/daf87c2/LICENSE.md)
+is retained upstream. No BuildingGadgets implementation is bundled. The later
+default-off template lookup-index experiment preserves the original map,
+entries, key/value identities and saved format.
+
+LootJS by [AlmostReliable](https://www.curseforge.com/minecraft/mc-mods/lootjs) (LGPL-3.0) was
+inspected to find where its script filters ask KubeJS whether a filter ingredient is empty. The
+short-circuit redirects that single call and calls KubeJS's public `IngredientJS.test` itself; no
+LootJS code is copied or bundled.
+
+AE2Things by [ProjectET and contributors](https://www.curseforge.com/minecraft/mc-mods/ae2-things-forge)
+(MIT) was inspected to find where its DISK cell data is held in memory. The
+string-sharing hook only targets its `StorageManager.readNbt` result and the
+public key list of each disk; no AE2Things code is copied or bundled.
+
+Guava's [31.0.1 immutable-map implementation](https://github.com/google/guava/tree/v31.0.1/guava/src/com/google/common/collect)
+informed the distinction between ordered immutable entries and the private JDK
+lookup delegate. The experimental replacement index is independently written;
+Guava classes and source are not bundled or globally changed.
+
 The following projects were inspected through public source or locally owned
 binary APIs to implement version guards, identify repeated work, or verify
 safety. They are not bundled:
@@ -246,6 +285,16 @@ safety. They are not bundled:
 Thanks to every maintainer and contributor whose work made a bottleneck,
 compatibility constraint, or safer implementation strategy discoverable.
 
+## Vault loot distribution compatibility
+
+Vault Hunters' cumulative-distribution API and original binary behavior informed
+the independently written hash-bucket builder and differential fixtures. The
+dedicated-server adaptation reuses VHA's existing builder. VHAPI 5.0.0 was
+reviewed to identify its computation ownership; VHA yields to it instead of
+replacing its methods. No Vault Hunters or VHAPI implementation is copied or
+bundled, and the server adaptation leaves the original config reload lifecycle
+intact.
+
 ## Attribution policy
 
 When a future change is materially informed by another project, add that
@@ -256,3 +305,14 @@ and compatibility knowledge all deserve attribution.
 Copied or adapted source has a higher bar: it must also be listed in
 `THIRD_PARTY_NOTICES.md`, carry a file-level license/provenance header, and name
 the exact upstream commit in `docs/MODERNFIX_BACKPORTS.md` before release.
+
+## Vault zone storage compatibility
+
+The [Vault Hunters maintainers](https://www.curseforge.com/minecraft/mc-mods/vault-hunters-official-mod)
+provided the original WorldZones/WorldZone APIs and serialization behavior used
+for ownership checks, version guards and external-archive equivalence fixtures.
+[fastutil by Sebastiano Vigna](https://github.com/vigna/fastutil) supplied the
+reviewed default-set layout and iteration behavior: VHA keeps its real sets for
+multi-member histories rather than reimplementing their collision and rehash
+rules. The private primitive lookup adapter is independently written. No Vault
+Hunters or fastutil implementation is copied or bundled with it.

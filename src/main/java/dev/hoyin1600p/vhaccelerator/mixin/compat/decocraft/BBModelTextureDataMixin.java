@@ -18,7 +18,7 @@ public abstract class BBModelTextureDataMixin {
     @Inject(
             method = "loadModel(Ljava/io/Reader;)Lcom/razz/decocraft/"
                     + "models/bbmodel/BBModel;",
-            at = @At("RETURN")
+            at = @At("RETURN"), require = 0
     )
     private void vhaccelerator$clearUnusedTextureData(
             Reader reader,

@@ -39,6 +39,44 @@ class LaunchShapeCacheTest {
     }
 
     @Test
+    void equalLeavesOfTheSameClassShareTheFirstInstance() {
+        Object first = new StringBuilder("a");
+        Object second = new StringBuilder("a");
+        long[] content = {1, 2, 3};
+        assertSame(first, LaunchShapeCache.leaf(StringBuilder.class, content, first));
+        assertSame(first, LaunchShapeCache.leaf(StringBuilder.class, new long[] {1, 2, 3}, second));
+        assertSame(second, LaunchShapeCache.leaf(StringBuilder.class, new long[] {1, 2, 4}, second),
+                "Different content is a different leaf");
+        Object other = new StringBuffer("a");
+        assertSame(other, LaunchShapeCache.leaf(StringBuffer.class, new long[] {1, 2, 3}, other),
+                "The class is part of the key");
+    }
+
+    @Test
+    void aClosedCacheReturnsTheCallersLeaf() {
+        Object first = new Object();
+        LaunchShapeCache.leaf(Object.class, new long[] {7}, first);
+        LaunchShapeCache.close(null);
+        Object later = new Object();
+        assertSame(later, LaunchShapeCache.leaf(Object.class, new long[] {7}, later));
+    }
+
+    @Test
+    void joiningOneInstanceTwiceDoesNotShareAnEntryWithTwoEqualInstances() {
+        Object leaf = new Object();
+        Object or = new Object();
+        Object sameResult = new Object();
+        Object distinctResult = new Object();
+        LaunchShapeCache.storeJoin(leaf, leaf, or, true, sameResult);
+        assertSame(sameResult, LaunchShapeCache.join(leaf, leaf, or, true));
+        assertNull(LaunchShapeCache.join(leaf, leaf, or, false),
+                "Shapes.joinUnoptimized returns early only for one instance passed twice");
+        LaunchShapeCache.storeJoin(leaf, leaf, or, false, distinctResult);
+        assertSame(distinctResult, LaunchShapeCache.join(leaf, leaf, or, false));
+        assertSame(sameResult, LaunchShapeCache.join(leaf, leaf, or, true));
+    }
+
+    @Test
     void optimizedResultsAreKeyedByIdentity() {
         String shape = new String("shape");
         Object optimized = new Object();

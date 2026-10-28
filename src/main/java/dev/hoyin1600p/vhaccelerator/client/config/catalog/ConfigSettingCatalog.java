@@ -32,6 +32,7 @@ public final class ConfigSettingCatalog {
         MEMORY("memory"),
         SERVER("server"),
         BACKPORTS("backports"),
+        REMOTE_SERVER("remote_server"),
         DIAGNOSTICS("diagnostics");
 
         private final String id;
@@ -99,14 +100,20 @@ public final class ConfigSettingCatalog {
     );
 
     /**
-     * Default-off settings the Experimental button never turns on, by setting id: deliberate
-     * trade-offs that reduce visuals, distance or detail rather than experiments. Each entry
-     * needs a reason in a comment.
+     * Settings the Experimental button never changes, by setting id: deliberate
+     * trade-offs or features requiring separate validation rather than bulk enablement.
+     * Each entry needs a reason in a comment.
      */
     public static final Set<String> EXPERIMENTAL_EXCLUSIONS = Set.of(
             // Parallel atlas stitching has produced wrong textures in Vault packs; it stays a
             // manual opt-in until it is made safe.
-            "parallelAtlasStitching"
+            "parallelAtlasStitching",
+            // Persisted player-template data requires separate round-trip and rollback acceptance.
+            "compactBuildingGadgetsTemplates",
+            // Preserve deliberate Mixin-tree release opt-outs when enabling Experimental settings.
+            "releaseMixinClassTrees",
+            // Keep a deliberate protection-lookup opt-out when enabling Experimental settings.
+            "compactWorldZonesMemberships"
     );
 
     private static final List<Setting> SETTINGS = build();
@@ -120,6 +127,19 @@ public final class ConfigSettingCatalog {
 
     public static List<Setting> in(Category category) {
         return SETTINGS.stream().filter(setting -> setting.category() == category).toList();
+    }
+
+    public static List<Setting> serverSettings() {
+        return SETTINGS.stream().filter(setting -> setting.storage() == Storage.COMMON_TOML).toList();
+    }
+
+    public static boolean localEditable(Setting setting, boolean connected) {
+        return !connected || setting.storage() == Storage.CLIENT_TOML;
+    }
+
+    public static boolean experimental(Setting setting, Object defaultValue) {
+        return !setting.diagnostics() && !EXPERIMENTAL_EXCLUSIONS.contains(setting.id())
+                && Boolean.FALSE.equals(defaultValue);
     }
 
     private static List<Setting> build() {
@@ -136,7 +156,6 @@ public final class ConfigSettingCatalog {
         add(settings, "updateTypes", Category.GENERAL, Storage.CLIENT_TOML, "updates", false,
                 value -> VHAcceleratorClient.setUpdateNoticeFilter((UpdateNoticeFilter) value));
         // partly live; the explanation says which part needs a restart
-        add(settings, "enableCommonOptimizations", Category.GENERAL, Storage.COMMON_TOML, "optimizations", true, null);
 
         // Launch & loading
         add(settings, "overlapModelPreparation", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
@@ -145,8 +164,6 @@ public final class ConfigSettingCatalog {
         add(settings, "parallelAtlasStitching", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "serializeAtlasStitchEvents", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "parallelModelBaking", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
-        add(settings, "optimizeVoxelShapeMerging", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
-        add(settings, "cacheLaunchVoxelShapes", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "asyncCrashReportPreload", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "persistentModelJsonCache", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "prewarmPersistentPlainModels", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
@@ -170,7 +187,6 @@ public final class ConfigSettingCatalog {
         add(settings, "skipBlockStateGraphLoading", Category.LAUNCH, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "protectDynamicModels", Category.LAUNCH, Storage.CLIENT_TOML, "compatibility", true, null);
         add(settings, "indexModelBakeRegistries", Category.LAUNCH, Storage.CLIENT_TOML, "compatibility", true, null);
-        add(settings, "cacheResourceListing", Category.LAUNCH, Storage.COMMON_TOML, "optimizations", false, null);
 
         // Joining worlds & servers
         add(settings, "prefetchJoinRecipeFingerprint", Category.JOIN, Storage.CLIENT_TOML, "optimizations", false, null);
@@ -194,7 +210,6 @@ public final class ConfigSettingCatalog {
         add(settings, "filterVaultCascadeChunk", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "repairEmptyBookPiles", Category.VAULT, Storage.CLIENT_TOML, "optimizations", false, null);
         add(settings, "stagedVaultGroupLoading", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);
-        add(settings, "optimizeVaultLootCdf", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "lazyVaultLootCdf", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "vaultGroupTickBudgetMillis", Category.VAULT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "deferVaultAtlasUploads", Category.VAULT, Storage.CLIENT_TOML, "compatibility", true, null);
@@ -227,9 +242,6 @@ public final class ConfigSettingCatalog {
         add(settings, "optimizeIndustrialForegoingStoneWorkJeiRecipes", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "deferXaeroOnlineChecks", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", true, null);
         add(settings, "boundFarsightChunkRetention", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", false, null);
-        add(settings, "deferTargetDummyDispenserRegistration", Category.COMPAT, Storage.COMMON_TOML, "compatibility", true, null);
-        add(settings, "restoreSmoothBootThreadPriorities", Category.COMPAT, Storage.COMMON_TOML, "compatibility", true, null);
-        add(settings, "parallelKubeJsRecipeFilters", Category.COMPAT, Storage.COMMON_TOML, "optimizations", true, null);
 
         // Memory
         // partly live; the explanation says which part needs a restart
@@ -237,76 +249,26 @@ public final class ConfigSettingCatalog {
         add(settings, "releaseBakeryLoadMaps", Category.MEMORY, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "compactModelFaceLists", Category.MEMORY, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "deduplicateModelLocationPaths", Category.MEMORY, Storage.CLIENT_TOML, "optimizations", true, null);
-        add(settings, "trimDecocraftModels", Category.MEMORY, Storage.COMMON_TOML, "compatibility", true, null);
-        add(settings, "compactFerriteCorePropertyMaps", Category.MEMORY, Storage.COMMON_TOML, "compatibility", true, null);
         // partly live; the explanation says which part needs a restart
-        add(settings, "releaseLevelPinningReferences", Category.MEMORY, Storage.COMMON_TOML, "compatibility", true, null);
 
         // Server & engine
-        add(settings, "streamlineObjectHolderCleanup", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "parallelReloadPreparation", Category.SERVER, Storage.COMMON_TOML, "optimizations", false, null);
-        add(settings, "skipRedundantRegistryValidation", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "skipRegistryDump", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "parallelBlockStateInit", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "lazyBlockStateCache", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "indexImmutableModResources", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "asyncChunkDiskReads", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
-        add(settings, "skipReturningPlayerSpawnSearch", Category.SERVER, Storage.COMMON_TOML, "optimizations", true, null);
 
         // Backports
-        add(settings, "forgeHandshakeBatching", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "attributeSupplierDeduplication", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "attachCapabilitiesDispatch", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "compactModFileScanData", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "forgeTagConcurrencyFixes", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "serverEventLoopFix", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "overrideModernFixDynamicResources", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "responsiveModWorkQueue", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "modernFixIntegratedWatchdogCorrection", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "stateDefinitionConstruction", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "compactPaletteValidation", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "modernFixJeiSearchSnapshot", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "modernFixNightConfigWatcherCorrection", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "backgroundWorkerLimit", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "compactEntityModels", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenMaterialRuleIteration", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenSurfaceRuleIteration", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenNoiseFunctionCache", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenBiomeSupplierReuse", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenDirectYConditions", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "worldgenDeferredClimateTree", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "earlyStructureLocationRejection", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "compactObjectHolderThrowables", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "removeRedundantObjectHolderCallbacks", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "fasterLootLoading", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "dynamicClientLanguages", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "disableTelemetry", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "fasterIngredientTagLookups", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "fasterIngredientExpansionCache", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "ingredientItemValueDeduplication", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "mappedRegistryGrowth", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "forgeRegistryLambdaElision", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "forgeRegistryRegistrationAcceleration", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "deduplicateResourceLocationNamespaces", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "blockPropertyNameDeduplication", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "deduplicateWallShapes", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "potentialSpawnCopyOnWrite", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "reduceTickingChunkAllocations", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "resourceKeyInterning", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "fasterIngredientEmptinessCheck", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "debugLevelSourceStateView", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "fastRegistryFreezeCheck", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
-        add(settings, "strongholdRingEarlyRejection", Category.BACKPORTS, Storage.COMMON_TOML, "backports", true, null);
 
         // Diagnostics
         add(settings, "recordBlockStateMaterialManifest", Category.DIAGNOSTICS, Storage.CLIENT_TOML, "optimizations", true, null);
         add(settings, "profileClientLaunchPhases", Category.DIAGNOSTICS, Storage.CLIENT_TOML, "diagnostics", true, null);
-        add(settings, "compareMode", Category.DIAGNOSTICS, Storage.COMMON_TOML, "diagnostics", true,
-                value -> VHAcceleratorConfig.setCompareMode((Boolean) value));
-        add(settings, "timers", Category.DIAGNOSTICS, Storage.COMMON_TOML, "diagnostics", false, null);
-        add(settings, "debug", Category.DIAGNOSTICS, Storage.COMMON_TOML, "diagnostics", true,
-                value -> VHAcceleratorConfig.setDebugDiagnosticsEnabled((Boolean) value));
-        add(settings, "jeiRecipeAudit", Category.DIAGNOSTICS, Storage.COMMON_TOML, "diagnostics", false, null);
+
+        // Shared common metadata is also the server's exact key allowlist.
+        for (var entry : dev.hoyin1600p.vhaccelerator.config.ServerSettingCatalog.all()) {
+            Consumer<Object> setter = switch (entry.id()) {
+                case "compareMode" -> value -> VHAcceleratorConfig.setCompareMode((Boolean) value);
+                case "debug" -> value -> VHAcceleratorConfig.setDebugDiagnosticsEnabled((Boolean) value);
+                default -> null;
+            };
+            settings.add(new Setting(entry.id(), Category.valueOf(entry.category().toUpperCase(java.util.Locale.ROOT)),
+                    Storage.COMMON_TOML, entry.path(), entry.restartRequired(), setter));
+        }
 
         return Collections.unmodifiableList(settings);
     }
