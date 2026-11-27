@@ -93,6 +93,7 @@ public final class ClientConfigValues {
     public final ForgeConfigSpec.IntValue ironFurnacesPrecompileFrameBudgetMillis;
     public final ForgeConfigSpec.BooleanValue optimizeIndustrialForegoingStoneWorkJeiRecipes;
     public final ForgeConfigSpec.BooleanValue deferXaeroOnlineChecks;
+    public final ForgeConfigSpec.BooleanValue suppressXaeroUpdateScreen;
     public final ForgeConfigSpec.BooleanValue boundFarsightChunkRetention;
     public final ForgeConfigSpec.BooleanValue deferVaultAtlasUploads;
     public final ForgeConfigSpec.BooleanValue cacheVaultTooltips;
@@ -677,6 +678,19 @@ public final class ClientConfigValues {
                         "Update metadata is still applied on Minecraft's client thread.",
                         "Currently enabled only for the explicitly validated Xaero versions.")
                 .define("deferXaeroOnlineChecks", true);
+        suppressXaeroUpdateScreen = builder
+                .comment(
+                        "Xaero's Minimap and World Map open a full-screen update notice on the",
+                        "title screen when a newer version exists. Vault Hunters packs cannot",
+                        "update Xaero, so VH Accelerator stops it opening automatically.",
+                        "It treats Xaero's \"allow internet access\" setting as off (Xaero skips",
+                        "its online version and Patreon checks, so no notice can appear and",
+                        "nothing is downloaded at launch) and blocks the notice itself. Your",
+                        "Xaero config file is not changed. Xaero Patreon supporter perks do not",
+                        "load while this is on. This is a compatibility fix: it applies even",
+                        "when VH Accelerator's optimizations are switched off. The Xaero checks",
+                        "run at launch, so a change takes effect after a restart.")
+                .define("suppressXaeroUpdateScreen", true);
         boundFarsightChunkRetention = builder
                 .comment(
                         "Forgets client chunks that the server already unloaded but Farsight keeps beyond",

@@ -69,7 +69,29 @@ final class ModPresence {
         return !vhapiPresent && dev.hoyin1600p.vhaccelerator.compat.VaultLootCdfLayouts.supports(version, bytes);
     }
 
-    /** Newer Vault builds group modifiers (Modifiers.getModifierGroup) and need no index. */
+    /**
+     * Vault 22.0.0 caches its listeners in firing order (Event.orderedListeners, invalidated
+     * on every add and release, ForgeEvent included), so VHA's dispatch snapshot is redundant.
+     */
+    static boolean vaultEventDispatchCopies(LoadingModList modList) {
+        try {
+            java.nio.file.Path event = modList.getModFileById("the_vault").getFile()
+                    .findResource("iskallia/vault/core/event/Event.class");
+            if (event == null || !java.nio.file.Files.exists(event)) {
+                return false;
+            }
+            return eventDispatchCopies(java.nio.file.Files.readAllBytes(event));
+        } catch (Exception failure) {
+            return false;
+        }
+    }
+
+    /** Whether Vault's Event bytecode lacks its own listener cache. */
+    static boolean eventDispatchCopies(byte[] eventClass) {
+        return !new String(eventClass, java.nio.charset.StandardCharsets.ISO_8859_1).contains("orderedListeners");
+    }
+
+    /** Newer Vault builds index modifiers (Modifiers.getModifierGroup or Modifiers.stacksOf) and need no index. */
     static boolean vaultStillScansCascadeStacks(LoadingModList modList) {
         try {
             java.nio.file.Path modifiers = modList.getModFileById("the_vault").getFile()
@@ -77,12 +99,39 @@ final class ModPresence {
             if (modifiers == null || !java.nio.file.Files.exists(modifiers)) {
                 return false;
             }
-            String bytes = new String(java.nio.file.Files.readAllBytes(modifiers),
-                    java.nio.charset.StandardCharsets.ISO_8859_1);
-            return !bytes.contains("getModifierGroup");
+            return cascadeStacksScanned(java.nio.file.Files.readAllBytes(modifiers));
         } catch (Exception failure) {
             return false;
         }
+    }
+
+    /** Whether Vault's Modifiers bytecode lacks its own modifier stack index. */
+    static boolean cascadeStacksScanned(byte[] modifiersClass) {
+        String bytes = new String(modifiersClass, java.nio.charset.StandardCharsets.ISO_8859_1);
+        return !bytes.contains("getModifierGroup") && !bytes.contains("stacksOf");
+    }
+
+    /** Vault 22.0.1-7237+ cancels ItemStack.setEntityRepresentation on empty stacks directly in MixinItemStack. */
+    static boolean vaultEmptyItemStackFixed(LoadingModList modList) {
+        try {
+            if (modList == null || modList.getModFileById("the_vault") == null) {
+                return false;
+            }
+            java.nio.file.Path mixin = modList.getModFileById("the_vault").getFile()
+                    .findResource("iskallia/vault/mixin/MixinItemStack.class");
+            if (mixin == null || !java.nio.file.Files.exists(mixin)) {
+                return false;
+            }
+            return emptyItemStackFixed(java.nio.file.Files.readAllBytes(mixin));
+        } catch (Exception failure) {
+            return false;
+        }
+    }
+
+    /** Whether Vault's MixinItemStack already blocks entity links on empty stacks. */
+    static boolean emptyItemStackFixed(byte[] mixinItemStackClass) {
+        return new String(mixinItemStackClass, java.nio.charset.StandardCharsets.ISO_8859_1)
+                .contains("keepEmptyStacksFreeOfEntityLinks");
     }
 
     /** The data-owner optimization admits one reviewed physical archive and Guava layout. */

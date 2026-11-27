@@ -89,14 +89,19 @@ public final class GateFacts {
     final boolean arsNouveauGeckoLib;
     final boolean everyCompatPackCache;
     final boolean vaultCascadeScan;
+    final boolean vaultEventDispatchCopies;
+    final boolean vaultEmptyItemStackFixed;
     final boolean xaeroMinimapCompatible;
     final boolean xaeroWorldMapCompatible;
+    final boolean xaeroMinimapLoaded;
+    final boolean xaeroWorldMapLoaded;
     final boolean farsightLoaded;
     final boolean vroOwnsFarsightBound;
     public final boolean physicalClient;
     final boolean targetDummySetupFix;
     final boolean smoothBootPriorityRestore;
     final boolean skipReturningPlayerSpawnSearch;
+    final boolean architecturyLoaded;
 
     GateFacts(GateFactsBuilder builder) {
         this.modernFixLoaded = builder.modernFixLoaded;
@@ -162,13 +167,18 @@ public final class GateFacts {
         this.arsNouveauGeckoLib = builder.arsNouveauGeckoLib;
         this.everyCompatPackCache = builder.everyCompatPackCache;
         this.vaultCascadeScan = builder.vaultCascadeScan;
+        this.vaultEventDispatchCopies = builder.vaultEventDispatchCopies;
+        this.vaultEmptyItemStackFixed = builder.vaultEmptyItemStackFixed;
         this.xaeroMinimapCompatible = builder.xaeroMinimapCompatible;
         this.xaeroWorldMapCompatible = builder.xaeroWorldMapCompatible;
+        this.xaeroMinimapLoaded = builder.xaeroMinimapLoaded;
+        this.xaeroWorldMapLoaded = builder.xaeroWorldMapLoaded;
         this.farsightLoaded = builder.farsightLoaded;
         this.vroOwnsFarsightBound = builder.vroOwnsFarsightBound;
         this.physicalClient = builder.physicalClient;
         this.targetDummySetupFix = builder.targetDummySetupFix;
         this.smoothBootPriorityRestore = builder.smoothBootPriorityRestore;
         this.skipReturningPlayerSpawnSearch = builder.skipReturningPlayerSpawnSearch;
+        this.architecturyLoaded = builder.architecturyLoaded;
     }
 }

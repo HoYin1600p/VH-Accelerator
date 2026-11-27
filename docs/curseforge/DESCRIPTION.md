@@ -60,6 +60,9 @@ thread. Dynamic models and other unsafe work stay on their normal path.
   update notices through the client config or `/vha updates all`.
 - An immediate opt-out for update checks through the client config or
   `/vha updates off`.
+- No Xaero's Minimap or World Map update notice blocking the title screen
+  (Vault Hunters packs can't update Xaero). On by default; Xaero's own config
+  file is not changed.
 - In-world JEI recovery when a synchronized recipe or ingredient is missing
   only from JEI's visible lists.
 - Large-pack model loading through guarded CTM, generated-model,
@@ -96,8 +99,12 @@ activate only when the matching mod and supported class layout are present.
   tiered-loot setup, and added safe learned table sizing when FerriteCore is
   installed.
 - Reduced repeated Forge registry, resource-pack, language, ingredient,
-  world-generation, and allocation work through guarded ModernFix-derived
-  backports.
+  world-generation, server biome-lookup, Architectury event-dispatch, OSHI
+  system-info, and allocation work through guarded ModernFix-derived backports.
+- Hardened KubeJS and CraftTweaker parallel recipe handling and JEI hiding for
+  custom script predicates, map-backed filters, and null-ID recipes.
+- Automatically yields Vault event, loot-rarity, cascade-modifier, and empty
+  `ItemStack` hooks when newer Vault 22.0.x builds ship those fixes themselves.
 - Lowered normal-play diagnostic overhead by omitting diagnostic-only mixins
   when debug mode is disabled at startup.
 - Corrected unsafe Target Dummy dispenser registration for the supported
@@ -108,16 +115,18 @@ activate only when the matching mod and supported class layout are present.
 - **Minecraft:** 1.18.2
 - **Mod loader:** Forge 40.3.11 or newer in the Forge 40.x line
 - **Environment:** Clients and dedicated servers; pack-specific checks and limits in the 1.2.0 release notes
-- **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, and `.6883`;
-  official `3.21.5.6882` and
-  `3.21.6.6884`; Wolds Vaults 0.32.2 (`3.21.5.6573`), 0.33.0, 0.34.1 and
-  0.34.3 (`3.21.6.6884`);
+- **Vault Hunters:** Remastered `20.0.3-remastered`, `.6872`, `.6883`,
+  `22.0.0-remastered.7209` and `22.0.1-remastered.7237`; official `3.21.5.6882`,
+  `3.21.6.6884` and `3.22.0.7210`; Wolds Vaults 0.32.2 (`3.21.5.6573`), 0.33.0,
+  0.34.1, 0.34.2 and 0.34.3 (`3.21.6.6884`);
   custom MVP `3.21.62`
 - **JEI:** 9.7.2.1001, 10.2.1.1006, and 10.2.1.1009
 
 The Vault and JEI versions above are tested compatibility baselines, not hard
 dependencies. One VH Accelerator jar contains guarded support for both JEI
-generations and all listed Vault layouts.
+generations and all listed Vault layouts. Where a newer Vault build already
+includes one of VH Accelerator's fixes itself, VH Accelerator leaves that fix
+to Vault on that build and keeps it for older ones.
 
 VH Accelerator supports **clients and dedicated servers**. Dedicated-server
 checks cover startup, heap, recipe reload equality and selected save/restart

@@ -7,6 +7,9 @@ Git-ignored copies of:
 
 | Component | Version | Source | SHA-256 |
 | --- | --- | --- | --- |
+| The Vault Remastered | `22.0.0-remastered.7152` | Remastered pre-release v4.0.0 instance (not public yet) | `365C4D0F46217BB1071B62EC314222DE036CC4424EA6DD87BF97DA29ED410248` |
+| The Vault Remastered | `22.0.0-remastered.7209` | CurseForge file 9714466 | `72D42C2872625604C5C2237965152F8594160599BC8B72102E4C4B65F30D7372` |
+| The Vault | `3.22.0.7210` | CurseForge file 9714473 | `DF2CD439D9C5D7F4EC1A0DA8E4AD219AC8419960B963E64D638FB015574E88CB` |
 | The Vault Remastered | `20.0.3-remastered.6883` | CurseForge project `458203`, file `8508678` | `4DC35D93C06D2D15C552DCE9626CA072BC8DB5E0889F158C4EDDB71BA5BFF9E9` |
 | The Vault Remastered | `20.0.3-remastered` | Additional compatibility baseline | `95B8BA4932B11B02BD8E7CE5A201F8D561F95041F7431685BCB2E146D8005C9B` |
 | The Vault Remastered | `20.0.3-remastered.6872` | CurseForge project `458203`, file `8502584` | `FC6ADFEB76071D61E633027334FC95E8EFB7FAF8A4CB57D646F8176B4F75390B` |

@@ -8,10 +8,11 @@
     "1.1.2": "[CRITICAL] Fixes parts of the world vanishing until relog when Farsight is installed",
     "1.1.3": "Adds an in-game settings screen",
     "1.1.4": "Code cleanup and translatable messages",
-    "1.2.0": "Dedicated-server startup and memory improvements, stability fixes and operator server settings"
+    "1.2.0": "Dedicated-server startup and memory improvements, stability fixes and operator server settings",
+    "1.2.1": "Vault 22.0.x compat, KubeJS fixes, Xaero & ModernFix backports"
   },
   "promos": {
-    "1.18.2-latest": "1.2.0",
-    "1.18.2-recommended": "1.2.0"
+    "1.18.2-latest": "1.2.1",
+    "1.18.2-recommended": "1.2.1"
   }
 }

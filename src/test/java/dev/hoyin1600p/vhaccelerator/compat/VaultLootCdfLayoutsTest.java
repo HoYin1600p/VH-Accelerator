@@ -15,10 +15,22 @@ class VaultLootCdfLayoutsTest {
     @Test
     void reviewedArchiveBodiesMatchAndUnknownVersionOrChangedBytesReject() throws Exception {
         int archives = 0;
+        int absorbed = 0;
         try (var files = Files.list(Path.of("libs"))) {
             for (Path path : files.filter(candidate -> candidate.getFileName().toString().startsWith("the_vault-")
                     && candidate.toString().endsWith(".jar")).toList()) {
                 try (ZipFile zip = new ZipFile(path.toFile())) {
+                    if (zip.getEntry(VaultLootCdfLayouts.CDF + ".class") == null) {
+                        // Vault 7209+ ships its own TieredLootRarityTables; the CDF hooks must stay off.
+                        Map<String, byte[]> outer = new HashMap<>();
+                        try (var input = zip.getInputStream(zip.getEntry(VaultLootCdfLayouts.OUTER + ".class"))) {
+                            outer.put(VaultLootCdfLayouts.OUTER, input.readAllBytes());
+                        }
+                        assertFalse(VaultLootCdfLayouts.supports(VaultLootCdfLayouts.SUPPORTED_VERSION, outer::get), path.toString());
+                        assertFalse(VaultLootCdfLayouts.supports(VaultLootCdfLayouts.SUPPORTED_VERSION_6884, outer::get), path.toString());
+                        absorbed++;
+                        continue;
+                    }
                     Map<String, byte[]> classes = read(zip);
                     assertTrue(VaultLootCdfLayouts.supports(VaultLootCdfLayouts.SUPPORTED_VERSION, classes::get), path.toString());
                     assertTrue(VaultLootCdfLayouts.supports(VaultLootCdfLayouts.SUPPORTED_VERSION_6884, classes::get), path.toString());
@@ -32,7 +44,8 @@ class VaultLootCdfLayoutsTest {
                 }
             }
         }
-        assertEquals(8, archives, "all local Vault compatibility fixtures are required");
+        assertEquals(9, archives, "all local Vault compatibility fixtures are required");
+        assertEquals(2, absorbed, "the Vault 7209 and 7210 fixtures are required");
     }
 
     @Test

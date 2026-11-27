@@ -69,6 +69,7 @@ public final class GateFactsDiscovery {
             b.targetDummySetupFix = ModPresence.hasVersion(modList, "dummmmmmy", "1.18-1.5.2")
                     && TargetDummySetupFix.enabled();
             b.modernFixLoaded = modList != null && modList.getModFileById("modernfix") != null;
+            b.architecturyLoaded = modList != null && modList.getModFileById("architectury") != null;
             b.ctmInstalled = modList != null && modList.getModFileById("ctm") != null;
             b.buildScapeInstalled = modList != null
                     && modList.getModFileById("buildscape") != null;
@@ -160,6 +161,8 @@ public final class GateFactsDiscovery {
                     b.jeiGeneration = 9;
                 }
                 b.vaultCascadeScan = b.vaultHuntersLoaded && ModPresence.vaultStillScansCascadeStacks(modList);
+                b.vaultEventDispatchCopies = b.vaultHuntersLoaded && ModPresence.vaultEventDispatchCopies(modList);
+                b.vaultEmptyItemStackFixed = b.vaultHuntersLoaded && ModPresence.vaultEmptyItemStackFixed(modList);
                 b.powahLoaded = modList != null && modList.getModFileById("powah") != null;
                 b.jeiTweakerLoaded =
                         modList != null && modList.getModFileById("jeitweaker") != null;
@@ -229,6 +232,8 @@ public final class GateFactsDiscovery {
                         "xaeroworldmap",
                         "1.39.12"
                 );
+                b.xaeroMinimapLoaded = modList.getModFileById("xaerominimap") != null;
+                b.xaeroWorldMapLoaded = modList.getModFileById("xaeroworldmap") != null;
                 b.farsightLoaded = FarsightBoundOwner.farsightLoaded(modList);
                 b.vroOwnsFarsightBound = FarsightBoundOwner.vroOwnsBound(modList);
             }
@@ -283,6 +288,8 @@ public final class GateFactsDiscovery {
             b.renderOptimizationLoaded = true;
             b.xaeroMinimapCompatible = false;
             b.xaeroWorldMapCompatible = false;
+            b.xaeroMinimapLoaded = false;
+            b.xaeroWorldMapLoaded = false;
             b.farsightLoaded = false;
             LOGGER.debug("Loaded mods could not be queried during mixin selection", exception);
         }

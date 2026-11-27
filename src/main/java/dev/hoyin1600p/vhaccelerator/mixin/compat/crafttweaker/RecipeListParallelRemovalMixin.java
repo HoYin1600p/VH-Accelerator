@@ -52,8 +52,13 @@ public abstract class RecipeListParallelRemovalMixin<T extends Recipe<?>> {
     private static <K, R> boolean vhaccelerator$dispatch(Map<K, R> recipes, Map<K, ? super R> byName,
             Predicate<R> recipePredicate, BooleanSupplier indexed, BooleanSupplier legacyAllowed) {
         if (indexed.getAsBoolean()) return true;
+        String predicateName = recipePredicate.getClass().getName();
         if (!legacyAllowed.getAsBoolean() || recipes.size() < 2_048
-                || !recipePredicate.getClass().getName().startsWith("com.blamejared.crafttweaker.api.")) return false;
+                || !predicateName.startsWith("com.blamejared.crafttweaker.api.")
+                || predicateName.startsWith(
+                        "com.blamejared.crafttweaker.api.action.recipe.ActionRemoveRecipeByOutputInput")) {
+            return false;
+        }
         List<K> matches = recipes.entrySet().parallelStream()
                 .filter(entry -> recipePredicate.test(entry.getValue()))
                 .map(Map.Entry::getKey)

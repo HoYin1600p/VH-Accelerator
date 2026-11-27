@@ -145,4 +145,73 @@ class KubeJsParallelFilterEqualityTest {
         assertFalse(KubeJsParallelFilters.isParallelSafe(mixed));
         assertTrue(KubeJsParallelFilters.isParallelSafe(RecipeFilter.of(map("mod", "mod1"))));
     }
+
+    @Test
+    void idReadingFiltersFallBackToSequentialWhenAnyRecipeHasNullId() throws Exception {
+        List<RecipeJS> withNullId = new ArrayList<>();
+        RecipeJS assigned = new ShapelessRecipeJS();
+        assigned.id = new ResourceLocation("mod1", "assigned");
+        assigned.type = type("minecraft:crafting_shapeless");
+        assigned.json = new JsonObject();
+        RecipeJS unassigned = new ShapelessRecipeJS();
+        unassigned.id = null;
+        unassigned.type = type("minecraft:crafting_shapeless");
+        unassigned.json = new JsonObject();
+        withNullId.add(assigned);
+        withNullId.add(unassigned);
+
+        RecipeFilter idFilter = RecipeFilter.of(map("id", "mod1:assigned"));
+        RecipeFilter regexIdFilter = RecipeFilter.of(map("id", "/mod1:.*/"));
+        RecipeFilter modFilter = RecipeFilter.of(map("mod", "mod1"));
+        RecipeFilter typeFilter = RecipeFilter.of(map("type", "minecraft:crafting_shapeless"));
+
+        assertFalse(KubeJsParallelFilters.canParallelizeRecipeFilter(withNullId, idFilter));
+        assertFalse(KubeJsParallelFilters.canParallelizeRecipeFilter(withNullId, regexIdFilter));
+        assertFalse(KubeJsParallelFilters.canParallelizeRecipeFilter(withNullId, modFilter));
+        assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(withNullId, typeFilter));
+        assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, idFilter));
+        assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, modFilter));
+    }
+
+    @Test
+    void mapFieldsInsideFiltersAreInspectedForUnsafePredicates() {
+        AndFilter filter = new AndFilter();
+        // Store a map containing a custom Predicate inside a filter list to ensure map entries are inspected.
+        Map<String, Object> unsafeMap = Map.of("cb", (java.util.function.Predicate<Object>) o -> true);
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        List raw = filter.list;
+        raw.add(unsafeMap);
+        assertFalse(KubeJsParallelFilters.isParallelSafe(filter));
+    }
+
+    @Test
+    void originalRecipeFilterSettingBlocksParallelItemMatching() throws Exception {
+        dev.latvian.mods.kubejs.server.ServerSettings previous =
+                dev.latvian.mods.kubejs.server.ServerSettings.instance;
+        try {
+            dev.latvian.mods.kubejs.server.ServerSettings settings =
+                    new dev.latvian.mods.kubejs.server.ServerSettings();
+            settings.useOriginalRecipeForFilters = true;
+            dev.latvian.mods.kubejs.server.ServerSettings.instance = settings;
+
+            Field unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            sun.misc.Unsafe unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+            Object outputFilter = unsafe.allocateInstance(
+                    dev.latvian.mods.kubejs.recipe.filter.OutputFilter.class);
+            Object inputFilter = unsafe.allocateInstance(
+                    dev.latvian.mods.kubejs.recipe.filter.InputFilter.class);
+
+            assertFalse(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, outputFilter));
+            assertFalse(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, inputFilter));
+            assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(
+                    recipes, RecipeFilter.of(map("mod", "mod1"))));
+
+            settings.useOriginalRecipeForFilters = false;
+            assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, outputFilter));
+            assertTrue(KubeJsParallelFilters.canParallelizeRecipeFilter(recipes, inputFilter));
+        } finally {
+            dev.latvian.mods.kubejs.server.ServerSettings.instance = previous;
+        }
+    }
 }

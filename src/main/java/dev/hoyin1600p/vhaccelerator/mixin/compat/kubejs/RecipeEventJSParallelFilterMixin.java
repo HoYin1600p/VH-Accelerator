@@ -1,6 +1,7 @@
 package dev.hoyin1600p.vhaccelerator.mixin.compat.kubejs;
 
 import dev.hoyin1600p.vhaccelerator.compat.kubejs.KubeJsParallelFilters;
+import dev.hoyin1600p.vhaccelerator.compat.kubejs.KubeJsRecipeIndex;
 import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
 import dev.latvian.mods.kubejs.recipe.RecipeJS;
 import dev.latvian.mods.kubejs.recipe.filter.RecipeFilter;
@@ -14,10 +15,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Evaluates data-only recipe filters on the common pool, then hands the
- * matches to the consumer on the calling thread in the original order, so
- * removes, stages and script callbacks see exactly what the sequential scan
- * produced. See KubeJsParallelFilters.
+ * Evaluates data-only internal recipe filters ({@code remove}, {@code stage})
+ * on the common pool, then hands the matches to the consumer on the calling
+ * thread in the original order. User script {@code forEachRecipe} callbacks
+ * keep KubeJS's sequential loop so callbacks that mutate later recipes or
+ * abort early keep exact original semantics. See KubeJsParallelFilters.
  */
 @Mixin(value = RecipeEventJS.class, remap = false)
 public abstract class RecipeEventJSParallelFilterMixin {
@@ -35,7 +37,8 @@ public abstract class RecipeEventJSParallelFilterMixin {
                 || filter == RecipeFilter.ALWAYS_TRUE
                 || filter == RecipeFilter.ALWAYS_FALSE
                 || originalRecipes.size() < 2_048
-                || !KubeJsParallelFilters.isParallelSafe(filter)) {
+                || !KubeJsRecipeIndex.isInternalConsumer(consumer)
+                || !KubeJsParallelFilters.canParallelizeRecipeFilter(originalRecipes, filter)) {
             return;
         }
         List<RecipeJS> matches = KubeJsParallelFilters.matchesInOrder(originalRecipes, filter);

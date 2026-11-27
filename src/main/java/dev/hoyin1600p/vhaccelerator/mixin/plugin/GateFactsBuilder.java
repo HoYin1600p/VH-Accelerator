@@ -65,14 +65,19 @@ final class GateFactsBuilder {
     boolean arsNouveauGeckoLib;
     boolean everyCompatPackCache;
     boolean vaultCascadeScan;
+    boolean vaultEventDispatchCopies;
+    boolean vaultEmptyItemStackFixed;
     boolean xaeroMinimapCompatible;
     boolean xaeroWorldMapCompatible;
+    boolean xaeroMinimapLoaded;
+    boolean xaeroWorldMapLoaded;
     boolean farsightLoaded;
     boolean vroOwnsFarsightBound;
     boolean physicalClient;
     boolean targetDummySetupFix;
     boolean smoothBootPriorityRestore;
     boolean skipReturningPlayerSpawnSearch;
+    boolean architecturyLoaded;
 
     GateFacts build() {
         return new GateFacts(this);

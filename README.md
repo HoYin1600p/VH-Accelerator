@@ -92,9 +92,9 @@ mod behavior remain on their established threads.
 | Forge | `40.3.11` through `40.x` |
 | Java toolchain | Java 17 bytecode |
 | Environment | Clients and dedicated servers; pack-specific test conditions in the release notes |
-| Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, and `.6883` baselines |
-| Vault Hunters official | `3.21.5.6882` and `3.21.6.6884` baselines |
-| Wolds Vaults | Packs `0.32.2`, `0.33.0`, `0.34.1` and `0.34.3`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
+| Vault Hunters Remastered | `20.0.3-remastered`, `.6872`, `.6883`, `22.0.0-remastered.7209`, and `22.0.1-remastered.7237` baselines |
+| Vault Hunters official | `3.21.5.6882`, `3.21.6.6884`, and `3.22.0.7210` baselines |
+| Wolds Vaults | Packs `0.32.2`, `0.33.0`, `0.34.1`, `0.34.2` and `0.34.3`; Vault `3.21.5.6573` and `3.21.6.6884` baselines |
 | Custom MVP | `3.21.62` baseline |
 | Asgard | Its own `3.21.62` build baseline |
 | JEI | `9.7.2.1001`, `10.2.1.1006`, and `10.2.1.1009` |

@@ -241,6 +241,7 @@ public final class ConfigSettingCatalog {
         add(settings, "ironFurnacesPrecompileFrameBudgetMillis", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "optimizeIndustrialForegoingStoneWorkJeiRecipes", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", false, null);
         add(settings, "deferXaeroOnlineChecks", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", true, null);
+        add(settings, "suppressXaeroUpdateScreen", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", true, null);
         add(settings, "boundFarsightChunkRetention", Category.COMPAT, Storage.CLIENT_TOML, "compatibility", false, null);
 
         // Memory

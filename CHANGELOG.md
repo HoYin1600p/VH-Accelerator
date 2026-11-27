@@ -5,6 +5,38 @@ All notable changes to VH Accelerator are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-11-27
+
+Vault Hunters 22.0.x compatibility handoffs, Xaero update-screen suppression, KubeJS/CraftTweaker concurrency fixes, and November 2026 ModernFix backports.
+See [1.2.1 release notes](docs/releases/1.2.1.md) for the complete `v1.2.0...v1.2.1` technical diff, settings table, and verification summary.
+
+### Added
+
+- Xaero's Minimap and World Map no longer take over the title screen with their update notice (`suppressXaeroUpdateScreen`, default on). Vault Hunters packs can't update Xaero, so the notice only blocked players. While the setting is on, VHA treats Xaero's "allow internet access" setting as off (Xaero skips its online version and Patreon checks, so no notice can appear and nothing is downloaded at launch) and blocks the notice itself. The Xaero config file is not changed, and Xaero Patreon supporter perks do not load. This applies even when VHA's optimizations are switched off, because it is a compatibility fix.
+- Three guarded November 2026 ModernFix backports (all default on, restart required, yielding to ModernFix and Compare Mode):
+  - **Faster server biome lookups (`backports.fasterBiomeLookups`, common):** checks `ServerChunkCache.getChunkNow` for an already-loaded `FULL` chunk before falling back to `ChunkStatus.BIOMES` in `ServerLevel.getNoiseBiome`.
+  - **Cached Architectury event invokers (`backports.cacheArchitecturyEventInvokers`, common, optional Architectury):** caches adapted `MethodHandle` invokers for `dev.architectury.event.EventFactory.invokeMethod` instead of unreflecting and adapting a fresh handle on every listener call (verified against Architectury `4.11.93` and `4.12.94`).
+  - **Shared OSHI `SystemInfo` (`backports.shareOshiSystemInfo`, common/client):** shares one lazily constructed `oshi.SystemInfo` across `GLX._init` and `SystemReport`, avoiding redundant platform/WMI hardware probes at launch and during crash/debug reports.
+
+### Changed
+
+- Checked against The Vault Remastered 22.0.0 (pre-release build 7152): every compatibility mixin target still resolves, and VHA compiles against it. That build caches Vault event listeners itself, so VHA's own Vault event listener snapshot (`snapshotVaultEventListeners`) now stays off when Vault has its own cache and Vault's code runs instead. Older Vault builds keep VHA's snapshot as before.
+- Checked against The Vault Remastered 22.0.0 build 7209 and The Vault 3.22.0 build 7210. Both cache Vault event listeners themselves, so VHA's snapshot stays off there too. Both also replace the loot rarity distribution (`TieredLootTableGenerator.CDF`) with Vault's own `TieredLootRarityTables`, so VHA's loot CDF hooks stay off on those builds and Vault's code runs. Every other Vault compatibility fix still applies unchanged, and older Vault builds keep all of VHA's fixes.
+- Checked against The Vault Remastered 22.0.1 build 7237. That build indexes cascade modifier stacks itself (`Modifiers$StackIndex` / `stacksOf()`) and keeps `ItemStack.EMPTY` free of entity references (`MixinItemStack.keepEmptyStacksFreeOfEntityLinks`), so VHA leaves those two fixes to Vault on 7237 and keeps them for older builds. Every other Vault compatibility fix still applies unchanged.
+
+### Fixed
+
+- KubeJS parallel recipe filters (`parallelKubeJsRecipeFilters`):
+  - Restricted parallel pre-filtering to KubeJS's own internal consumers (`remove` and `stage`), keeping script `forEachRecipe` callbacks strictly sequential.
+  - Inspected `Map` entries and `Object[]` arrays recursively inside `KubeJsParallelFilters` instead of assuming map-backed filter fields are worker-safe.
+  - Kept ID and mod filters sequential whenever any recipe has a null ID, avoiding concurrent races on KubeJS's unsynchronized MD5 helper (`UtilsJS.getUniqueId()`).
+  - Kept input and output filters sequential when KubeJS's `useOriginalRecipeForFilters` setting is enabled so custom mod `Recipe` implementations are never called off-thread.
+  - Warmed up lazy `ItemStackJS.getList()` and `TagIngredientJS.getHolders()` caches on the calling thread before parallel evaluation.
+- KubeJS JEI hiding (`HideJEIEventJSMixin`): restricted fast-path handling to KubeJS's own JEI item-matcher lambda so custom script hide functions stay untouched, and warmed ingredient caches on the calling thread before parallel matching.
+- KubeJS resource-pack existence cache (`KubeJSResourcePackExistsMixin`): resolved `KubeJSPaths.DIRECTORY` first (falling back to `gameDirectory/kubejs`) and avoided caching an empty listing before the pack folder exists.
+- CraftTweaker parallel recipe removal (`parallelCraftTweakerRecipeRemoval`): kept `ActionRemoveRecipeByOutputInput` on the calling thread so modded `Recipe.getIngredients()` and vanilla `Ingredient.dissolve()` are not invoked across worker threads.
+- Experimental `BlockState` lazy cache (`BlockStateMixin`): deferred clearing the deferred-cache flag until `initCache()` completes, using a per-instance initializing-thread guard so concurrent readers cannot observe a partially initialized cache.
+
 ## [1.2.0] - 2026-10-28
 
 Dedicated-server startup, memory and stability improvements, plus operator-only server settings.

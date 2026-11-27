@@ -19,6 +19,11 @@
     "default": true,
     "restart": true
   },
+  "backports.cacheArchitecturyEventInvokers": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
   "backports.compactEntityModels": {
     "category": "backports",
     "default": true,
@@ -75,6 +80,11 @@
     "restart": true
   },
   "backports.fastRegistryFreezeCheck": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.fasterBiomeLookups": {
     "category": "backports",
     "default": true,
     "restart": true
@@ -185,6 +195,11 @@
     "restart": true
   },
   "backports.serverEventLoopFix": {
+    "category": "backports",
+    "default": true,
+    "restart": true
+  },
+  "backports.shareOshiSystemInfo": {
     "category": "backports",
     "default": true,
     "restart": true

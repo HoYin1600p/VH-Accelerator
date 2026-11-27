@@ -117,7 +117,7 @@ class CompatibilityInventoryTest {
             case "ferritecore" -> group.contains(".mixin.client.") ? "minecraft=1.18.2; FerriteCore not required" : "ferritecore=4.2.2";
             case "kubejs" -> "kubejs=1802.5.5-build.569";
             case "copycats" -> "copycats:presence";
-            case "leaks" -> "minecraft=1.18.2";
+            case "leaks" -> "minecraft=1.18.2; ItemStackEmptyRepresentation steps aside when Vault MixinItemStack ships keepEmptyStacksFreeOfEntityLinks";
             case "targetdummy" -> "dummmmmmy=1.18-1.5.2";
             case "create" -> "create=0.5.1.i";
             case "geckolib" -> "geckolib3=3.0.57; ars_nouveau=2.9.0 for ArsNouveau member";
@@ -139,7 +139,7 @@ class CompatibilityInventoryTest {
             case "powah" -> "powah:presence";
             case "sophisticated" -> "the_vault:presence AND sophisticatedcore:presence";
             case "supplementaries" -> "the_vault:presence AND supplementaries:presence";
-            case "vaulthunters" -> "the_vault:presence; DecoratorCascadeRun additionally requires old modifier bytecode without getModifierGroup";
+            case "vaulthunters" -> "the_vault:presence; DecoratorCascadeRun additionally requires old modifier bytecode without getModifierGroup or stacksOf";
             case "modelbake.Ae2ModelBakeMixin" -> "ae2:presence";
             case "modelbake.CableTiersModelBakeMixin" -> "cabletiers=1.18.2-0.56";
             case "modelbake.CloudStorageModelBakeMixin" -> "cloudstorage=1.1.0";

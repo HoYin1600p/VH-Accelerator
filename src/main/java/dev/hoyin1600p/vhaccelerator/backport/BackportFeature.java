@@ -623,6 +623,50 @@ public enum BackportFeature {
             true,
             List.of(),
             List.of()
+    ),
+    FASTER_BIOME_LOOKUPS(
+            "faster_biome_lookups",
+            "fasterBiomeLookups",
+            "Loaded-chunk server biome lookup fast path",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.faster_biome_lookups.ServerLevelMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "faster_biome_lookups.ServerLevelMixin"
+            )
+    ),
+    ARCHITECTURY_EVENT_DISPATCH(
+            "architectury_event_dispatch",
+            "cacheArchitecturyEventInvokers",
+            "Architectury event-invoker handle caching",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of("perf.architectury_event_dispatch.EventFactoryMixin"),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "architectury_event_dispatch.EventFactoryMixin"
+            )
+    ),
+    SHARED_OSHI_SYSTEM_INFO(
+            "shared_oshi_system_info",
+            "shareOshiSystemInfo",
+            "Shared OSHI SystemInfo instance",
+            BackportSide.COMMON,
+            true,
+            true,
+            List.of(
+                    "perf.background_system_info.SystemReportMixin",
+                    "perf.background_system_info.GLXMixin"
+            ),
+            List.of(
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "background_system_info.SystemReportMixin",
+                    "org.embeddedt.modernfix.common.mixin.perf."
+                            + "background_system_info.GLXMixin"
+            )
     );
 
     private final String id;

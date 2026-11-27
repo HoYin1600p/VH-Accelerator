@@ -16,6 +16,9 @@ public abstract class BlockStateMixin {
     @Unique
     private volatile boolean vhaccelerator$cacheDeferred;
 
+    @Unique
+    private volatile Thread vhaccelerator$initializingThread;
+
     @Inject(method = "initCache", at = @At("HEAD"), cancellable = true)
     private void vhaccelerator$deferCacheInitialization(CallbackInfo callback) {
         if (!ParallelBlockStateInitializer.isCollecting()) {
@@ -54,7 +57,7 @@ public abstract class BlockStateMixin {
 
     @Unique
     private void vhaccelerator$ensureCacheInitialized() {
-        if (!vhaccelerator$cacheDeferred) {
+        if (!vhaccelerator$cacheDeferred || vhaccelerator$initializingThread == Thread.currentThread()) {
             return;
         }
 
@@ -62,8 +65,13 @@ public abstract class BlockStateMixin {
             if (!vhaccelerator$cacheDeferred) {
                 return;
             }
-            vhaccelerator$cacheDeferred = false;
-            ((BlockBehaviour.BlockStateBase) (Object) this).initCache();
+            vhaccelerator$initializingThread = Thread.currentThread();
+            try {
+                ((BlockBehaviour.BlockStateBase) (Object) this).initCache();
+                vhaccelerator$cacheDeferred = false;
+            } finally {
+                vhaccelerator$initializingThread = null;
+            }
         }
     }
 }

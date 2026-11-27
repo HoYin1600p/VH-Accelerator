@@ -75,9 +75,17 @@ class ShippedCompatMixinPreflightTest {
             }
             MixinTargetPreflight.ClassLookup lookup = name -> find(name, archives);
             Map<String, Set<Boolean>> groupPresence = new HashMap<>();
+            // Vault 7209+ replaced the CDF with its own rarity tables; VaultLootCdfLayouts.supports
+            // rejects those builds, so the runtime gate skips the CDF mixins before the preflight.
+            boolean cdfAbsorbed = find(VaultLootCdfLayouts.CDF, archives) == null;
             int checked = 0;
             for (String mixin : configured) {
                 if (CompatMixinGroups.groupOf(mixin) == null) {
+                    continue;
+                }
+                if (cdfAbsorbed && (mixin.equals(VaultLootCdfLayouts.MIXIN)
+                        || mixin.equals(VaultLootCdfLayouts.LAZY_MIXIN)
+                        || mixin.equals(VaultLootCdfLayouts.LEGACY_CLIENT_MIXIN))) {
                     continue;
                 }
                 ClassNode node = MixinTargetPreflightTest.read(mixin.replace('.', '/'));

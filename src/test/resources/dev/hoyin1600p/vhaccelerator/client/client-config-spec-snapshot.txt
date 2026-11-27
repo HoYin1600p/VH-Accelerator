@@ -80,6 +80,7 @@ value compatibility.precompileIronFurnacesJeiRecipes | default=true | range=null
 value compatibility.ironFurnacesPrecompileFrameBudgetMillis | default=3 | range=1 ~ 8 | restart=false | translation=null | comment=Maximum main-thread time used by the smoking-list precompile per menu frame.\nThe default targets smooth menus while normally completing during server selection.\nRange: 1 ~ 8
 value compatibility.optimizeIndustrialForegoingStoneWorkJeiRecipes | default=true | range=null | restart=false | translation=null | comment=Builds Industrial Foregoing stonework combinations incrementally\nand gives JEI only the shortest equivalent path for each output.\nResults remain based on the active server recipe manager.
 value compatibility.deferXaeroOnlineChecks | default=true | range=null | restart=false | translation=null | comment=Moves Xaero's Minimap and World Map update/Patreon network checks\noff Forge's client-setup barrier and starts them on one low-priority\nworker after the first usable menu frame.\nUpdate metadata is still applied on Minecraft's client thread.\nCurrently enabled only for the explicitly validated Xaero versions.
+value compatibility.suppressXaeroUpdateScreen | default=true | range=null | restart=false | translation=null | comment=Xaero's Minimap and World Map open a full-screen update notice on the\ntitle screen when a newer version exists. Vault Hunters packs cannot\nupdate Xaero, so VH Accelerator stops it opening automatically.\nIt treats Xaero's "allow internet access" setting as off (Xaero skips\nits online version and Patreon checks, so no notice can appear and\nnothing is downloaded at launch) and blocks the notice itself. Your\nXaero config file is not changed. Xaero Patreon supporter perks do not\nload while this is on. This is a compatibility fix: it applies even\nwhen VH Accelerator's optimizations are switched off. The Xaero checks\nrun at launch, so a change takes effect after a restart.
 value compatibility.boundFarsightChunkRetention | default=true | range=null | restart=false | translation=null | comment=Forgets client chunks that the server already unloaded but Farsight keeps beyond\nmax(server view distance, render distance) + 1 chunks\nfrom the player, once per second. Each forget runs the\nvanilla chunk drop, light-engine release, and Embeddium\nrender-section removal that Farsight's cancelled packet\nhandler skips. Chunks within render distance stay loaded.\nOnly used when Farsight is installed and Vault Render\nOptimization, which owns this behavior when present, is not.
 value compatibility.deferVaultAtlasUploads | default=true | range=null | restart=false | translation=null | comment=Moves the initial Vault GUI texture-atlas uploads out of the\nresource-reload barrier and performs one upload per loading-overlay\nframe during Minecraft's fixed two-second fade.\nThe overlay remains visible until every queued atlas is ready,\nso the title screen and first world frame never see partial atlases.\nRuntime resource reloads retain Vault's original synchronous behavior.
 value compatibility.cacheVaultTooltips | default=true | range=null | restart=false | translation=null | comment=Caches Vault Hunters tooltip lookups by item and active locale.\nOnly used when both the client optimization master switch and The Vault are present.
@@ -199,6 +200,17 @@ value updates.updateTypes | default=CRITICAL | range=null | restart=false | tran
 	#index is published only after all prefixes complete.
 	#Any failure discards the private index and uses the sequential fallback.
 	parallelJeiSearchPrefixes = true
+	#Xaero's Minimap and World Map open a full-screen update notice on the
+	#title screen when a newer version exists. Vault Hunters packs cannot
+	#update Xaero, so VH Accelerator stops it opening automatically.
+	#It treats Xaero's "allow internet access" setting as off (Xaero skips
+	#its online version and Patreon checks, so no notice can appear and
+	#nothing is downloaded at launch) and blocks the notice itself. Your
+	#Xaero config file is not changed. Xaero Patreon supporter perks do not
+	#load while this is on. This is a compatibility fix: it applies even
+	#when VH Accelerator's optimizations are switched off. The Xaero checks
+	#run at launch, so a change takes effect after a restart.
+	suppressXaeroUpdateScreen = true
 	#Persists JEI's deterministic vanilla recipe-to-ingredient index.
 	#Cached string plans are restored only when the semantic recipe state,
 	#item tags, server configs, installed mod files, server,

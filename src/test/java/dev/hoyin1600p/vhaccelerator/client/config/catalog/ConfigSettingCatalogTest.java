@@ -212,6 +212,7 @@ class ConfigSettingCatalogTest {
         assertTrue(restart.get("asyncCrashReportPreload"), "asyncCrashReportPreload needs a restart");
         assertTrue(restart.get("asyncUserApiService"), "asyncUserApiService needs a restart");
         assertTrue(restart.get("attachCapabilitiesDispatch"), "attachCapabilitiesDispatch needs a restart");
+        assertTrue(restart.get("suppressXaeroUpdateScreen"), "suppressXaeroUpdateScreen needs a restart");
         assertTrue(restart.get("attributeSupplierDeduplication"), "attributeSupplierDeduplication needs a restart");
         assertTrue(restart.get("backgroundWorkerLimit"), "backgroundWorkerLimit needs a restart");
         assertTrue(restart.get("blockPropertyNameDeduplication"), "blockPropertyNameDeduplication needs a restart");

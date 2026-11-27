@@ -61,6 +61,10 @@ public abstract class KubeJSResourcePackExistsMixin {
             if (!this.vhaccelerator$listed) {
                 // kubejs/<assets|data>/<namespace>/<path>: list the pack-type folder.
                 Path typeRoot = vhaccelerator$typeRoot(file);
+                if (typeRoot != null && !Files.exists(typeRoot)) {
+                    // Do not lock in an empty listing before KubeJS creates the folder.
+                    return null;
+                }
                 this.vhaccelerator$files = typeRoot == null ? null : KubeJsPackFileIndex.create(typeRoot);
                 this.vhaccelerator$listed = true;
             }
@@ -70,11 +74,24 @@ public abstract class KubeJSResourcePackExistsMixin {
 
     @Unique
     private static Path vhaccelerator$typeRoot(Path file) {
-        Path kubejs = Minecraft.getInstance().gameDirectory.toPath().resolve("kubejs").normalize().toAbsolutePath();
+        Path kubejs = vhaccelerator$kubeJsDirectory();
         Path normalized = file.toAbsolutePath().normalize();
         if (!normalized.startsWith(kubejs) || normalized.getNameCount() <= kubejs.getNameCount()) {
             return null;
         }
         return kubejs.resolve(normalized.getName(kubejs.getNameCount()).toString());
+    }
+
+    @Unique
+    private static Path vhaccelerator$kubeJsDirectory() {
+        try {
+            Path configured = dev.latvian.mods.kubejs.KubeJSPaths.DIRECTORY;
+            if (configured != null) {
+                return configured.toAbsolutePath().normalize();
+            }
+        } catch (LinkageError | RuntimeException unavailable) {
+            // Fall back to the default instance kubejs directory.
+        }
+        return Minecraft.getInstance().gameDirectory.toPath().resolve("kubejs").normalize().toAbsolutePath();
     }
 }

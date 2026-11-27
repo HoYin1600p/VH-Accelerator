@@ -36,12 +36,13 @@ final class GateScenarios {
             "renderOptimizationLoaded", "releaseLevelPinningReferences",
             "copycatsLoaded", "parallelKubeJsFilters", "indexKubeJsRecipeRemovals", "asyncChunkDiskReads",
             "create051i", "geckoLib3057", "arsNouveauGeckoLib",
-            "everyCompatPackCache", "vaultCascadeScan",
+            "everyCompatPackCache", "vaultCascadeScan", "vaultEventDispatchCopies", "vaultEmptyItemStackFixed",
             "xaeroMinimapCompatible", "xaeroWorldMapCompatible",
+            "xaeroMinimapLoaded", "xaeroWorldMapLoaded",
             "farsightLoaded", "vroOwnsFarsightBound", "physicalClient",
             "targetDummySetupFix", "smoothBootPriorityRestore",
             "skipReturningPlayerSpawnSearch", "ae2ThingsStringSharing", "lootJsRegexShortCircuit", "thermalDeferredFuelLists", "indexObjectHolderDispatch", "lazyStatePropertyCodecs", "presizeBlockStateIdMap",
-            "launchShapeCache", "flatShapeMerger"
+            "launchShapeCache", "flatShapeMerger", "architecturyLoaded"
     );
 
     /** How the scripted ModernFix plugin answers option queries. */
